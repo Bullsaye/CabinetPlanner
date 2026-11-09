@@ -283,6 +283,17 @@ export function run(argv: readonly string[], io: Io): number {
             .filter((p) => !opts.part || p.id === opts.part)
             .flatMap((p) => partDxf(p, { W: v("W"), H: v("H"), D: v("D") }, DxfProfileSchema.parse(profile), meta));
         });
+      // Worktops and plinth panels (parts of ROOM, D31) belong to the project export.
+      if (!opts.cabinet || opts.cabinet === "ROOM") {
+        for (const p of result.room?.parts ?? []) {
+          if (opts.part && p.id !== opts.part) continue;
+          files.push(...partDxf(p, { W: p.box.dx, H: p.box.dy, D: p.box.dz }, DxfProfileSchema.parse(profile), meta));
+        }
+      }
+      if (files.length === 0 && (opts.part || opts.cabinet)) {
+        io.stderr((opts.part ? tr.t("cli.part_not_found", { part: opts.part }) : tr.t("cli.cabinet_not_found", { cabinet: opts.cabinet! })) + "\n");
+        return 1;
+      }
       if (opts.zip) {
         io.writeFile(opts.zip, zip(files.map((f) => ({ name: f.name, data: f.content }))));
         io.stderr(tr.t("cli.written", { file: `${opts.zip} (${files.length} DXF)` }) + "\n");
@@ -335,11 +346,12 @@ export function run(argv: readonly string[], io: Io): number {
         return 2;
       }
       const styleInput = [...FACTORY_STYLES, ...styles].reverse().find((x) => x.id === style.id)!;
-      const cab = result.cabinets.find((c) => c.resolved.cabinet.id === part.cabinet)!;
-      const v = (n: string): number => cab.resolved.values.get(n)!;
+      // Worktops and plinth panels belong to ROOM, not to a cabinet: their own box is the frame.
+      const cab = result.room?.parts.includes(part) ? undefined : result.cabinets.find((c) => c.resolved.cabinet.id === part.cabinet);
+      const v = (n: string): number => cab!.resolved.values.get(n)!;
       const sheets = drawPartSheets({
         part,
-        cabinet: { W: v("W"), H: v("H"), D: v("D") },
+        cabinet: cab ? { W: v("W"), H: v("H"), D: v("D") } : { W: part.box.dx, H: part.box.dy, D: part.box.dz },
         style,
         text: drawingText(tr, result.library, localName(styleInput.name, tr.locale)),
       });

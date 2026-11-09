@@ -122,6 +122,13 @@ describe("cli drawing", () => {
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "X99-SL"], bad)).toBe(1);
     expect(bad.err).toContain("not found");
   });
+
+  it("draws worktops and plinth panels (parts of ROOM, D31)", () => {
+    const io = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "ROOM-WT1"], io)).toBe(0);
+    expect(io.out).toMatch(/^<svg /);
+    expect(io.out).toContain("3600 × 600 × 38");
+  });
 });
 
 describe("cli dxf", () => {
@@ -134,6 +141,29 @@ describe("cli dxf", () => {
     expect(z.written["k.zip"]).toBeInstanceOf(Uint8Array);
     const bad = fakeIo();
     expect(run(["dxf", "examples/kitchen-basic.project.json", "--zip", "k.zip", "--profile", "nope"], bad)).toBe(2);
+  });
+
+  it("includes worktops and plinth panels in the project export (D31)", () => {
+    const io = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--out", "out"], io)).toBe(0);
+    expect(Object.keys(io.written)).toEqual(expect.arrayContaining(["out/ROOM-WT1.dxf", "out/ROOM-PL1.dxf"]));
+    expect(io.written["out/ROOM-WT1.dxf"]).toContain("3600 x 600 x 38 mm");
+    const one = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--part", "ROOM-WT1", "--out", "out"], one)).toBe(0);
+    expect(Object.keys(one.written)).toEqual(["out/ROOM-WT1.dxf"]);
+    const cab = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--cabinet", "B01", "--out", "out"], cab)).toBe(0);
+    expect(Object.keys(cab.written).some((f) => f.includes("ROOM"))).toBe(false);
+  });
+
+  it("fails when --part or --cabinet matches nothing instead of writing an empty export", () => {
+    const part = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--part", "B01-XX", "--zip", "k.zip"], part)).toBe(1);
+    expect(part.written).toEqual({});
+    expect(part.err).toContain("not found");
+    const cab = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--cabinet", "X9", "--out", "out"], cab)).toBe(1);
+    expect(cab.written).toEqual({});
   });
 });
 
