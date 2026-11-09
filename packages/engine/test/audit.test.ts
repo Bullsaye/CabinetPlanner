@@ -62,3 +62,43 @@ describe("connectors on upright rails", () => {
     }
   });
 });
+
+describe("rear rail at the bottom with a back panel", () => {
+  const sink = (rail: string, back: string) =>
+    buildOne({ vars: { W: 800, bottom_setback_rear: 120 }, options: { "rail.bottom": rail, back_mount: back } });
+
+  it("grooves (or rebates) a flat bottom rail for the back", () => {
+    for (const back of ["groove", "rebate"]) {
+      const r = sink("flat", back);
+      expect(errors(r)).toEqual([]);
+      const p = partsByCode(r);
+      // The back reaches into the rail like into a bottom …
+      expect(p.BK!.box.y).toBeLessThan(p.RB!.box.y + p.RB!.box.dy);
+      // … so the rail carries the same pocket as the sides.
+      const pocket = p.RB!.operations.find((o) => o.kind === "pocket" && o.sources[0]!.kind === "back");
+      expect(pocket, back).toBeDefined();
+      const side = p.SL!.operations.find((o) => o.kind === "pocket" && o.sources[0]!.kind === "back")!;
+      if (pocket?.kind === "pocket" && side.kind === "pocket") {
+        expect(pocket.w1 - pocket.w0, back).toBeCloseTo(side.w1 - side.w0, 6);
+        expect(pocket.v1 - pocket.v0, back).toBeCloseTo(side.v1 - side.v0, 6);
+      }
+    }
+  });
+
+  it("stands an upright bottom rail in front of the back, not in its place", () => {
+    for (const back of ["groove", "rebate", "surface", "none"]) {
+      const r = sink("upright", back);
+      expect(errors(r), back).toEqual([]);
+      const p = partsByCode(r);
+      const bk = p.BK?.box;
+      if (bk) expect(p.RB!.box.z, back).toBeGreaterThanOrEqual(bk.z + bk.dz);
+      expect(p.RB!.box.z + p.RB!.box.dz, back).toBeLessThanOrEqual(p.BO!.box.z);
+      expect(p.SL!.operations.some((o) => o.sources.some((s) => s.ref === "SL-RB")), back).toBe(true);
+    }
+  });
+
+  it("asks for the bottom to clear an upright rail that stands in front of the back", () => {
+    const r = buildOne({ vars: { W: 800, bottom_setback_rear: 19 }, options: { "rail.bottom": "upright" } });
+    expect(r.diagnostics.find((d) => d.code === "bottom_rail_overlap")?.params).toEqual({ need: 37, setback: 19 });
+  });
+});

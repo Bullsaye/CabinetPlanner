@@ -652,3 +652,14 @@ Two shop settings, because they are used for different things:
   every kink. Below `ceiling_filler_min` it is left out (warning).
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
+
+### D45 · 2026-11-09 · Corrections from the rule audit
+
+Refinements of earlier decisions where the output was geometrically wrong;
+the earlier entries stay as written.
+
+- Rear rail at the bottom (D41): a flat rail carries the back's groove or
+  rebate like a bottom does. An upright rail stands in front of the back
+  (at the back's front face, like the upright rear rail at the top), so
+  the bottom must be shortened by the back's offset plus the rail
+  thickness.

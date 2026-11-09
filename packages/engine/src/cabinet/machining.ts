@@ -118,7 +118,11 @@ export function machineBox(
     // Back behind the horizontals: grooves/rebates only in the sides, full height.
     const behind = opt<string>("back_extent") === "behind_horizontals";
     const hosts = parts.filter((p) =>
-      behind ? p.role === "side_left" || p.role === "side_right" : ["side_left", "side_right", "bottom", "top", "fixed_shelf"].includes(p.role),
+      behind
+        ? p.role === "side_left" || p.role === "side_right"
+        : ["side_left", "side_right", "bottom", "top", "fixed_shelf"].includes(p.role) ||
+          // A flat rear rail at the bottom holds the back where the shortened bottom no longer does.
+          (p.role === "rail_bottom" && thicknessAxis(p.lengthAxis, p.widthAxis) === "y"),
     );
     for (const back of parts.filter((p) => p.role === "back")) {
       const b = back.box;

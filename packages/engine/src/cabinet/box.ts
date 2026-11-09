@@ -329,12 +329,14 @@ export function buildBox(
   const rb = opt<"none" | "flat" | "upright">("rail.bottom");
   if (rb !== "none") {
     const bw = num("rail_bottom_w");
-    const depth = rb === "flat" ? bw : t;
+    // An upright rail stands in front of the back, like the upright rear rail at the top.
+    const railZ = rb === "flat" ? hz0 : backFrontZ;
+    const depth = rb === "flat" ? bw : railZ - hz0 + t;
     if (depth > bsRear + 1e-6) {
       diagnostics.push({ severity: "error", code: "bottom_rail_overlap", params: { need: roundMm(depth), setback: roundMm(bsRear) }, cabinet: cab });
     }
     if (rb === "flat") add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: bw }, "x", "z", "material.carcase", none);
-    else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
+    else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: railZ, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
   }
 
   // --- Middle panels -----------------------------------------------------------
