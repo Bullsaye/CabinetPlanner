@@ -754,6 +754,7 @@ export const en = {
   "option.back_mount.none": "No back",
   "role.rail_bottom": "Bottom rail",
   "diag.upright_rail_needs_sides_over": "Upright rail {rail} needs sides running full height.",
+  "diag.upright_rails_too_high": "Upright rails are too high for a carcase of {height} mm (by {over} mm).",
   "diag.bottom_rail_overlap": "The bottom rail needs the bottom shortened by {need} mm at the rear (now {setback}).",
   "ui.top_and_bottom": "Top and bottom",
   "ui.formula_hint": "Sizes may be formulas over the cabinet (e.g. D / 3, rail_w + 20), so a template fits every size.",

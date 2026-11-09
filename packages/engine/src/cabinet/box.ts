@@ -346,6 +346,10 @@ export function buildBox(
   const uprightTop = top === "rails" && (opt<string>("rail.front") === "upright" || opt<string>("rail.rear") === "upright");
   const interiorTop = H - (uprightTop ? Math.max(t, num("rail_w")) : t);
   const interiorBottom = rb === "upright" ? Math.max(t, num("rail_bottom_w")) : t;
+  // Upright rails as high as the carcase (or higher) would run through the bottom or each other.
+  if ((uprightTop || rb === "upright") && interiorTop < interiorBottom - 1e-6) {
+    diagnostics.push({ severity: "error", code: "upright_rails_too_high", params: { height: H, over: roundMm(interiorBottom - interiorTop) }, cabinet: cab });
+  }
 
   // --- Middle panels -----------------------------------------------------------
   // Vertical panels between bottom and top, in front of the back, dividing

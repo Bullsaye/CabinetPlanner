@@ -734,6 +734,7 @@ export const de: Record<MessageKey, string> = {
   "option.back_mount.none": "Keine Rückwand",
   "role.rail_bottom": "Untere Traverse",
   "diag.upright_rail_needs_sides_over": "Stehende Traverse {rail} braucht durchgehende Seiten.",
+  "diag.upright_rails_too_high": "Stehende Traversen sind für {height} mm Korpushöhe zu hoch (um {over} mm).",
   "diag.bottom_rail_overlap": "Die untere Traverse braucht den Boden hinten um {need} mm gekürzt (jetzt {setback}).",
   "ui.top_and_bottom": "Oben und unten",
   "ui.formula_hint": "Maße dürfen Formeln über den Schrank sein (z. B. D / 3, rail_w + 20), damit eine Vorlage für jede Größe passt.",

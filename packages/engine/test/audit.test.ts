@@ -282,6 +282,11 @@ describe("upright rails and the interior", () => {
     expect(errors(buildOne({ vars: { W: 600, H: 300, shelf_count: 3, door_count: 0 }, options: { top: "full" } }))).toEqual([]);
   });
 
+  it("refuses upright rails higher than the carcase leaves room for", () => {
+    const r = buildOne({ vars: { W: 600, H: 154, rail_w: 199, door_count: 0, shelf_count: 0 }, options: upright });
+    expect(r.diagnostics.find((d) => d.code === "upright_rails_too_high")?.params).toEqual({ height: 154, over: 64 });
+  });
+
   it("refuses a fixed shelf in the height of an upright rail", () => {
     const r = buildOne({ vars: { W: 600 }, options: upright, fronts: [{ type: "open", h: 60 }, { type: "door" }] });
     expect(errors(r)).toContain("fixed_shelf_outside");
