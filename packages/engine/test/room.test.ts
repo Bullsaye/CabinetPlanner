@@ -59,6 +59,19 @@ describe("room layout (D28)", () => {
     expect(w.ok).toBe(true); // room findings never block parts
   });
 
+  it("never makes a plinth panel or worktop of zero or negative length", () => {
+    // A unit standing wholly past the wall's end: warned, but no part may come out with a negative length.
+    const past = build([{ id: "B01", type: "box", place: { wall: "A", x: 4000 } }]);
+    expect(past.diagnostics.map((d) => d.code)).toContain("room_cabinet_outside_wall");
+    expect(past.room!.parts.filter((q) => !(q.length > 0))).toEqual([]);
+    expect(past.room!.plinths).toEqual([]);
+    for (const length of [0, -500]) {
+      const r = build([{ id: "B01", type: "box", place: { wall: "A" } }], { walls: [{ id: "A", length }] });
+      expect(r.diagnostics).toContainEqual({ severity: "error", code: "room_value_invalid", params: { what: "wall A length", expr: String(length) } });
+      expect(r.room!.parts.filter((q) => !(q.length > 0))).toEqual([]);
+    }
+  });
+
   it("draws a floor plan and elevations", () => {
     const r = build([
       { id: "B01", type: "box", place: { wall: "A" }, options: { "hardware.handle": "generic-bar-128" } },

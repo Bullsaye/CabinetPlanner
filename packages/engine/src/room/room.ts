@@ -233,7 +233,15 @@ export function layoutRoom(
   let p: Vec2 = [0, 0];
   let d: Vec2 = [1, 0];
   room.walls.forEach((w, i) => {
-    const length = num(w.length, `wall ${w.id} length`);
+    let length = num(w.length, `wall ${w.id} length`);
+    if (!(length > 0)) {
+      // A wall needs a length: 0 or less would give panels of negative length.
+      // (An expression that does not evaluate was already reported by num.)
+      if (evalIn(w.length, projectValues) !== undefined) {
+        diagnostics.push({ severity: "error", code: "room_value_invalid", params: { what: `wall ${w.id} length`, expr: String(w.length) } });
+      }
+      length = 0;
+    }
     const n: Vec2 = [d[1] + 0, -d[0] + 0]; // right of the direction (+0 clears -0)
     const end: Vec2 = [roundMm(p[0] + d[0] * length), roundMm(p[1] + d[1] * length)];
     walls.push({
@@ -515,6 +523,7 @@ function layoutWorktops(
           prevPanel.x1 = roundMm(prev!.length - front);
         }
         const x1 = r.x1 >= wall.length - 1 ? wall.length : r.x1;
+        if (x1 - x0 < 1) continue; // run outside the wall: nothing to cut
         const panel: PlinthLayout = { id: "", wall: wall.id, x0: roundMm(x0), x1: roundMm(x1), front: roundMm(front), y: pl.floorGap, h: roundMm(r.key - pl.floorGap), t: pl.thickness };
         plinths.push(panel);
         if (x1 >= wall.length - 1) last.set(wall.id, panel);
