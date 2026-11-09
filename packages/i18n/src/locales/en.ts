@@ -410,6 +410,7 @@ export const en = {
   "diag.fixed_shelf_outside": "Fixed shelf {index} would lie outside the carcase interior.",
   "diag.hanging_too_low": "No room for the hat shelf and rail in {space} mm.",
   "diag.blind_too_wide": "The blind panel ({blind} mm) leaves too little room for the door.",
+  "diag.blind_corner_two_doors": "A blind corner unit takes one door: with {doors} doors the one next to the blind panel has no side to hang on.",
   "diag.corner_with_drawers": "Corner settings apply to doors only; the drawers ignore them.",
   "room.plan": "Floor plan",
   "room.elevation": "Elevation",

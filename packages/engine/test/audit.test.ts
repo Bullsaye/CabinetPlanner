@@ -35,3 +35,12 @@ describe("middle panels at widths that do not divide evenly", () => {
     expect(r.parts.length).toBeGreaterThan(0);
   });
 });
+
+describe("blind corner units", () => {
+  it("refuses two doors beside the blind panel: the inner one has no side to hang on", () => {
+    const r = buildOne({ vars: { W: 1300, door_count: 2 }, options: { corner: "blind_left" } });
+    expect(errors(r)).toContain("blind_corner_two_doors");
+    // One door (hinged away from the blind panel) stays fine.
+    expect(errors(buildOne({ vars: { W: 1000, door_count: 1 }, options: { corner: "blind_left" } }))).toEqual([]);
+  });
+});

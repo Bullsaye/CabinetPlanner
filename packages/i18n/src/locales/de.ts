@@ -390,6 +390,7 @@ export const de: Record<MessageKey, string> = {
   "diag.fixed_shelf_outside": "Konstruktionsboden {index} läge außerhalb des Innenraums.",
   "diag.hanging_too_low": "Kein Platz für Hutboden und Stange in {space} mm.",
   "diag.blind_too_wide": "Die Blende ({blind} mm) lässt zu wenig Platz für die Tür.",
+  "diag.blind_corner_two_doors": "Ein Eckschrank mit Blende bekommt eine Tür: Bei {doors} Türen hat die Tür neben der Blende keine Seite für ihre Bänder.",
   "diag.corner_with_drawers": "Die Eckeinstellung gilt nur für Türen; die Schubkästen ignorieren sie.",
   "room.plan": "Grundriss",
   "room.elevation": "Ansicht",

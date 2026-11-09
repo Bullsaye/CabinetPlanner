@@ -654,6 +654,8 @@ export function buildBox(
           if (bw > W - num("door_min_w")) {
             diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
           }
+          // The door next to the blind panel would hinge on it: there is no carcase side to carry its hinges.
+          if (n > 1) diagnostics.push({ severity: "error", code: "blind_corner_two_doors", params: { doors: n }, cabinet: cab });
           const split = corner === "blind_right" ? W - bw : bw;
           const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gr - split - gap / 2 } : { x: gl, dx: split - gap / 2 - gl };
           add("blind_panel", fronts.indexOf(f) + 1, { x: panel.x, y: f.y0, z: D, dx: panel.dx, dy: h, dz: tFront }, "y", "x", "material.front", all);
