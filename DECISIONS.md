@@ -347,3 +347,25 @@ Two shop settings, because they are used for different things:
   chain, inner length and opening positions, wall names outside) and an
   elevation per wall seen from inside (fronts, handles, plinth, openings,
   width chains below/above, height chain on the left).
+
+### D29 · 2026-11-09 · Corner units and worktops
+
+- Blind corner (`corner: blind_left | blind_right`, base/tall/wall units
+  with doors): a fixed blind panel (role `blind_panel`, code BP, front
+  material, front gaps as doors) covers `blind_w` (default `worktop_d + 50`)
+  on the corner side; the doors cover the rest. A single door hinges on
+  the side away from the blind panel. Error `blind_too_wide` when less than
+  100 mm stay for the door; drawers ignore the setting (warning).
+- Inside corners: walls are filled in order. When the previous wall turns
+  right into this one, a floor (wall) unit run without explicit positions
+  starts behind the deepest floor (wall) unit that reaches the previous
+  wall's end, i.e. at its depth including fronts.
+- Worktops: one per run of base units on a wall that touch (gap ≤ 1 mm)
+  and share a top height; tall units interrupt a run. Depth `worktop_d`
+  from the wall, thickness `worktop_t` (from `material.worktop`), underside
+  on the carcase top. A run reaching a wall's end runs to the wall; in an
+  inside corner the earlier wall's worktop runs through and the next one
+  butts against its front edge. No overhang at open ends yet.
+- Worktops are parts of the pseudo cabinet `ROOM` (`ROOM-WT1` …), length
+  along the wall, no edgebanding, no machining; they appear on cutlists and
+  DXF exports like cabinet parts.

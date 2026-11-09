@@ -126,6 +126,11 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
       cabinets.filter((c) => c.parts.length > 0),
       new Map(project.cabinets.map((c) => [c.id, c.place])),
       probe.values,
+      {
+        material: probe.options.get("material.worktop")?.value as string,
+        depth: probe.values.get("worktop_d") ?? 600,
+        thickness: probe.values.get("worktop_t") ?? 38,
+      },
     );
     diagnostics.push(...room.diagnostics);
   }
@@ -133,7 +138,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     project,
     library,
     cabinets,
-    parts: cabinets.flatMap((c) => c.parts),
+    parts: [...cabinets.flatMap((c) => c.parts), ...(room?.parts ?? [])],
     diagnostics,
     ok,
     ...(room ? { room } : {}),

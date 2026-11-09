@@ -67,6 +67,57 @@
       }
     },
     {
+      "id": "B04",
+      "type": "box",
+      "kind": "base",
+      "name": "Sink base 750, two doors",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 750,
+        "door_count": 2,
+        "shelf_count": 0
+      },
+      "place": {
+        "wall": "A"
+      }
+    },
+    {
+      "id": "B05",
+      "type": "box",
+      "kind": "base",
+      "name": "Blind corner 1200",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 1200,
+        "door_count": 1
+      },
+      "options": {
+        "corner": "blind_right"
+      },
+      "place": {
+        "wall": "A"
+      }
+    },
+    {
+      "id": "B06",
+      "type": "box",
+      "kind": "base",
+      "name": "Base 600, door",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600
+      },
+      "place": {
+        "wall": "B"
+      }
+    },
+    {
       "id": "W01",
       "type": "box",
       "name": "Wall 800, two doors",

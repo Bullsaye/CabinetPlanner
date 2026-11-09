@@ -400,17 +400,37 @@ export function buildBox(
       const h = f.y1 - f.y0;
       if (f.type === "door") {
         const n = f.doors;
-        const doorW = (W - 2 * gs - (n - 1) * gap) / n;
+        // Blind corner: a fixed panel covers the blind side, doors the rest.
+        const corner = opt<"none" | "blind_left" | "blind_right">("corner");
+        let x0 = gs;
+        let x1 = W - gs;
+        if (corner !== "none") {
+          const bw = num("blind_w");
+          if (bw >= W - 100) {
+            diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
+          }
+          const split = corner === "blind_right" ? W - bw : bw;
+          const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gs - split - gap / 2 } : { x: gs, dx: split - gap / 2 - gs };
+          add("blind_panel", fronts.indexOf(f) + 1, { x: panel.x, y: f.y0, z: D, dx: panel.dx, dy: h, dz: tFront }, "y", "x", "material.front", all);
+          if (corner === "blind_right") x1 = split - gap / 2;
+          else x0 = split + gap / 2;
+        }
+        const doorW = (x1 - x0 - (n - 1) * gap) / n;
         for (let i = 1; i <= n; i++) {
           doorNo++;
-          const x = gs + (i - 1) * (doorW + gap);
+          const x = x0 + (i - 1) * (doorW + gap);
           add("door", doorNo, { x, y: f.y0, z: D, dx: doorW, dy: h, dz: tFront }, "y", "x", "material.front", all);
-          // One door: hinge side from the option. Two doors: hinged outwards.
-          const hinge = n === 1 ? opt<"left" | "right">("door_hinge_side") : i === 1 ? "left" : "right";
+          // One door: hinge side from the option (corner units: away from the blind side).
+          // Two doors: hinged outwards.
+          const single = corner === "blind_right" ? "left" : corner === "blind_left" ? "right" : opt<"left" | "right">("door_hinge_side");
+          const hinge = n === 1 ? single : i === 1 ? "left" : "right";
           doors.push({ code: `${ROLE_CODES.door}${doorNo}`, hinge });
         }
       } else {
         drawerNo++;
+        if (opt<string>("corner") !== "none" && drawerNo === 1) {
+          diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
+        }
         add("drawer_front", drawerNo, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "x", "y", "material.front", all);
         const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ }, add, diagnostics);
         if (d) drawers.push(d);

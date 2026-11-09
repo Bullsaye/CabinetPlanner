@@ -71,7 +71,8 @@ describe("room layout (D28)", () => {
     expect(plan).not.toMatch(/NaN|undefined/);
     const el = elevationSvg(r.room!, "A", r.cabinets, "R", text);
     expect(el).toContain('class="rm-handle"');
-    expect(el).toContain(">1450<".replace("1450", "630")); // gap between base top (820) and wall unit (1450)
+    expect(el).toContain(">38<"); // worktop, then the gap to the wall unit
+    expect(el).toContain(">592<"); // worktop top (858) to wall unit (1450)
     expect(el).not.toMatch(/NaN|undefined/);
   });
 });

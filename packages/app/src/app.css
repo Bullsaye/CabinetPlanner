@@ -135,6 +135,7 @@ table.grid td.n { text-align: right; font-family: var(--font-mono); font-variant
 .rm-cab { fill: var(--part); stroke: var(--fg); stroke-width: .3; }
 .rm-cab-wall { fill: none; stroke: var(--fg); stroke-width: .25; stroke-dasharray: 1.6 .9; }
 .rm-front { fill: color-mix(in srgb, var(--surface) 80%, var(--accent)); stroke: var(--fg); stroke-width: .2; }
+.rm-top { fill: color-mix(in srgb, var(--surface) 60%, #b08a4a); stroke: var(--fg); stroke-width: .3; }
 .rm-plinth { fill: var(--fg); opacity: .75; }
 .rm-handle { stroke: var(--fg); stroke-width: .5; }
 .rm-id, .rm-num { fill: var(--fg); font-family: var(--font-mono); }

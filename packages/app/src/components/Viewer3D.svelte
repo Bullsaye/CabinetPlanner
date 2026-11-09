@@ -85,7 +85,7 @@
       const selected = store.ui.selected === id;
       const centre = new THREE.Vector3(sc.size.W / 2, sc.size.H / 2, sc.size.D / 2);
       for (const p of sc.parts) {
-        const isFront = p.role === "door" || p.role === "drawer_front";
+        const isFront = p.role === "door" || p.role === "drawer_front" || p.role === "blind_panel";
         if (isFront && !store.ui.fronts) continue;
         const b = p.box;
         const pg = new THREE.Group();
@@ -167,6 +167,25 @@
         lines.quaternion.copy(mesh.quaternion);
         parent.add(lines);
       }
+    }
+    // Worktops: slabs on top of the base runs.
+    const topMat = new THREE.MeshLambertMaterial({ color: new THREE.Color("#c8b48f"), flatShading: true });
+    for (const wt of room.worktops) {
+      const w = room.walls.find((x) => x.id === wt.wall);
+      if (!w) continue;
+      const d = new THREE.Vector3(w.d[0], 0, -w.d[1]);
+      const n = new THREE.Vector3(w.n[0], 0, -w.n[1]);
+      const basis = new THREE.Matrix4().makeBasis(d, new THREE.Vector3(0, 1, 0), n);
+      basis.setPosition(w.start[0], 0, -w.start[1]);
+      const geo = new THREE.BoxGeometry(wt.x1 - wt.x0, wt.t, wt.depth);
+      const mesh = new THREE.Mesh(geo, topMat);
+      mesh.position.set((wt.x0 + wt.x1) / 2, wt.y + wt.t / 2, wt.depth / 2);
+      mesh.applyMatrix4(basis);
+      parent.add(mesh);
+      const lines = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge);
+      lines.position.copy(mesh.position);
+      lines.quaternion.copy(mesh.quaternion);
+      parent.add(lines);
     }
     if (room.closed) {
       const shape = new THREE.Shape(room.walls.map((w) => new THREE.Vector2(w.start[0], w.start[1])));

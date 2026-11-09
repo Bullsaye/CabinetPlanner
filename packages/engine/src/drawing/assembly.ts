@@ -77,9 +77,12 @@ function offset(role: PartRole, c: { W: number; H: number; D: number }, e: numbe
       return [0, 0, -0.5 * fwd * k];
     case "shelf":
       return [0, 0, 0.5 * fwd * k];
+    case "worktop":
+      return [0, 0.4 * c.H * k, 0];
     case "partition":
       return [0, 0.12 * c.H * k, 0.2 * fwd * k];
     case "door":
+    case "blind_panel":
     case "drawer_front":
       return [0, -0.08 * c.H * k, 1.25 * fwd * k];
     case "drawer_side_left":

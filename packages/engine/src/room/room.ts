@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Diagnostic } from "../diagnostics.ts";
 import { evaluateGraph } from "../graph.ts";
 import type { CabinetResult } from "../project.ts";
-import { roundMm } from "../part.ts";
+import { roundMm, type Part } from "../part.ts";
 
 /**
  * Room planning (DECISIONS.md D28). Plan coordinates: X east, Y north, mm,
@@ -61,6 +61,7 @@ export interface WallLayout {
   length: number;
   height: number;
   thickness: number;
+  turn: "right" | "left";
 }
 
 export interface OpeningLayout {
@@ -91,10 +92,35 @@ export interface CabinetPlacement {
   depth: number;
 }
 
+/** A worktop over a run of base units on one wall (D29). */
+export interface WorktopLayout {
+  id: string;
+  wall: string;
+  /** Along the wall from its start. */
+  x0: number;
+  x1: number;
+  depth: number;
+  /** Underside above the floor. */
+  y: number;
+  t: number;
+  /** Plan outline: rear-left, rear-right, front-right, front-left. */
+  outline: Vec2[];
+}
+
+/** Worktop settings, resolved from the project/shop layers. */
+export interface WorktopSettings {
+  material: string;
+  depth: number;
+  thickness: number;
+}
+
 export interface RoomLayout {
   walls: WallLayout[];
   openings: OpeningLayout[];
   placements: CabinetPlacement[];
+  worktops: WorktopLayout[];
+  /** Worktops as parts (cabinet "ROOM") for cutlists and CNC files. */
+  parts: Part[];
   /** Outline of the inner faces (closed when the walls close). */
   closed: boolean;
   diagnostics: Diagnostic[];
@@ -110,6 +136,7 @@ export function layoutRoom(
   cabinets: readonly CabinetResult[],
   placements: ReadonlyMap<string, PlacementInput | undefined>,
   projectValues: ReadonlyMap<string, number>,
+  worktop?: WorktopSettings,
 ): RoomLayout {
   const diagnostics: Diagnostic[] = [];
   const num = (v: string | number, what: string): number => {
@@ -140,6 +167,7 @@ export function layoutRoom(
       length,
       height: w.height === undefined ? roomH : num(w.height, `wall ${w.id} height`),
       thickness: w.thickness,
+      turn: w.turn,
     });
     p = end;
     d = w.turn === "right" ? [d[1] + 0, -d[0] + 0] : [-d[1] + 0, d[0] + 0];
@@ -162,9 +190,26 @@ export function layoutRoom(
   });
 
   // Cabinets: explicit positions, else next in the run of their wall and level.
+  // Walls are filled in order so a run can start behind the units of the
+  // previous wall in an inside corner (D29); cabinets keep project order per wall.
   const runEnd = new Map<string, number>(); // `${wall}|floor` or `${wall}|wall`
   const out: CabinetPlacement[] = [];
-  for (const c of cabinets) {
+  const wallOf = (c: CabinetResult): string => (placements.get(c.resolved.cabinet.id) ?? { wall: walls[0]!.id }).wall;
+  const order = cabinets
+    .map((c, i) => ({ c, i, w: wallById.get(wallOf(c))?.index ?? -1 }))
+    .sort((a, b) => a.w - b.w || a.i - b.i)
+    .map((e) => e.c);
+  const cornerStart = (wall: WallLayout, level: string): number => {
+    const prev = walls[wall.index - 1];
+    if (!prev || prev.turn !== "right") return 0;
+    let start = 0;
+    for (const q of out) {
+      if (q.wall !== prev.id || (q.kind === "wall" ? "wall" : "floor") !== level) continue;
+      if (q.x + q.W >= prev.length - 1) start = Math.max(start, q.depth);
+    }
+    return start;
+  };
+  for (const c of order) {
     const id = c.resolved.cabinet.id;
     const pl = placements.get(id) ?? { wall: walls[0]!.id };
     const wall = wallById.get(pl.wall);
@@ -176,10 +221,11 @@ export function layoutRoom(
     const kind = c.resolved.cabinet.kind;
     const level = kind === "wall" ? "wall" : "floor";
     const key = `${wall.id}|${level}`;
-    const x = pl.x !== undefined ? num(pl.x, `${id} position`) : (runEnd.get(key) ?? 0);
+    if (!runEnd.has(key)) runEnd.set(key, cornerStart(wall, level));
+    const x = pl.x !== undefined ? num(pl.x, `${id} position`) : runEnd.get(key)!;
     const W = v("W");
     runEnd.set(key, Math.max(runEnd.get(key) ?? 0, x + W));
-    const front = c.parts.filter((q) => q.role === "door" || q.role === "drawer_front");
+    const front = c.parts.filter((q) => q.role === "door" || q.role === "drawer_front" || q.role === "blind_panel");
     const depth = Math.max(v("D"), ...front.map((q) => q.box.z + q.box.dz));
     out.push({
       cabinet: id,
@@ -234,7 +280,76 @@ export function layoutRoom(
     }
   }
 
-  return { walls, openings, placements: out, closed, diagnostics };
+  const { worktops, parts } = worktop ? layoutWorktops(walls, out, worktop) : { worktops: [], parts: [] };
+  return { walls, openings, placements: out, worktops, parts, closed, diagnostics };
+}
+
+/**
+ * Worktops (D29): one per contiguous run of base units on a wall with the
+ * same top height. In an inside corner the earlier wall's worktop runs
+ * through to the wall; the next one butts against its front edge.
+ */
+function layoutWorktops(walls: readonly WallLayout[], placements: readonly CabinetPlacement[], s: WorktopSettings): { worktops: WorktopLayout[]; parts: Part[] } {
+  const worktops: WorktopLayout[] = [];
+  for (const wall of walls) {
+    const base = placements
+      .filter((q) => q.wall === wall.id && q.kind === "base")
+      .sort((a, b) => a.x - b.x);
+    const runs: { x0: number; x1: number; top: number }[] = [];
+    for (const q of base) {
+      const top = q.baseY + q.H;
+      const last = runs[runs.length - 1];
+      if (last && q.x <= last.x1 + 1 && Math.abs(last.top - top) < 1) last.x1 = Math.max(last.x1, q.x + q.W);
+      else runs.push({ x0: q.x, x1: q.x + q.W, top });
+    }
+    const prev = walls[wall.index - 1];
+    const prevTop = prev && prev.turn === "right" ? worktops.find((w) => w.wall === prev.id && w.x1 >= prev.length - 1) : undefined;
+    for (const r of runs) {
+      let x0 = r.x0;
+      let x1 = r.x1;
+      if (prevTop && x0 < prevTop.depth) x0 = prevTop.depth;
+      else if (x0 <= 1) x0 = 0;
+      if (x1 >= wall.length - 1) x1 = wall.length;
+      if (x1 - x0 < 1) continue;
+      const at = (x: number, z: number): Vec2 => [
+        roundMm(wall.start[0] + wall.d[0] * x + wall.n[0] * z),
+        roundMm(wall.start[1] + wall.d[1] * x + wall.n[1] * z),
+      ];
+      worktops.push({
+        id: `WT${worktops.length + 1}`,
+        wall: wall.id,
+        x0: roundMm(x0),
+        x1: roundMm(x1),
+        depth: s.depth,
+        y: roundMm(r.top),
+        t: s.thickness,
+        outline: [at(x0, 0), at(x1, 0), at(x1, s.depth), at(x0, s.depth)],
+      });
+    }
+  }
+  const parts: Part[] = worktops.map((w, i) => {
+    const length = roundMm(w.x1 - w.x0);
+    return {
+      id: `ROOM-${w.id}`,
+      code: w.id,
+      cabinet: "ROOM",
+      role: "worktop",
+      index: i + 1,
+      material: s.material,
+      length,
+      width: w.depth,
+      thickness: w.t,
+      cutLength: length,
+      cutWidth: w.depth,
+      lengthAxis: "x",
+      widthAxis: "z",
+      grain: false,
+      edges: { l1: null, l2: null, w1: null, w2: null },
+      box: { x: 0, y: 0, z: 0, dx: length, dy: w.t, dz: w.depth },
+      operations: [],
+    };
+  });
+  return { worktops, parts };
 }
 
 /** Cabinet coordinates → plan (x, y) and height, for a placed cabinet. */

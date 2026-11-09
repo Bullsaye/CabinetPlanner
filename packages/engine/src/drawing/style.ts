@@ -27,6 +27,8 @@ const Role = z.enum([
   "shelf",
   "partition",
   "door",
+  "blind_panel",
+  "worktop",
   "drawer_front",
   "drawer_side_left",
   "drawer_side_right",

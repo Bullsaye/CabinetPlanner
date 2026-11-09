@@ -51,6 +51,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "wall_bottom", group: "dimensions", unit: "mm", factory: 1450, min: 0, max: 2500, step: 10 }),
   v({ name: "tall_h", group: "dimensions", unit: "mm", factory: 2100, min: 300, max: 2800, step: 10 }),
   v({ name: "room_height", group: "dimensions", unit: "mm", factory: 2500, min: 1800, max: 6000, step: 10 }),
+  v({ name: "worktop_t", group: "dimensions", unit: "mm", factory: "mat_worktop_t", min: 10, max: 100 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),
@@ -96,6 +97,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "front_gap_top", group: "fronts", unit: "mm", factory: "front_gap", min: 0, max: 100 }),
   v({ name: "front_gap_bottom", group: "fronts", unit: "mm", factory: 0, min: -50, max: 100 }),
   v({ name: "front_gap_side", group: "fronts", unit: "mm", factory: "front_gap / 2", min: 0, max: 50 }),
+  v({ name: "blind_w", group: "fronts", unit: "mm", factory: "worktop_d + 50", min: 100, max: 1500, step: 10 }),
 
   // Hardware placement preferences (product data stays in the hardware items).
   v({ name: "hinge_end_offset", group: "hardware", unit: "mm", factory: 80, min: 20, max: 500, step: 5, quick: true }),
@@ -131,6 +133,7 @@ export const MATERIAL_CONSTANTS = {
   mat_front_t: "material.front",
   mat_drawer_t: "material.drawer",
   mat_drawer_bottom_t: "material.drawer_bottom",
+  mat_worktop_t: "material.worktop",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -196,11 +199,14 @@ export const OPTIONS: readonly OptionDef[] = [
   /** Wooden drawers without a system front fixing: screws through the inner front, or nothing drilled. */
   { key: "drawer_front.fixing", group: "drawers", kind: { type: "enum", values: ["screws", "none"] }, factory: "screws" },
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
+  /** Corner unit: which side is blind (hidden behind the perpendicular run). */
+  { key: "corner", group: "fronts", kind: { type: "enum", values: ["none", "blind_left", "blind_right"] }, factory: "none" },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.back", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "material.shelf", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.front", group: "materials", kind: { type: "material" }, factory: "mdf-lacquer-19" },
+  { key: "material.worktop", group: "materials", kind: { type: "material" }, factory: "worktop-laminate-38" },
   { key: "material.drawer", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer_bottom", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "edge.carcase", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
