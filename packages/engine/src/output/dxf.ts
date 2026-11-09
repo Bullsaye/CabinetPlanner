@@ -92,8 +92,10 @@ export function partDxf(
   const faces: ("t0" | "t1")[] = machined.has("t0") && machined.has("t1") ? [first, otherFace(first)] : [first];
   return faces.map((face, i) => {
     const view = partView(part, spec, cabinet, face);
-    // Edge features belong to the first side's program only.
-    const feats = extractFeatures(view).filter((f) => f.where === "face" || (f.where === "edge" && i === 0));
+    // Edge features and through pockets belong to the first side's program only.
+    const feats = extractFeatures(view).filter((f) =>
+      f.op === "pocket" && f.through ? i === 0 : f.where === "face" || (f.where === "edge" && i === 0),
+    );
     const contour = part.outline?.map(([u, v]) => {
       const q = view.projectLocal({ u, v, w: 0 });
       return [q.X, q.Y] as [number, number];

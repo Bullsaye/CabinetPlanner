@@ -201,6 +201,16 @@ describe("machined faces and two-sided parts (D22)", () => {
     expect(drawPartSheets({ part: sh, cabinet: cab, style: one, text })).toHaveLength(1);
   });
 
+  it("does not count a through notch as machining of the other face", () => {
+    const w = partsByCode(buildOne({ kind: "wall", presets: ["wall-unit"], options: { "hardware.hanger": "hettich-sah-130" } }));
+    for (const side of [w.SL!, w.SR!]) {
+      const sheets = drawPartSheets({ part: side, cabinet: { W: 600, H: 720, D: 320 }, style: resolveStyle("machine"), text });
+      expect(sheets).toHaveLength(1);
+      expect(sheets[0]!.view.face).toBe(side.role === "side_left" ? "t1" : "t0");
+      expect(sheets[0]!.svg).not.toContain('class="pd-pocket-far"');
+    }
+  });
+
   it("keeps one-sided parts on one sheet", () => {
     expect(drawPartSheets({ part: partsByCode(buildOne()).SL!, cabinet: cab, style: resolveStyle("machine"), text })).toHaveLength(1);
   });

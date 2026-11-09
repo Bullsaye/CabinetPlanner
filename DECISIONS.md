@@ -659,3 +659,7 @@ Two shop settings, because they are used for different things:
   a non-rectangular part (D43) seen from its t0 face, where the stored
   contour would come out clockwise. CAMs take the tool side from the
   direction; rectangle, contour and pockets (D32) now always agree.
+- A pocket through the whole thickness (hanger notch D39, worktop cutout
+  D31) is not machining of one face: it does not make a part two-sided
+  (D22) and does not decide which face is shown. It is drawn solid on
+  every sheet and written to the first side's DXF only, like edge bores.
