@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cabinet Planner – Community</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0f3}
+a{color:#1f5fd1}a:hover{color:#174aa6}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.pill{display:inline-block;font-size:11px;line-height:18px;padding:0 7px;border-radius:9px;font-weight:500;white-space:nowrap}
+.t-ver{background:#e2f2e9;color:#145c37}
+.t-tst{background:#e3ecfb;color:#1d4fae}
+.t-com{background:#eceef1;color:#4a525c}
+.kind{background:#f4f1ea;color:#5e5240}
+.lbl{font-size:12px;color:#5b6470}
+.sect{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5b6470;margin:0}
+.tbtn{font:inherit;font-size:12px;border:1px solid #d6dae0;background:#fff;color:#1b1f24;border-radius:6px;padding:6px 10px;cursor:pointer}
+.tbtn.on{background:#e3ecfb;border-color:#9bb8ee;color:#1d4fae}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0}
+.card{background:#fff;border:1px solid #dde0e5;border-radius:10px;display:flex;flex-direction:column;overflow:hidden;text-decoration:none;color:#1b1f24}
+.card:hover{border-color:#9bb8ee;color:#1b1f24}
+.thumb{height:104px;background:#f4f5f7;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #eef0f3}
+.body{padding:12px;display:flex;flex-direction:column;gap:8px;flex:1}
+.meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5b6470;margin-top:auto}
+</style>
+</helmet>
+<div style="min-height: 960px; display: flex; flex-direction: column; font-family: Inter, system-ui, sans-serif; color: #1b1f24; background: #eef0f3; font-size: 13px">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 0 16px; min-height: 52px; background: #ffffff; border-bottom: 1px solid #dde0e5">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="#1f5fd1" stroke-width="2"></rect><line x1="12" y1="4" x2="12" y2="20" stroke="#1f5fd1" stroke-width="2"></line><line x1="3" y1="11" x2="12" y2="11" stroke="#1f5fd1" stroke-width="2"></line></svg>
+      <span style="font-weight: 600; font-size: 14px">Cabinet Planner</span>
+      <span style="color: #9aa2ad">/</span>
+      <span style="font-weight: 500">Community</span>
+    </div>
+    <nav style="display: flex; gap: 4px" aria-label="Main">
+      <a href="Main.dc.html" style="padding: 16px 12px; text-decoration: none; color: #4a525c">Plan</a>
+      <a href="#" style="padding: 16px 12px; text-decoration: none; color: #4a525c">Parts</a>
+      <a href="Hardware.dc.html" style="padding: 16px 12px; text-decoration: none; color: #4a525c">Hardware</a>
+      <a href="#" style="padding: 16px 12px; text-decoration: none; color: #4a525c">Outputs</a>
+      <a href="#" style="padding: 16px 12px; text-decoration: none; color: #1d4fae; font-weight: 600; border-bottom: 2px solid #1f5fd1">Community</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px">
+      <button class="tbtn">Import pack file…</button>
+      <button class="tbtn">My published packs</button>
+      <button class="tbtn" style="background: #1f5fd1; border-color: #1f5fd1; color: #ffffff; font-weight: 500">Publish a pack…</button>
+    </div>
+  </header>
+
+  <div style="padding: 20px 24px 0; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+      <label style="flex: 1 1 420px; display: flex; flex-direction: column; gap: 4px">
+        <span class="lbl">Search packs</span>
+        <input type="search" placeholder="Cabinet, hardware series, machine, author…" style="font: inherit; font-size: 14px; border: 1px solid #d6dae0; border-radius: 8px; padding: 10px 12px; background: #fff">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 4px">
+        <span class="lbl">Sort</span>
+        <select style="font: inherit; border: 1px solid #d6dae0; border-radius: 8px; padding: 9px 10px; background: #fff"><option>Most installed</option><option>Recently updated</option><option>Top rated</option></select>
+      </label>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 6px" role="group" aria-label="Pack type">
+      <button class="tbtn on">All</button>
+      <button class="tbtn">Cabinet templates</button>
+      <button class="tbtn">Hardware</button>
+      <button class="tbtn">Construction presets</button>
+      <button class="tbtn">Front &amp; gap presets</button>
+      <button class="tbtn">CNC layer mappings</button>
+      <button class="tbtn">List layouts</button>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 20px 24px 24px; align-items: flex-start">
+
+    <aside style="flex: 0 0 220px; background: #ffffff; border: 1px solid #dde0e5; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box" aria-label="Filters">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <p class="sect">Trust</p>
+        <label class="chk"><input type="checkbox" checked> <span class="pill t-ver">Verified</span></label>
+        <label class="chk"><input type="checkbox" checked> <span class="pill t-tst">Tested</span></label>
+        <label class="chk"><input type="checkbox"> <span class="pill t-com">Community</span></label>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <p class="sect">Hardware brand</p>
+        <label class="chk"><input type="checkbox"> Blum</label>
+        <label class="chk"><input type="checkbox"> Hettich</label>
+        <label class="chk"><input type="checkbox"> Häfele</label>
+        <label class="chk"><input type="checkbox"> Grass</label>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <p class="sect">Construction</p>
+        <label class="chk"><input type="checkbox" checked> Dowel</label>
+        <label class="chk"><input type="checkbox"> Cam + dowel</label>
+        <label class="chk"><input type="checkbox"> Confirmat</label>
+        <label class="chk"><input type="checkbox"> P-slot</label>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <p class="sect">Machine / control</p>
+        <label class="chk"><input type="checkbox" checked> SCM Maestro</label>
+        <label class="chk"><input type="checkbox"> HOMAG woodWOP</label>
+        <label class="chk"><input type="checkbox"> Biesse bSolid</label>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <p class="sect">Compatible with</p>
+        <label class="chk"><input type="checkbox" checked> My board thickness (19)</label>
+        <label class="chk"><input type="checkbox" checked> My engine version</label>
+      </div>
+      <button class="tbtn">Clear filters</button>
+    </aside>
+
+    <main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span class="lbl">Showing verified and tested packs · dowel · SCM Maestro</span>
+        <span class="lbl">Installed packs show a check</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><g stroke="#7d8692" fill="#e4e7eb"><rect x="10" y="20" width="32" height="52"></rect><rect x="44" y="20" width="32" height="52"></rect><rect x="78" y="20" width="32" height="52"></rect></g><g stroke="#7d8692" fill="none"><line x1="10" y1="36" x2="42" y2="36"></line><line x1="10" y1="52" x2="42" y2="52"></line><line x1="60" y1="20" x2="60" y2="72"></line></g><rect x="8" y="16" width="104" height="5" fill="#a59a8a"></rect></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">Euro base cabinet set · 32 mm</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Cabinet templates</span><span class="pill t-ver">Verified</span></div>
+            <span class="lbl">Base, sink, drawer and corner units built on a 32 mm front grid.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html" style="border-color: #9bb8ee">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><rect x="10" y="10" width="100" height="60" fill="#fff" stroke="#7d8692"></rect><g fill="#1f5fd1"><circle cx="22" cy="30" r="3"></circle><circle cx="60" cy="30" r="3"></circle><circle cx="98" cy="30" r="3"></circle><circle cx="22" cy="54" r="3"></circle><circle cx="60" cy="54" r="3"></circle><circle cx="98" cy="54" r="3"></circle></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">LEGRABOX drawer set</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Hardware</span><span class="pill t-tst">Tested</span></div>
+            <span class="lbl">Slides, fronts fixings and drilling patterns with selection rules by inner depth.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><g fill="none" stroke="#7d8692" stroke-width="1.5"><rect x="14" y="14" width="56" height="40" rx="3"></rect><rect x="24" y="22" width="56" height="40" rx="3" fill="#f4f5f7"></rect><rect x="34" y="30" width="56" height="40" rx="3" fill="#ffffff"></rect></g><g stroke="#1f5fd1" stroke-width="2"><line x1="42" y1="42" x2="80" y2="42"></line><line x1="42" y1="50" x2="72" y2="50"></line><line x1="42" y1="58" x2="76" y2="58"></line></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">SCM Maestro DXF layer mapping</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">CNC layer mapping</span><span class="pill t-tst">Tested</span></div>
+            <span class="lbl">Layer names for bores, grooves and outlines matched to Maestro technologies.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><rect x="12" y="44" width="96" height="14" fill="#e4e7eb" stroke="#7d8692"></rect><rect x="12" y="10" width="14" height="34" fill="#e4e7eb" stroke="#7d8692"></rect><g fill="none" stroke="#1f5fd1" stroke-width="1.5"><circle cx="19" cy="51" r="3"></circle><circle cx="51" cy="51" r="3"></circle><circle cx="83" cy="51" r="3"></circle></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">Dowel Ø8 × 35 · sides over bottom</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Construction preset</span><span class="pill t-ver">Verified</span></div>
+            <span class="lbl">Edge offsets, 32 mm spacing, min/max dowel count per joint length.</span>
+            <div class="meta"><span>by [author]</span><span style="color: #145c37">✓ Installed</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><g stroke="#7d8692" fill="#e4e7eb"><rect x="34" y="12" width="52" height="60"></rect></g><rect x="38" y="16" width="44" height="52" fill="#2b3138"></rect><g stroke="#ffffff" stroke-width="2"><line x1="46" y1="30" x2="74" y2="30"></line></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">Sink base with pull-out</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Cabinet template</span><span class="pill t-tst">Tested</span></div>
+            <span class="lbl">Siphon cut-out in the drawer back as a parametric pocket.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><g stroke="#7d8692" fill="#eceef1"><rect x="14" y="20" width="44" height="52"></rect><rect x="62" y="20" width="44" height="52"></rect></g><g stroke="#1b1f24" stroke-width="3"><line x1="14" y1="22" x2="58" y2="22"></line><line x1="62" y1="22" x2="106" y2="22"></line></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">Handleless J-profile fronts</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Front preset</span><span class="pill t-com">Community</span></div>
+            <span class="lbl">Front heights and gaps for a horizontal grip profile.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><g stroke="#7d8692" stroke-width="1.5"><line x1="16" y1="18" x2="104" y2="18"></line><line x1="16" y1="32" x2="104" y2="32"></line><line x1="16" y1="46" x2="104" y2="46"></line><line x1="16" y1="60" x2="104" y2="60"></line></g><g stroke="#1f5fd1" stroke-width="1.5"><line x1="44" y1="12" x2="44" y2="66"></line><line x1="76" y1="12" x2="76" y2="66"></line></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">Panel saw list · Schnitt Profi(t)</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">List layout</span><span class="pill t-com">Community</span></div>
+            <span class="lbl">CSV columns and order the optimizer imports directly.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+        <a class="card" href="Pack.dc.html">
+          <div class="thumb"><svg width="120" height="80" viewBox="0 0 120 80" aria-hidden="true"><rect x="10" y="10" width="100" height="60" fill="#fff" stroke="#7d8692"></rect><g fill="none" stroke="#1f5fd1" stroke-width="1.5"><circle cx="30" cy="40" r="9"></circle><circle cx="90" cy="40" r="9"></circle></g><g fill="#1f5fd1"><circle cx="30" cy="24" r="2"></circle><circle cx="30" cy="56" r="2"></circle><circle cx="90" cy="24" r="2"></circle><circle cx="90" cy="56" r="2"></circle></g></svg></div>
+          <div class="body">
+            <span style="font-weight: 600">Sensys hinge pack</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Hardware</span><span class="pill t-com">Community</span></div>
+            <span class="lbl">Cup and plate patterns, hinge count by door height and weight.</span>
+            <div class="meta"><span>by [author]</span><span>[n] installs</span></div>
+          </div>
+        </a>
+
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

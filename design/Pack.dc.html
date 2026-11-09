@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cabinet Planner – Pack detail and import</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0f3}
+a{color:#1f5fd1}a:hover{color:#174aa6}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.pill{display:inline-block;font-size:11px;line-height:18px;padding:0 7px;border-radius:9px;font-weight:500;white-space:nowrap}
+.t-ver{background:#e2f2e9;color:#145c37}
+.t-tst{background:#e3ecfb;color:#1d4fae}
+.t-com{background:#eceef1;color:#4a525c}
+.kind{background:#f4f1ea;color:#5e5240}
+.s-new{background:#e2f2e9;color:#145c37}
+.s-upd{background:#e3ecfb;color:#1d4fae}
+.s-con{background:#fdeedd;color:#8a4207}
+.lbl{font-size:12px;color:#5b6470}
+.sect{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5b6470;margin:0}
+.tbtn{font:inherit;font-size:12px;border:1px solid #d6dae0;background:#fff;color:#1b1f24;border-radius:6px;padding:6px 10px;cursor:pointer}
+.tbtn.on{background:#e3ecfb;border-color:#9bb8ee;color:#1d4fae}
+.card{background:#fff;border:1px solid #dde0e5;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:13px;padding:8px;border:1px solid #dde0e5;border-radius:8px}
+table.cl{border-collapse:collapse;width:100%;font-size:12px}
+table.cl th{text-align:left;font-weight:500;color:#5b6470;padding:6px 10px;border-bottom:1px solid #dde0e5;white-space:nowrap}
+table.cl td{padding:8px 10px;border-bottom:1px solid #eef0f3;vertical-align:middle}
+</style>
+</helmet>
+<div style="min-height: 960px; display: flex; flex-direction: column; font-family: Inter, system-ui, sans-serif; color: #1b1f24; background: #eef0f3; font-size: 13px">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 0 16px; min-height: 52px; background: #ffffff; border-bottom: 1px solid #dde0e5">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="#1f5fd1" stroke-width="2"></rect><line x1="12" y1="4" x2="12" y2="20" stroke="#1f5fd1" stroke-width="2"></line><line x1="3" y1="11" x2="12" y2="11" stroke="#1f5fd1" stroke-width="2"></line></svg>
+      <span style="font-weight: 600; font-size: 14px">Cabinet Planner</span>
+      <span style="color: #9aa2ad">/</span>
+      <a href="Community.dc.html" style="text-decoration: none">Community</a>
+      <span style="color: #9aa2ad">/</span>
+      <span style="font-weight: 500">LEGRABOX drawer set</span>
+    </div>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4a525c"><span style="width: 8px; height: 8px; border-radius: 4px; background: #1a7f4b"></span>Synced</div>
+  </header>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 24px; align-items: flex-start">
+
+    <main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+        <div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill kind">Hardware</span><span class="pill t-tst">Tested</span><span class="pill t-com">Licence CC BY 4.0</span></div>
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600">LEGRABOX drawer set</h1>
+          <span class="lbl">by [author] · version 1.3 · updated [date] · [n] installs</span>
+          <p style="margin: 4px 0 0; max-width: 620px; line-height: 1.5">Slides, front fixings and rear bracket bores with a selection rule that picks the nominal length from the cabinet's inner depth. Built for 19 mm carcases on the 32 mm system.</p>
+        </div>
+        <div style="flex: 0 0 300px; background: #f4f5f7; border: 1px solid #dde0e5; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; justify-content: space-between; align-items: center"><span class="sect">Preview</span><button class="tbtn on" style="padding: 3px 8px">On my Base 600</button></div>
+          <svg viewBox="0 0 280 200" style="width: 100%; height: auto" role="img" aria-label="Side panel of your Base 600 with this pack's slide bores highlighted">
+            <rect x="20" y="10" width="240" height="180" fill="#ffffff" stroke="#7d8692"></rect>
+            <line x1="20" y1="10" x2="20" y2="190" stroke="#1b1f24" stroke-width="3"></line>
+            <g fill="#9aa2ad"><circle cx="34" cy="22" r="1.5"></circle><circle cx="34" cy="46" r="1.5"></circle><circle cx="34" cy="70" r="1.5"></circle><circle cx="34" cy="94" r="1.5"></circle><circle cx="34" cy="118" r="1.5"></circle><circle cx="34" cy="142" r="1.5"></circle><circle cx="34" cy="166" r="1.5"></circle></g>
+            <g fill="#1f5fd1"><circle cx="42" cy="52" r="3"></circle><circle cx="140" cy="52" r="3"></circle><circle cx="238" cy="52" r="3"></circle><circle cx="42" cy="90" r="3"></circle><circle cx="140" cy="90" r="3"></circle><circle cx="238" cy="90" r="3"></circle></g>
+          </svg>
+          <span class="lbl" style="color: #145c37">✓ Fits your cabinet · no collisions with your dowels</span>
+        </div>
+      </div>
+
+      <section class="card" aria-label="Contents">
+        <div style="display: flex; justify-content: space-between; align-items: center"><p class="sect">Contents · compared with your library</p><span class="lbl">6 items</span></div>
+        <div style="overflow-x: auto">
+          <table class="cl">
+            <thead><tr><th>Item</th><th>Type</th><th>Status</th><th>If imported</th></tr></thead>
+            <tbody>
+              <tr><td>LEGRABOX M slide · all lengths</td><td>Hardware</td><td><span class="pill s-upd">Newer than Factory</span></td><td><select style="font: inherit; font-size: 12px; border: 1px solid #d6dae0; border-radius: 6px; padding: 4px 6px"><option>Use pack version</option><option>Keep Factory</option></select></td></tr>
+              <tr><td>LEGRABOX K slide · all lengths</td><td>Hardware</td><td><span class="pill s-new">New</span></td><td class="lbl">Added</td></tr>
+              <tr><td>Front fixing bracket</td><td>Hardware</td><td><span class="pill s-new">New</span></td><td class="lbl">Added</td></tr>
+              <tr><td>Rear bracket bores</td><td>Hardware</td><td><span class="pill s-new">New</span></td><td class="lbl">Added</td></tr>
+              <tr><td>Drawer stack · 4 equal</td><td>Zone preset</td><td><span class="pill s-new">New</span></td><td class="lbl">Added</td></tr>
+              <tr><td>Drawer gaps · Standard 3 mm</td><td>Front preset</td><td><span class="pill s-con">Same name as yours</span></td><td><select style="font: inherit; font-size: 12px; border: 1px solid #d6dae0; border-radius: 6px; padding: 4px 6px"><option>Keep both (rename)</option><option>Keep mine</option><option>Replace mine</option></select></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <section class="card" aria-label="Trust and tests">
+          <p class="sect">Trust &amp; tests</p>
+          <span><span class="pill t-tst">Tested</span> Author machined parts on an SCM Morbidelli · [date]</span>
+          <span><span class="pill t-com">Not verified</span> No review by a moderator yet</span>
+          <span class="lbl">Open problem reports: none</span>
+          <a href="#">See test notes and photos</a>
+        </section>
+        <section class="card" aria-label="Licence and data">
+          <p class="sect">Licence &amp; data</p>
+          <span>CC BY 4.0: reuse and modify with credit.</span>
+          <span class="lbl">Manufacturer 3D models are linked to the manufacturer's download page, not included in the pack.</span>
+          <span class="lbl">Requires engine schema 2 or newer · you have 2</span>
+        </section>
+      </div>
+
+      <section class="card" aria-label="Changelog">
+        <p class="sect">Changelog</p>
+        <div style="display: grid; grid-template-columns: 64px 1fr; gap: 6px 12px">
+          <span class="mono">1.3</span><span>Added K-height slide; selection rule now respects rear_gap.</span>
+          <span class="mono">1.2</span><span>Fixed front bracket bore depth.</span>
+          <span class="mono">1.0</span><span>First release.</span>
+        </div>
+      </section>
+    </main>
+
+    <aside style="flex: 0 0 360px; display: flex; flex-direction: column; gap: 16px" aria-label="Import">
+      <section class="card">
+        <p class="sect">Import</p>
+        <fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+          <legend class="lbl" style="padding: 0 0 6px">Import into</legend>
+          <label class="opt" style="border-color: #9bb8ee; background: #f3f7fe"><input type="radio" name="dest" checked> <span><strong style="font-weight: 600">My library</strong><br><span class="lbl">Available in every project, synced to your devices</span></span></label>
+          <label class="opt"><input type="radio" name="dest"> <span><strong style="font-weight: 600">This project only</strong><br><span class="lbl">Untitled kitchen</span></span></label>
+        </fieldset>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">Updates</span>
+          <label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked> Notify me about new versions</label>
+          <label style="display: flex; gap: 8px; align-items: center"><input type="checkbox"> Auto-update items I haven't changed</label>
+        </div>
+        <div style="background: #fdf6ec; border: 1px solid #f0d3ad; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-weight: 600; color: #8a4207">Tested, not verified</span>
+          <span style="color: #5e3a10; font-size: 12px; line-height: 1.45">Your first CNC export that uses this pack asks you to confirm. After a good part, mark it tested in your library.</span>
+        </div>
+        <span class="lbl">1 conflict resolved as "Keep both" · 1 update replaces a Factory item</span>
+        <button class="tbtn" style="background: #1f5fd1; border-color: #1f5fd1; color: #ffffff; font-size: 14px; font-weight: 600; padding: 10px">Import 6 items</button>
+        <div style="display: flex; gap: 8px">
+          <button class="tbtn" style="flex: 1">Fork to edit</button>
+          <button class="tbtn" style="flex: 1">Download pack file</button>
+        </div>
+        <a href="#" style="font-size: 12px">Report a problem with this pack</a>
+      </section>
+      <section class="card">
+        <p class="sect">After import</p>
+        <span class="lbl" style="line-height: 1.5">Items appear in Library › Hardware with a Community badge and a link back to this pack. Uninstalling removes them unless a project still uses them; those stay as frozen copies.</span>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
