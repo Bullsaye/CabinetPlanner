@@ -8,6 +8,7 @@ export interface EvaluatedDrill {
   depth: number;
   a: number;
   b: number;
+  through: boolean;
 }
 
 /**
@@ -93,6 +94,7 @@ export function evaluateDrilling(
       depth: r.values.get("__depth")!,
       a: r.values.get("__a")!,
       b: r.values.get("__b")!,
+      through: op.through ?? false,
     });
   });
   return { drills, diagnostics };

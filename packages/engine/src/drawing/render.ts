@@ -729,7 +729,9 @@ function legendRows(groups: FeatureGroup[], view: PartView, text: DrawingText, n
         g.where === "edge" ? t("drawing.where.edge", { edge: t(`drawing.dir.${view.sides[g.side!]}`) }) : t(`drawing.where.${g.where}`);
       let spec: string;
       if (g.op === "bore") {
-        spec = `${g.features.length}× Ø${num(g.d)} × ${num(g.depth)}`;
+        spec = g.through
+          ? `${g.features.length}× Ø${num(g.d)} ${t("drawing.through")}`
+          : `${g.features.length}× Ø${num(g.d)} × ${num(g.depth)}${g.split ? ` (${t("drawing.split")})` : ""}`;
       } else {
         const r = g.features[0]!.rect!;
         spec = `${t("drawing.pocket")} ${num(r.x1 - r.x0)} × ${num(r.y1 - r.y0)} × ${num(g.depth)}`;

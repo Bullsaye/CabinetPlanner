@@ -18,6 +18,8 @@ export interface DFeature {
   /** Pockets: rectangle in drawing coordinates. */
   rect?: { x0: number; y0: number; x1: number; y1: number };
   sources: OpSource[];
+  through?: boolean;
+  split?: boolean;
 }
 
 /** A regular row (axis x) or column (axis y) of equal features. */
@@ -47,6 +49,8 @@ export interface FeatureGroup {
   d: number;
   depth: number;
   sources: OpSource[];
+  through: boolean;
+  split: boolean;
   features: DFeature[];
   patterns: Pattern[];
   /** Features not in any pattern. */
@@ -78,7 +82,18 @@ export function extractFeatures(view: PartView): DFeature[] {
     const side = where === "edge" ? sideOfNormal(nrm) : undefined;
     if (op.kind === "bore") {
       const at = view.projectLocal(op);
-      out.push({ op: "bore", where, ...(side ? { side } : {}), X: at.X, Y: at.Y, d: op.d, depth: op.depth, sources: op.sources });
+      out.push({
+        op: "bore",
+        where,
+        ...(side ? { side } : {}),
+        X: at.X,
+        Y: at.Y,
+        d: op.d,
+        depth: op.depth,
+        sources: op.sources,
+        ...(op.through ? { through: true } : {}),
+        ...(op.split ? { split: true } : {}),
+      });
     } else {
       const a = view.projectLocal({ u: op.u0, v: op.v0, w: op.w0 });
       const b = view.projectLocal({ u: op.u1, v: op.v1, w: op.w1 });
@@ -141,7 +156,7 @@ const sourceKey = (s: OpSource[]): string => s.map((x) => `${x.kind}:${x.ref}`).
 export function groupFeatures(features: DFeature[], part: Part, style: ResolvedStyle): FeatureGroup[] {
   const groups = new Map<string, FeatureGroup>();
   for (const f of features) {
-    const key = [sourceKey(f.sources), f.op, f.where, f.side ?? "", f.d, f.depth].join("|");
+    const key = [sourceKey(f.sources), f.op, f.where, f.side ?? "", f.d, f.depth, f.through ? "T" : "", f.split ? "S" : ""].join("|");
     let g = groups.get(key);
     if (!g) {
       g = {
@@ -153,6 +168,8 @@ export function groupFeatures(features: DFeature[], part: Part, style: ResolvedS
         d: f.d,
         depth: f.depth,
         sources: f.sources,
+        through: !!f.through,
+        split: !!f.split,
         features: [],
         patterns: [],
         singles: [],

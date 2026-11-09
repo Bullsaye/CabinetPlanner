@@ -28,6 +28,10 @@ export interface Bore {
   d: number;
   depth: number;
   sources: OpSource[];
+  /** Goes through the whole thickness, drilled from this face (D23). */
+  through?: boolean;
+  /** Half of a hole drilled from both faces; its partner sits on the opposite face. */
+  split?: boolean;
 }
 
 /** Rectangular material removal open to a face: grooves, rebates, pockets. */
@@ -258,6 +262,97 @@ export function boreWouldCollide(
   return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
 }
 
+const isSplitPair = (a: Operation, b: Operation): boolean =>
+  a.kind === "bore" &&
+  b.kind === "bore" &&
+  !!a.split &&
+  !!b.split &&
+  ((a.face === "t0" && b.face === "t1") || (a.face === "t1" && b.face === "t0")) &&
+  Math.abs(a.u - b.u) < 1e-3 &&
+  Math.abs(a.v - b.v) < 1e-3;
+
+export type ThroughMode = "one_side" | "both_sides";
+
+/**
+ * A hole through the whole thickness. one_side: one bore from the entry
+ * face. both_sides: two bores, one from each face, meeting in the middle
+ * with `overlap` mm in total, so both faces come out clean.
+ */
+export function addThroughBore(
+  part: Part,
+  entry: Point3,
+  dir: Direction,
+  d: number,
+  mode: ThroughMode,
+  overlap: number,
+  source: OpSource,
+): void {
+  const face = entryFace(part, dir);
+  if (face !== "t0" && face !== "t1") throw new Error(`through bore must enter a thickness face of ${part.id}`);
+  const t = part.thickness;
+  if (mode === "one_side") {
+    const b = addBore(part, entry, dir, d, t, source);
+    b.through = true;
+    return;
+  }
+  const half = roundMm(t / 2 + overlap / 2);
+  const a = addBore(part, entry, dir, d, half, source);
+  a.split = true;
+  const axis = dir[1] as Axis;
+  const sign = dir[0] === "+" ? 1 : -1;
+  const far = { ...entry, [axis]: entry[axis] + sign * t } as Point3;
+  const b = addBore(part, far, `${sign > 0 ? "-" : "+"}${axis}` as Direction, d, half, source);
+  b.split = true;
+}
+
+export type OpposingMode = "both_sides" | "through" | "error";
+
+/**
+ * Coaxial bores from opposite faces that together leave less than
+ * `minWall` between them (e.g. shelf-pin rows on both faces of a middle
+ * panel) become one hole: drilled from both sides meeting in the middle,
+ * or one through hole from the face of the first bore. "error" leaves them,
+ * so the check reports the collision.
+ */
+export function resolveOpposing(part: Part, mode: OpposingMode, overlap: number, minWall: number): number {
+  if (mode === "error") return 0;
+  const bores = part.operations.filter((o): o is Bore => o.kind === "bore" && (o.face === "t0" || o.face === "t1"));
+  const remove = new Set<Bore>();
+  let n = 0;
+  for (const a of bores) {
+    if (remove.has(a) || a.face !== "t0" || a.through || a.split) continue;
+    const b = bores.find(
+      (o) =>
+        !remove.has(o) &&
+        o.face === "t1" &&
+        !o.through &&
+        !o.split &&
+        Math.abs(o.u - a.u) < 1e-3 &&
+        Math.abs(o.v - a.v) < 1e-3 &&
+        Math.abs(o.d - a.d) < 1e-3,
+    );
+    if (!b || a.depth + b.depth <= part.thickness - minWall + 1e-9) continue;
+    n++;
+    if (mode === "both_sides") {
+      const half = roundMm(part.thickness / 2 + overlap / 2);
+      a.depth = half;
+      b.depth = half;
+      a.split = true;
+      b.split = true;
+    } else {
+      // Keep the bore that was added first, drill it through.
+      const keep = part.operations.indexOf(a) < part.operations.indexOf(b) ? a : b;
+      const drop = keep === a ? b : a;
+      keep.depth = part.thickness;
+      keep.through = true;
+      for (const s of drop.sources) if (!keep.sources.some((x) => x.kind === s.kind && x.ref === s.ref)) keep.sources.push(s);
+      remove.add(drop);
+    }
+  }
+  if (remove.size) part.operations = part.operations.filter((o) => !remove.has(o as Bore));
+  return n;
+}
+
 const describe = (op: Operation): string => op.sources.map((s) => `${s.kind}:${s.ref}`).join("+");
 
 /**
@@ -279,9 +374,9 @@ export function checkOperations(part: Part, minWall: number): Diagnostic[] {
     for (const a of ["u", "v", "w"] as const) {
       const lo = b[`${a}0`];
       const hi = b[`${a}1`];
-      // The entry face side is open by definition.
-      const openLo = a === normal && !faceAtMax(op.face);
-      const openHi = a === normal && faceAtMax(op.face);
+      // The entry face side is open by definition; a through hole is open at both ends.
+      const openLo = a === normal && (op.through || !faceAtMax(op.face));
+      const openHi = a === normal && (op.through || faceAtMax(op.face));
       const wallLo = openLo ? Infinity : lo;
       const wallHi = openHi ? Infinity : sizes[a] - hi;
       const wall = Math.min(wallLo, wallHi);
@@ -312,6 +407,7 @@ export function checkOperations(part: Part, minWall: number): Diagnostic[] {
       const a = ops[i]!;
       const b = ops[j]!;
       if (a.kind === "pocket" && b.kind === "pocket") continue; // pockets may join (e.g. groove corners)
+      if (isSplitPair(a, b)) continue; // the two halves of one hole drilled from both faces
       if (overlaps(opBounds(part, a), opBounds(part, b))) {
         diags.push({
           severity: "error",

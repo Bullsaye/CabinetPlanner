@@ -2,7 +2,17 @@ import type { Diagnostic } from "../diagnostics.ts";
 import { checkLimits, evaluateDrilling, evaluateItemParams } from "../hardware/evaluate.ts";
 import type { HardwareItem } from "../hardware/schema.ts";
 import type { Library } from "../library.ts";
-import { addBore, addPocketFromBox, boreWouldCollide, checkOperations, type Direction, type OpSource } from "../ops.ts";
+import {
+  addBore,
+  addPocketFromBox,
+  addThroughBore,
+  boreWouldCollide,
+  checkOperations,
+  resolveOpposing,
+  type Direction,
+  type OpSource,
+  type ThroughMode,
+} from "../ops.ts";
 import { roundMm, type Axis, type Part } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
 import { gridPositions, type BoxLayout } from "./box.ts";
@@ -158,8 +168,10 @@ export function machineBox(
     }
   }
 
-  // --- Checks ----------------------------------------------------------------------
+  // --- Opposing holes, then checks ---------------------------------------------------
   const minWall = num("bore_min_wall");
+  const opposite = opt<"both_sides" | "through" | "error">("bore.opposite");
+  for (const p of parts) resolveOpposing(p, opposite, num("through_overlap"), minWall);
   for (const p of parts) diagnostics.push(...checkOperations(p, minWall));
 
   return { diagnostics, hardware: [...usage.values()].sort((a, b) => a.item.localeCompare(b.item)) };
@@ -353,13 +365,21 @@ function placeHinges(
       const y = yc + dr.a;
       if (dr.mount === "door") {
         const x = side === "left" ? door.box.x + dr.b : door.box.x + door.box.dx - dr.b;
-        addBore(door, { x, y, z: door.box.z }, "+z", dr.d, dr.depth, source);
+        if (dr.through) {
+          addThroughBore(door, { x, y, z: door.box.z }, "+z", dr.d, rc.options.get("bore.through")!.value as ThroughMode, rc.values.get("through_overlap")!, source);
+        } else {
+          addBore(door, { x, y, z: door.box.z }, "+z", dr.d, dr.depth, source);
+        }
       } else if (dr.mount === "side") {
         if (!sidePart) continue;
         const left = side === "left";
         const x = left ? sidePart.box.x + sidePart.box.dx : sidePart.box.x;
         const z = sidePart.box.z + sidePart.box.dz - dr.b;
-        addBore(sidePart, { x, y, z }, left ? "-x" : "+x", dr.d, dr.depth, source);
+        if (dr.through) {
+          addThroughBore(sidePart, { x, y, z }, left ? "-x" : "+x", dr.d, rc.options.get("bore.through")!.value as ThroughMode, rc.values.get("through_overlap")!, source);
+        } else {
+          addBore(sidePart, { x, y, z }, left ? "-x" : "+x", dr.d, dr.depth, source);
+        }
       } else {
         diagnostics.push({
           severity: "error",

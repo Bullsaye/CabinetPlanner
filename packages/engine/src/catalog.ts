@@ -95,6 +95,7 @@ export const VARIABLES: readonly VarDef[] = [
 
   // Machining limits.
   v({ name: "bore_min_wall", group: "machining", unit: "mm", factory: 2, min: 0, max: 20, step: 0.5 }),
+  v({ name: "through_overlap", group: "machining", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
 ];
 
 export const VARIABLE_BY_NAME: ReadonlyMap<string, VarDef> = new Map(VARIABLES.map((d) => [d.name, d]));
@@ -154,6 +155,15 @@ export const OPTIONS: readonly OptionDef[] = [
     group: "hardware",
     kind: { type: "hardware", category: "shelf_support", nullable: true },
     factory: "shelf-pin-5",
+  },
+  /** Holes that must go through (pull and knob screws): one bore, or from both faces. */
+  { key: "bore.through", group: "machining", kind: { type: "enum", values: ["one_side", "both_sides"] }, factory: "one_side" },
+  /** Holes from opposite faces that meet (shelf pins on both faces of a middle panel). */
+  {
+    key: "bore.opposite",
+    group: "machining",
+    kind: { type: "enum", values: ["both_sides", "through", "error"] },
+    factory: "both_sides",
   },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },

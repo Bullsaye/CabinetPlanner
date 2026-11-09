@@ -20,6 +20,8 @@ export const DrillOp = z.object({
   depth: VarInput,
   a: VarInput,
   b: VarInput,
+  /** Through the whole part (depth is ignored); how it is drilled follows option bore.through. */
+  through: z.boolean().optional(),
   note: z.string().optional(),
 });
 export type DrillOp = z.infer<typeof DrillOp>;

@@ -229,3 +229,20 @@ Supersedes the "assembly" part style of D19/D20 (renamed `upright`).
   over about the reference edge. Each sheet dimensions and tags only its
   own face; the other face's machining is drawn dashed for orientation.
 - The same split will apply to CNC exports: one program per machined side.
+
+### D23 · 2026-11-09 · Through holes and holes meeting from both faces
+
+Two shop settings, because they are used for different things:
+
+- `bore.through` (default `one_side`): holes that must go through, e.g.
+  pull and knob screws. `one_side`: one bore through the full thickness
+  from the mounting face. `both_sides`: drilled from both faces.
+- `bore.opposite` (default `both_sides`): coaxial holes of equal Ø from
+  opposite faces that would leave less than `bore_min_wall` between them,
+  e.g. shelf-pin rows on both faces of a middle panel. `both_sides`: each
+  drilled to the middle so both faces come out clean; `through`: one hole
+  through from the face of the first bore; `error`: report the collision.
+- Drilled from both faces, each half is `thickness / 2 + through_overlap / 2`
+  deep (`through_overlap` default 1 mm). The halves are marked `split`, a
+  through bore `through`; drawings say "through" or "from both faces", and
+  a part with split holes gets a sheet per side (D22).

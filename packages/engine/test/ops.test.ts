@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   addBore,
   addPocketFromBox,
+  addThroughBore,
+  resolveOpposing,
   checkOperations,
   entryFace,
   toCabinet,
@@ -113,5 +115,58 @@ describe("operation checks", () => {
     addPocketFromBox(q, { x0: 11, x1: 19, y0: 0, y1: 720, z0: 10, z1: 18 }, src);
     addBore(q, { x: 19, y: 100, z: 20 }, "-x", 8, 12, src);
     expect(codes(q)).toEqual(["ops_collide"]);
+  });
+});
+
+describe("through holes (D23)", () => {
+  const panel = (): Part => {
+    // A middle panel: 720 high, 560 deep, 19 thick, standing at x 300–319.
+    const p = side();
+    p.box = { ...p.box, x: 300 };
+    return p;
+  };
+
+  it("drills a through hole from one face, or from both faces meeting in the middle", () => {
+    const a = panel();
+    addThroughBore(a, { x: 319, y: 100, z: 300 }, "-x", 5, "one_side", 1, src);
+    expect(a.operations).toMatchObject([{ face: "t1", depth: 19, through: true }]);
+    expect(checkOperations(a, 2)).toEqual([]);
+
+    const b = panel();
+    addThroughBore(b, { x: 319, y: 100, z: 300 }, "-x", 5, "both_sides", 1, src);
+    expect(b.operations).toMatchObject([
+      { face: "t1", depth: 10, split: true },
+      { face: "t0", depth: 10, split: true },
+    ]);
+    expect(checkOperations(b, 2)).toEqual([]);
+  });
+
+  it("resolves shelf-pin holes from both faces of a middle panel", () => {
+    const make = (): Part => {
+      const p = panel();
+      addBore(p, { x: 300, y: 100, z: 523 }, "+x", 5, 13, src);
+      addBore(p, { x: 319, y: 100, z: 523 }, "-x", 5, 13, src);
+      return p;
+    };
+    const err = make();
+    expect(resolveOpposing(err, "error", 1, 2)).toBe(0);
+    expect(checkOperations(err, 2).map((d) => d.code)).toContain("ops_collide");
+
+    const both = make();
+    expect(resolveOpposing(both, "both_sides", 1, 2)).toBe(1);
+    expect(both.operations.map((o) => (o as { depth: number }).depth)).toEqual([10, 10]);
+    expect(checkOperations(both, 2)).toEqual([]);
+
+    const thru = make();
+    resolveOpposing(thru, "through", 1, 2);
+    expect(thru.operations).toMatchObject([{ face: "t0", through: true, depth: 19 }]);
+    expect(checkOperations(thru, 2)).toEqual([]);
+  });
+
+  it("leaves holes alone that keep enough material between them", () => {
+    const p = panel();
+    addBore(p, { x: 300, y: 100, z: 523 }, "+x", 5, 8, src);
+    addBore(p, { x: 319, y: 100, z: 523 }, "-x", 5, 8, src);
+    expect(resolveOpposing(p, "both_sides", 1, 2)).toBe(0);
   });
 });
