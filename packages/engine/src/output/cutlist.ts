@@ -58,6 +58,8 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     outline: !!p.outline,
   }));
   if (!opts.group) return rows;
+  // Shaped parts only group with parts of the same shape (D43).
+  const shape = new Map(parts.map((p) => [p.id, p.outline ? JSON.stringify(p.outline) : ""]));
 
   // Group by everything that matters for cutting and banding. Left and right
   // sides of the same size collapse into one row with qty 2.
@@ -74,7 +76,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.grain,
       r.edges,
       r.note,
-      r.outline,
+      shape.get(r.part),
       groupRole(r.role),
       r.label ?? "",
     ]);
@@ -137,6 +139,12 @@ export interface CutlistText {
   role: (row: CutlistRow) => string;
   /** Locale used for library names. */
   locale: string;
+  /**
+   * Remark for parts that are not rectangles (D43), printed in the note
+   * column: the sizes are the bounding rectangle, the contour is on the
+   * part sheet and in the DXF.
+   */
+  shaped?: string;
 }
 
 export function cutlistTable(
@@ -180,7 +188,7 @@ export function cutlistTable(
       case "edge_w2":
         return r.edges[3];
       case "note":
-        return r.note;
+        return [r.note, r.outline ? (text.shaped ?? "") : ""].filter((s) => s !== "").join("; ");
     }
   };
   return [columns.map(text.header), ...rows.map((r) => columns.map((c) => cell(r, c)))];

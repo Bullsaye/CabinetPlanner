@@ -5,10 +5,79 @@
   "library": {
     "materials": [
       {
+        "id": "mel-white-19",
+        "name": {
+          "en": "Melamine white 19",
+          "de": "Melamin weiß 19"
+        },
+        "thickness": 19,
+        "grain": false,
+        "density": 650,
+        "pricePerM2": 9.5
+      },
+      {
+        "id": "hdf-white-8",
+        "name": {
+          "en": "HDF white 8",
+          "de": "HDF weiß 8"
+        },
+        "thickness": 8,
+        "grain": false,
+        "density": 850,
+        "pricePerM2": 5.2
+      },
+      {
+        "id": "mel-white-16",
+        "name": {
+          "en": "Melamine white 16",
+          "de": "Melamin weiß 16"
+        },
+        "thickness": 16,
+        "grain": false,
+        "density": 650,
+        "pricePerM2": 8.9
+      },
+      {
+        "id": "mdf-lacquer-19",
+        "name": {
+          "en": "Lacquer MDF 19",
+          "de": "MDF lackiert 19"
+        },
+        "thickness": 19,
+        "grain": false,
+        "density": 750,
+        "pricePerM2": 38
+      },
+      {
+        "id": "worktop-laminate-38",
+        "name": {
+          "en": "Worktop laminate 38",
+          "de": "Arbeitsplatte Schichtstoff 38"
+        },
+        "thickness": 38,
+        "grain": false,
+        "density": 700,
+        "pricePerM2": 45
+      },
+      {
         "id": "mel-anthracite-19",
         "name": "Melamine anthracite 19",
         "thickness": 19,
-        "grain": false
+        "grain": false,
+        "pricePerM2": 12.8
+      }
+    ],
+    "edgebands": [
+      {
+        "id": "abs-white-1",
+        "name": {
+          "en": "ABS white 1 mm",
+          "de": "ABS weiß 1 mm"
+        },
+        "thickness": 1,
+        "width": 23,
+        "code": "W1",
+        "pricePerM": 0.45
       }
     ],
     "presets": [

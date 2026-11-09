@@ -10,13 +10,16 @@
     FACTORY_STYLES,
     localName,
     partDxf,
+    projectSheets,
     resolveStyle,
     stackSheets,
     zip,
     type CabinetResult,
     type DxfFile,
+    type Sheet,
   } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
+  import { printSheets, type Paper } from "../lib/export.ts";
 
   const t = $derived(store.tr.t);
   let kind = $state<"part" | "assembly" | "plan" | "elevation" | "room_part">("part");
@@ -121,6 +124,40 @@
     const name = `${base}-dxf.zip`;
     note = downloadNote(await download(name, zip(files.map((f) => ({ name: f.name, data: f.content }))), "application/zip"), `${name} (${files.length} DXF)`, t);
   }
+
+  // All sheets at once: a zip of SVGs, or one sheet per page through the print dialog (PDF).
+  let sheetScope = $state<"project" | "cabinet">("project");
+  let paper = $state<Paper>("sheet");
+  function allSheets(): Sheet[] {
+    const r = store.result!;
+    const styleIn = [...styles].reverse().find((s) => s.id === store.ui.style) ?? FACTORY_STYLES[0]!;
+    return projectSheets(r, {
+      tr: store.tr,
+      style: resolveStyle(styleIn.id, styles),
+      styleName: localName(styleIn.name, store.tr.locale),
+      ...(sheetScope === "cabinet" && cab ? { cabinet: cab.resolved.cabinet.id } : {}),
+    });
+  }
+  async function exportSheets(how: "zip" | "print"): Promise<void> {
+    if (!store.result) return;
+    try {
+      const sheets = allSheets();
+      if (!sheets.length) {
+        note = t("ui.fix_errors_first");
+        return;
+      }
+      if (how === "print") {
+        printSheets(sheets, paper);
+        note = t("ui.sheets_printed", { n: sheets.length });
+        return;
+      }
+      const base = sheetScope === "cabinet" && cab ? cab.resolved.cabinet.id : (store.result.project.name || "project").replace(/[^\w.-]+/g, "-");
+      const name = `${base}-sheets.zip`;
+      note = downloadNote(await download(name, zip(sheets.map((s) => ({ name: s.name, data: s.svg }))), "application/zip"), `${name} (${sheets.length} SVG)`, t);
+    } catch (e) {
+      note = t("ui.sheets_failed", { error: String((e as Error).message) });
+    }
+  }
   const fileName = $derived(
     kind === "room_part" ? `${roomPart?.id}.svg` : kind === "assembly" ? `${cab?.resolved.cabinet.id}-assembly.svg` : kind === "plan" ? "floor-plan.svg" : kind === "elevation" ? `elevation-${wallId}.svg` : `${partId}.svg`,
   );
@@ -172,7 +209,21 @@
     <button onclick={() => exportDxf("cabinet")} disabled={!cab || kind === "room_part"}>{t("ui.dxf_cabinet")}</button>
     <button onclick={() => exportDxf("project")}>{t("ui.dxf_project")}</button>
   </div>
-  {#if note}<p class="note muted">{note}</p>{/if}
+  <div class="bar cnc">
+    <span class="label">{t("ui.sheets_export")}</span>
+    <select id="sheet-scope" aria-label={t("ui.sheets_scope")} bind:value={sheetScope}>
+      <option value="project">{t("ui.whole_project")}</option>
+      {#if cab}<option value="cabinet">{cab.resolved.cabinet.id}</option>{/if}
+    </select>
+    <button onclick={() => exportSheets("zip")}>{t("ui.sheets_zip")}</button>
+    <select id="sheet-paper" aria-label={t("ui.paper")} bind:value={paper}>
+      <option value="sheet">{t("ui.paper.sheet")}</option>
+      <option value="a4">A4</option>
+      <option value="a3">A3</option>
+    </select>
+    <button onclick={() => exportSheets("print")}>{t("ui.sheets_print")}</button>
+  </div>
+  {#if note}<p class="note muted" role="status">{note}</p>{/if}
   {#if kind === "plan" || kind === "elevation" || kind === "room_part"}
     <div class="sheet scroll-x">{@html svg}</div>
   {:else if !cab}
@@ -187,7 +238,8 @@
 <style>
   .dv { display: flex; flex-direction: column; min-height: 460px; }
   .bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); align-items: center; }
-  .bar [role="group"] { display: flex; gap: 4px; }
+  .bar [role="group"] { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+  .bar [role="group"] button { white-space: nowrap; }
   .cnc { background: var(--surface-2); }
   .sp { flex: 1; }
   .note { margin: 6px 10px 0; font-size: 12px; }

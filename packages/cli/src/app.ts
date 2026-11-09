@@ -1,5 +1,10 @@
 import {
+  bomCsv,
+  bomTable,
+  bomText,
+  buildBom,
   buildProject,
+  projectSheets,
   cutlistCsv,
   cutlistRows,
   cutlistTable,
@@ -48,6 +53,8 @@ const USAGE = `Usage: cabinet-planner <command> <project.json> [options]
 
 Commands:
   cutlist   Write the cutlist (CSV or a text table)
+  bom       Write the bill of materials: board m² with waste, edgeband metres, hardware by
+            article, prices and totals (CSV or a text table; --per-cabinet adds the cost per cabinet)
   resolve   Show every variable with its value and where it came from
   check     Validate the project and list errors and warnings
   ops       Show machining operations and hardware per part (part-local mm)
@@ -56,17 +63,20 @@ Commands:
   room      Write the floor plan (or with --wall <id> that wall's elevation) as SVG
   dxf       Write CNC DXF files, one per machined part side (--out <dir> or --zip <file>;
             --cabinet / --part to limit; --profile <id> for the layer names)
+  sheets    Write every drawing sheet as SVG: room plan and elevations, assembly drawings,
+            part sheets (--out <dir> or --zip <file>; --cabinet to limit; --style)
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
   --lang <en|de>         Language for headers and messages (default: $LANG or en)
-  --format <csv|table>   cutlist output format (default: csv)
-  --group                Merge identical parts into one row with a quantity
+  --format <csv|table>   cutlist, bom: output format (default: csv)
+  --group                cutlist: merge identical parts into one row with a quantity
+  --per-cabinet          bom: add the cost share of every cabinet
   --delimiter <char>     CSV delimiter (default: ",")
   --out <file>           Write to a file instead of stdout
   --cabinet <id>         resolve, ops: only this cabinet; assembly: the cabinet to draw
   --part <id>            drawing: the part to draw
-  --style <id>           drawing: machine (default), machine-iso, machine-chain, upright,
+  --style <id>           drawing, sheets: machine (default), machine-iso, machine-chain, upright,
                          or a style from the shop/project library
   --sheet <n>            drawing: only sheet n of a part machined on both sides
                          (default: all sheets, stacked)
@@ -84,6 +94,7 @@ export function run(argv: readonly string[], io: Io): number {
         lang: { type: "string" },
         format: { type: "string", default: "csv" },
         group: { type: "boolean", default: false },
+        "per-cabinet": { type: "boolean", default: false },
         delimiter: { type: "string", default: "," },
         out: { type: "string" },
         cabinet: { type: "string" },
@@ -107,7 +118,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
-  if (!["cutlist", "resolve", "check", "ops", "drawing", "assembly", "dxf", "room"].includes(command) || !file) {
+  if (!["cutlist", "bom", "resolve", "check", "ops", "drawing", "assembly", "dxf", "sheets", "room"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
   }
@@ -369,6 +380,58 @@ export function run(argv: readonly string[], io: Io): number {
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
     }
+    case "bom": {
+      if (!result.ok) {
+        printDiagnostics(result.diagnostics, tr, io);
+        io.stderr(tr.t("cli.errors_block_output") + "\n");
+        return 1;
+      }
+      const bom = buildBom(result);
+      const text = bomText(tr);
+      const tableOpts = { cabinets: opts["per-cabinet"] };
+      emit(
+        opts.format === "csv"
+          ? bomCsv(bom, result, text, { ...tableOpts, delimiter: opts.delimiter })
+          : alignTable(bomTable(bom, result, text, tableOpts)),
+      );
+      printDiagnostics(result.diagnostics, tr, io);
+      return 0;
+    }
+    case "sheets": {
+      if (!opts.out && !opts.zip) {
+        io.stderr("sheets needs --out <dir> or --zip <file>\n");
+        return 2;
+      }
+      if (opts.cabinet && !result.cabinets.some((c) => c.resolved.cabinet.id === opts.cabinet)) {
+        io.stderr(tr.t("cli.cabinet_not_found", { cabinet: opts.cabinet }) + "\n");
+        return 1;
+      }
+      const styles = [...(shopFile?.library.drawingStyles ?? []), ...result.project.library.drawingStyles];
+      let style;
+      try {
+        style = resolveStyle(opts.style ?? "machine", styles);
+      } catch (e) {
+        io.stderr(`${(e as Error).message}\n`);
+        return 2;
+      }
+      const styleInput = [...FACTORY_STYLES, ...styles].reverse().find((x) => x.id === style.id)!;
+      const sheets = projectSheets(result, {
+        tr,
+        style,
+        styleName: localName(styleInput.name, tr.locale),
+        ...(opts.cabinet ? { cabinet: opts.cabinet } : {}),
+      });
+      const count = tr.t("cli.sheets", { n: sheets.length });
+      if (opts.zip) {
+        io.writeFile(opts.zip, zip(sheets.map((s) => ({ name: s.name, data: s.svg }))));
+        io.stderr(tr.t("cli.written", { file: `${opts.zip} (${count})` }) + "\n");
+      } else {
+        for (const s of sheets) io.writeFile(`${opts.out}/${s.name}`, s.svg);
+        io.stderr(tr.t("cli.written", { file: `${count} → ${opts.out}` }) + "\n");
+      }
+      printDiagnostics(result.diagnostics, tr, io);
+      return result.ok ? 0 : 1;
+    }
     case "cutlist": {
       if (!result.ok) {
         printDiagnostics(result.diagnostics, tr, io);
@@ -392,6 +455,7 @@ export function run(argv: readonly string[], io: Io): number {
 export function cutlistText(tr: Translator): CutlistText {
   return {
     locale: tr.locale,
+    shaped: tr.t("cutlist.shaped"),
     header: (col) => tr.t(`col.${col}`),
     role: (row: CutlistRow) => {
       if (row.label !== undefined) return localName(row.label, tr.locale);

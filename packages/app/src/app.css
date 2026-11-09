@@ -89,6 +89,16 @@ table.grid td.n { text-align: right; font-family: var(--font-mono); font-variant
 html { -webkit-text-size-adjust: 100%; }
 body { overscroll-behavior: none; }
 
+/* Printing all sheets (lib/export.ts): only the sheets, one per page; page sizes are set there. */
+#print-root { display: none; }
+@media print {
+  body:has(> #print-root) { background: #fff; }
+  body:has(> #print-root) > #app { display: none; }
+  #print-root { display: block; }
+  .print-page { break-after: page; break-inside: avoid; }
+  .print-page:last-child { break-after: auto; }
+}
+
 /* Part drawings and assembly drawings: theme the engine's classes. */
 .sheet svg { display: block; width: 100%; height: auto; max-width: 1100px; margin: 0 auto; }
 .pd-sheet, .asm-sheet { fill: var(--surface); }

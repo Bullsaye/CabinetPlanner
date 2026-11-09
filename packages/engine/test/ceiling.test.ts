@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProject, ceilingAlong, cutlistRows, loadProject, partDxf } from "../src/index.ts";
+import { buildProject, ceilingAlong, cutlistRows, cutlistTable, loadProject, partDxf, type Part } from "../src/index.ts";
 
 // 3 × 3 m room; the roof rises from wall D (west) at 45° from a 1000 knee wall up to the flat ceiling at 2500.
 const room = {
@@ -47,10 +47,28 @@ describe("sloped ceilings (D44)", () => {
     const r = build();
     const rows = cutlistRows(r.parts, r.library, { group: true }).filter((x) => x.parts[0]!.endsWith("-PB"));
     expect(rows.filter((x) => x.outline).length).toBe(3);
+    // The flag reaches the written cutlist: the sizes alone would read as a plain rectangle.
+    const text = { locale: "en", header: (c: string) => c, role: () => "", shaped: "SHAPED" };
+    const table = cutlistTable(rows, r.library, text, ["part", "length", "width", "note"]);
+    expect(table.slice(1).map((x) => x.join(" "))).toEqual(["T01-PB 597 628.5 SHAPED", "T02-PB 597 628.5 SHAPED", "T03-PB 597 330 SHAPED", "T04-PB 597 30 ", "T05-PB 597 30 "]);
     const dxf = partDxf(r.parts.find((p) => p.id === "T01-PB")!, { W: 600, H: 870, D: 560 })[0]!.content;
     // Four contour vertices, the sloped edge from 31.5 to 628.5.
     expect(dxf).toContain("628.5");
     expect(dxf).toContain("31.5");
+  });
+
+  it("groups shaped parts only with parts of the same shape (D43)", () => {
+    const r = buildProject(loadProject({ schemaVersion: 1, name: "S", cabinets: [{ id: "C1", type: "box", vars: { shelf_count: 3 } }] }));
+    const shelves = r.parts.filter((p) => p.role === "shelf") as Part[];
+    const [a, b, c] = shelves as [Part, Part, Part];
+    const qty = (): number[] => cutlistRows(shelves, r.library, { group: true }).map((x) => x.qty);
+    expect(qty()).toEqual([3]);
+    // Same bounding rectangle, two different contours, one plain rectangle.
+    a.outline = [[0, 0], [a.length, 0], [a.length, a.width], [0, a.width - 100]];
+    b.outline = [[0, 0], [b.length, 0], [b.length, b.width - 100], [0, b.width]];
+    expect(qty()).toEqual([1, 1, 1]);
+    c.outline = [[0, 0], [c.length, 0], [c.length, c.width - 100], [0, c.width]];
+    expect(qty()).toEqual([1, 2]);
   });
 
   it("warns when a cabinet reaches above the ceiling", () => {

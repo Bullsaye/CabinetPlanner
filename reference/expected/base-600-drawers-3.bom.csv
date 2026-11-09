@@ -1,0 +1,13 @@
+Section,Item,Name,Article no.,Count,Net,Qty,Unit,Unit price,Cost,Note
+Board,hdf-white-8,HDF white 8,,4,1.16,1.33,m²,,,
+Board,mdf-lacquer-19,Lacquer MDF 19,,3,0.42,0.49,m²,,,
+Board,mel-white-16,Melamine white 16,,12,1.04,1.2,m²,,,
+Board,mel-white-19,Melamine white 19,,5,1.23,1.42,m²,,,
+Edgeband,abs-white-1,ABS white 1 mm,,28,13.63,15.03,m,,,
+Hardware,dowel-8x35,Dowel Ø8 × 35,,,,16,pcs,,,
+Hardware,generic-undermount,Concealed full-extension slide for wooden drawers (generic),,,,3,sets,,,
+Hardware,generic-leg-100,Adjustable leg 100 (generic),,,,4,pcs,,,
+Total,,Board material,,,,,,,,4 without price
+Total,,Edgebands,,,,,,,,1 without price
+Total,,Hardware,,,,,,,,3 without price
+Total,,Total,,,,,,,,8 without price

@@ -711,3 +711,51 @@ step, with everything still a formula:
   D31) is not machining of one face: it does not make a part two-sided
   (D22) and does not decide which face is shown. It is drawn solid on
   every sheet and written to the first side's DXF only, like edge bores.
+
+### D47 · 2026-11-09 · Bill of materials and costing
+
+- The BOM (`output/bom.ts`) is computed from the project result only:
+  board per material, edgeband per type, hardware and consumables per
+  library item, with section totals and the cost share per cabinet
+  (worktops and plinth panels under "ROOM").
+- Board: net area = finished length × width of every part (D4);
+  non-rectangular parts (D43) count with their bounding rectangle, which
+  is what is cut from the board. Gross area = net × (1 + `waste_pct` / 100).
+- Edgeband: finished length of every banded edge (l1, l2 = length; w1, w2
+  = width) plus `edge_allowance` per banded edge.
+- `waste_pct` (15) and `edge_allowance` (50 mm) are catalogue variables
+  (group costing). Each part uses the values of its cabinet, room parts
+  those of the project.
+- Hardware: `CabinetResult.hardware` summed per item and chosen variant
+  article (two variants of one item are two rows); the article column is
+  the variant's number, else all article numbers of the item. Rows are
+  ordered connectors and consumables first, then by item id (plain
+  code-unit order, like materials and edgebands).
+- Prices live on the library items: `pricePerM2`, `pricePerM`, `bom.price`
+  (per unit of the item), without a currency (the shop's). Quantities are
+  rounded to 0.01 (m², m) first; a row's cost is that quantity × unit
+  price, rounded to 0.01; section totals are the sums of the row costs.
+  Rows without a price are left out of the totals and counted
+  ("n without price"); a sum without any priced row stays empty. The cost
+  per cabinet comes from unrounded quantities and may differ from the
+  totals by rounding.
+- One table for CSV and text: section, item id, name, article no., count
+  (parts or edges), net, quantity to order, unit, unit price, cost, note
+  (cut lengths of rails). Numbers per D10.
+
+### D48 · 2026-11-09 · Shaped parts in the cutlist, CSV downloads, sheet export
+
+- Written cutlists (CSV, table) mark a non-rectangular part (D43) with a
+  remark in the note column, after the part's own note: the sizes are the
+  bounding rectangle, the contour is on the part sheet and in the DXF.
+  Grouping compares the contour itself, so two different shapes with the
+  same bounding rectangle stay two rows.
+- CSV files downloaded from the app start with a UTF-8 byte order mark so
+  spreadsheet programs read umlauts, ², Ø and × correctly. CLI output and
+  the clipboard copy have none (D10 stays as it is for those).
+- "All sheets" (`output/sheets.ts`): floor plan and wall elevations, then
+  per cabinet the assembly drawing and its part sheets (two-sided parts:
+  `-1`, `-2`), then worktops and plinth panels; file names
+  `room/…`, `<cabinet>/<part>.svg`. The app offers them as a ZIP of SVGs
+  and through the print dialog, one sheet per page, each page as large as
+  its sheet (true to scale) or fitted to A4 / A3.

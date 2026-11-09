@@ -91,6 +91,89 @@ describe("cli", () => {
   });
 });
 
+describe("cli bom", () => {
+  it("writes the bill of materials as CSV with prices from the shop file", async () => {
+    const io = fakeIo();
+    expect(run(["bom", "examples/kitchen-basic.project.json", "--shop", "examples/shop.json", "--per-cabinet"], io)).toBe(0);
+    expect(io.out.split("\n")[0]).toBe("Section,Item,Name,Article no.,Count,Net,Qty,Unit,Unit price,Cost,Note");
+    // Golden file: the BOM is production data (order quantities), any change shows up as a diff.
+    await expect(io.out).toMatchFileSnapshot(join(root, "reference/expected/example-kitchen.bom.csv"));
+    // Every total is the sum of its rows (";" so that names with commas need no quotes).
+    const semi = fakeIo();
+    run(["bom", "examples/kitchen-basic.project.json", "--shop", "examples/shop.json", "--delimiter", ";"], semi);
+    const rows = semi.out.trimEnd().split("\n").slice(1).map((l) => l.split(";"));
+    const sum = (section: string): number => rows.filter((r) => r[0] === section).reduce((a, r) => a + Number(r[9]), 0);
+    const total = (name: string): number => Number(rows.find((r) => r[0] === "Total" && r[2] === name)![9]);
+    expect(total("Board material")).toBeCloseTo(sum("Board"), 6);
+    expect(total("Edgebands")).toBeCloseTo(sum("Edgeband"), 6);
+    expect(total("Total")).toBeCloseTo(sum("Board") + sum("Edgeband") + sum("Hardware"), 6);
+  });
+
+  it("writes an aligned, localized table", async () => {
+    const io = fakeIo();
+    expect(run(["bom", "examples/kitchen-basic.project.json", "--shop", "examples/shop.json", "--format", "table", "--lang", "de"], io)).toBe(0);
+    expect(io.out).toMatch(/^Bereich\s+Artikel\s+Bezeichnung\s+Artikel-Nr\.\s+Anzahl\s+Netto\s+Menge\s+Einheit\s+Einzelpreis\s+Kosten\s+Bemerkung$/m);
+    expect(io.out).toMatch(/^Platte\s+mel-white-19\s+Melamin weiß 19\s+\d+\s+[\d.]+\s+[\d.]+\s+m²\s+9\.5\s+[\d.]+$/m);
+    expect(io.out).toMatch(/^Summe\s+Gesamt\s+[\d.]+\s+\d+ ohne Preis$/m);
+    await expect(io.out).toMatchFileSnapshot(join(root, "reference/expected/example-kitchen.bom.de.txt"));
+  });
+
+  it("honours --delimiter and --out, and refuses when there are errors", () => {
+    const io = fakeIo();
+    expect(run(["bom", "examples/kitchen-basic.project.json", "--delimiter", ";", "--out", "bom.csv"], io)).toBe(0);
+    expect(io.written["bom.csv"]).toContain("Board;mel-white-19;Melamine white 19;");
+    expect(io.err).toContain("Written: bom.csv");
+    const bad = fakeIo({ "bad.json": JSON.stringify({ schemaVersion: 1, name: "bad", cabinets: [{ id: "X1", type: "box", vars: { W: "H +" } }] }) });
+    expect(run(["bom", "bad.json"], bad)).toBe(1);
+    expect(bad.out).toBe("");
+    expect(bad.err).toContain("no output written");
+  });
+
+  it("has a text for every key the BOM writer reads", async () => {
+    const { BOM_COLUMNS } = await import("@cabinet-planner/engine");
+    const { en } = await import("@cabinet-planner/i18n");
+    const keys = [
+      ...BOM_COLUMNS.map((c) => `bom.col.${c}`),
+      ...["material", "edgeband", "hardware", "cabinet", "total"].map((s) => `bom.section.${s}`),
+      ...["material", "edgeband", "hardware", "all"].map((s) => `bom.total.${s}`),
+      "bom.unpriced",
+      "unit.m",
+      "unit.m2",
+    ];
+    for (const k of keys) expect(Object.hasOwn(en, k), k).toBe(true);
+    // Units used by the factory hardware items.
+    const { FACTORY_HARDWARE } = await import("@cabinet-planner/engine");
+    for (const h of FACTORY_HARDWARE) expect(Object.hasOwn(en, `unit.${h.bom.unit}`), `${h.id}: unit.${h.bom.unit}`).toBe(true);
+  });
+});
+
+describe("cli sheets", () => {
+  it("writes every drawing sheet of the project as SVG, to a folder or a zip", () => {
+    const io = fakeIo();
+    expect(run(["sheets", "examples/kitchen-basic.project.json", "--out", "sheets", "--lang", "de"], io)).toBe(0);
+    const names = Object.keys(io.written);
+    expect(names).toContain("sheets/room/floor-plan.svg");
+    expect(names).toContain("sheets/room/elevation-A.svg");
+    expect(names).toContain("sheets/B01/B01-assembly.svg");
+    expect(names).toContain("sheets/B01/B01-SL.svg");
+    expect(names.some((n) => n.startsWith("sheets/room/ROOM-WT"))).toBe(true);
+    expect(new Set(names).size).toBe(names.length);
+    for (const n of names) expect(io.written[n] as string, n).toMatch(/^<svg [^>]*width="[\d.]+mm" height="[\d.]+mm"/);
+    expect(io.written["sheets/B01/B01-SL.svg"]).toContain("Seite links");
+    expect(io.err).toContain(`${names.length} Blätter`);
+
+    const one = fakeIo();
+    expect(run(["sheets", "examples/kitchen-basic.project.json", "--cabinet", "W01", "--zip", "w.zip"], one)).toBe(0);
+    expect(one.written["w.zip"]).toBeInstanceOf(Uint8Array);
+    expect(new TextDecoder().decode(one.written["w.zip"] as Uint8Array)).toContain("W01/W01-assembly.svg");
+    expect(new TextDecoder().decode(one.written["w.zip"] as Uint8Array)).not.toContain("B01/");
+
+    expect(run(["sheets", "examples/kitchen-basic.project.json"], fakeIo())).toBe(2);
+    expect(run(["sheets", "examples/kitchen-basic.project.json", "--cabinet", "X9", "--out", "x"], fakeIo())).toBe(1);
+    expect(run(["sheets", "examples/kitchen-basic.project.json", "--style", "nope", "--out", "x"], fakeIo())).toBe(2);
+  });
+});
+
 describe("cli assembly", () => {
   it("writes the assembly drawing of a cabinet", () => {
     const io = fakeIo();
