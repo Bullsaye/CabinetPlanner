@@ -16,6 +16,11 @@ export interface CabinetTemplate {
     vars: Record<string, number | string>;
     options?: Record<string, string | boolean | null>;
     fronts?: { type: "door" | "drawer" | "open" | "appliance" | "panel"; h?: number | string; doors?: number; front?: boolean }[];
+    construction?: {
+      panels?: { y: number | string; setbackFront?: number | string; setbackRear?: number | string }[];
+      fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;
+      noBack?: number[];
+    };
   };
 }
 
@@ -89,7 +94,19 @@ export const FACTORY_TEMPLATES: readonly CabinetTemplate[] = [
     id: "tall-fridge",
     group: "kitchen",
     name: { en: "Tall fridge housing (integrated)", de: "Kühlschrank-Hochschrank (integriert)" },
-    cabinet: tall({ W: 600, shelf_count: 0 }, { fronts: [{ type: "door" }, { type: "appliance", h: "fridge_h", front: true }] }),
+    // Above the fridge: a board set back at the rear for the air, a gap, a full board;
+    // no back behind the fridge, a back in the upper section (D38).
+    cabinet: tall(
+      { W: 600, shelf_count: 0 },
+      {
+        fronts: [{ type: "door" }, { type: "appliance", h: "fridge_h", front: true }],
+        construction: {
+          fixed: { "1": { setbackRear: "fridge_vent_rear" } },
+          panels: [{ y: "zone2_y1 + front_gap + t_carcase + fridge_vent" }],
+          noBack: [2],
+        },
+      },
+    ),
   },
   // Storage
   { id: "tall-bookcase", group: "storage", name: { en: "Bookcase (open)", de: "Bücherregal (offen)" }, cabinet: tall({ W: 800, D: 350, door_count: 0, shelf_count: 5 }) },

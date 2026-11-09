@@ -16,3 +16,4 @@ machined and checked.
 | hettich.json | Hettich Sensys, plates, AvanTech YOU, Actro 5D, Rastex, VB, Duplo | 2026-11-09 |
 | lamello-keku.json | Lamello Clamex P, Tenso P, Divario, Cabineo; Keku (not reachable) | 2026-11-09 |
 | grass-hafele.json | Grass Tiomos, plates, Dynapro, Nova Pro Scala, Vionaro; Häfele Minifix, Symo, AXILO, shelf supports | 2026-11-09 |
+| hanging-flaps.json | Hettich SAH 130 cabinet hanger + mounting rails, Lift Advanced HK; Blum AVENTOS HK top | 2026-11-09 |

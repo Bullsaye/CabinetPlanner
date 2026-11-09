@@ -62,6 +62,8 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "cutout_r", group: "room", unit: "mm", factory: 10, min: 0, max: 100, step: 1 }),
   v({ name: "cutout_offset", group: "room", unit: "mm", factory: 0, min: -1000, max: 1000, step: 5 }),
   v({ name: "oven_h", group: "room", unit: "mm", factory: 600, min: 300, max: 1200, step: 1 }),
+  v({ name: "fridge_vent", group: "room", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
+  v({ name: "fridge_vent_rear", group: "room", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
   v({ name: "fridge_h", group: "room", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
   v({ name: "wardrobe_h", group: "room", unit: "mm", factory: "tall_h", min: 500, max: 2800, step: 10 }),
   v({ name: "wardrobe_d", group: "room", unit: "mm", factory: 580, min: 300, max: 900, step: 10 }),

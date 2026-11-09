@@ -519,3 +519,21 @@ Two shop settings, because they are used for different things:
   from the shared top and bottom, at most `link_max_spacing` apart; a
   blocked position moves by the pitch. The left cabinet's settings apply
   and it carries the screws in its hardware list.
+
+### D38 · 2026-11-09 · Construction elements
+
+- A cabinet may carry `construction`: extra horizontal `panels` (bottom face
+  at `y`, shortened by `setbackFront` / `setbackRear`), changes to the
+  automatic fixed shelves under zone i (`fixed["i"]`: `panel: false` leaves
+  it out, setbacks shorten it), and `noBack` zones. Expressions see
+  `zone<i>_y0` / `zone<i>_y1`, the zone's front edges.
+- Extra panels are fixed shelves (FS…, dowelled like the others). Panels
+  with no rear setback are back stops: with `noBack`, the back splits into
+  panels BK1, BK2, … between the stops around zones that keep a back, each
+  grooved (or rebated) into the panels it ends at, which then reach into
+  the groove. A back that only passes behind a panel does not groove it.
+- The tall fridge template uses it: the shelf over the fridge set back at
+  the rear (`fridge_vent_rear`), a full panel `fridge_vent` above it, no
+  back behind the fridge, a back in the upper section.
+- Cabinets record the template they came from (`template`), for the app's
+  "save to template".

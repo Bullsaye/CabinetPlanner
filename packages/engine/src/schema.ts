@@ -68,6 +68,26 @@ export const FrontZone = z.object({
 });
 export type FrontZone = z.infer<typeof FrontZone>;
 
+/**
+ * Construction elements of a cabinet (D38), beyond what the variables
+ * describe: extra horizontal panels, changes to the automatic fixed shelves
+ * between zones, and zones without a back. Expressions may use the zone
+ * edges `zone<i>_y0` / `zone<i>_y1` (front bottom/top edge of zone i, 1 = top).
+ */
+export const ConstructionSchema = z.object({
+  /** Extra panels: bottom face at y (cabinet Y), shortened at the front and/or rear. */
+  panels: z
+    .array(z.object({ y: VarInputSchema, setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
+    .default([]),
+  /** Automatic fixed shelf under zone i ("1" = between zones 1 and 2): left out, or shortened. */
+  fixed: z
+    .record(z.string(), z.object({ panel: z.boolean().default(true), setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
+    .default({}),
+  /** Zones (1 = top) that get no back; the back splits at the panels around them. */
+  noBack: z.array(z.number().int().min(1)).default([]),
+});
+export type ConstructionInput = z.infer<typeof ConstructionSchema>;
+
 export const CabinetSchema = z.object({
   /** Short id used in part numbers, e.g. "B01". Must stay stable. */
   id: z.string().regex(/^[A-Za-z0-9]{1,8}$/, "1–8 letters or digits"),
@@ -80,8 +100,12 @@ export const CabinetSchema = z.object({
   place: PlacementSchema.optional(),
   /** Front stack, top to bottom. Without it the cabinet has one door zone (door_count doors). */
   fronts: z.array(FrontZone).max(12).optional(),
+  /** Construction elements (extra panels, back zones). */
+  construction: ConstructionSchema.optional(),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
+  /** Template this cabinet was made from (the app saves construction changes back to it). */
+  template: z.string().optional(),
 });
 export type CabinetInput = z.infer<typeof CabinetSchema>;
 
@@ -99,6 +123,7 @@ export const CabinetTemplateSchema = z.object({
     vars: z.record(identifier, VarInputSchema).default({}),
     options: z.record(z.string(), OptionValueSchema).default({}),
     fronts: z.array(FrontZone).max(12).optional(),
+    construction: ConstructionSchema.optional(),
     parts: z.record(z.string(), PartOverride).default({}),
   }),
 });

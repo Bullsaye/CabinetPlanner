@@ -330,25 +330,6 @@ export function buildBox(
     }
   }
 
-  // --- Back ----------------------------------------------------------------
-  // Inner opening between the carcase panels; the back reaches `engage` mm
-  // into the surrounding panels (groove or rebate depth minus play).
-  {
-    let box: Box;
-    if (backMount === "surface") {
-      box = { x: 0, y: 0, z: 0, dx: W, dy: H, dz: tBack };
-    } else {
-      const engage = (backMount === "groove" ? num("back_groove_depth") : num("back_rebate_depth")) - play;
-      const z = backMount === "groove" ? num("back_groove_offset") : 0;
-      // Inside: into the bottom and top (or up to the top edge behind rails).
-      // Behind the horizontals: the full carcase height, in the sides only.
-      const y0 = backBehind ? 0 : t - engage;
-      const y1 = backBehind ? H : top === "full" ? H - t + engage : H - play;
-      box = { x: t - engage, y: y0, z, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
-    }
-    add("back", undefined, box, "y", "x", "material.back", none);
-  }
-
   // --- Front stack -----------------------------------------------------------
   const fz = layoutFronts(
     rc.cabinet.fronts ?? (num("door_count") > 0 ? [{ type: "door" as const }] : []),
@@ -388,6 +369,43 @@ export function buildBox(
     }
     fixedAt[i] = roundMm(y);
   }
+  // --- Construction elements (D38) ------------------------------------------------
+  const cons = rc.cabinet.construction;
+  const zoneVars = new Map(rc.values);
+  fronts.forEach((f, i) => {
+    zoneVars.set(`zone${i + 1}_y0`, f.y0);
+    zoneVars.set(`zone${i + 1}_y1`, f.y1);
+  });
+  const cval = (v: string | number, what: string): number => {
+    const r = evaluateGraph(new Map([["__c", v]]), zoneVars);
+    const x = r.values.get("__c");
+    if (x === undefined || r.diagnostics.length) {
+      diagnostics.push({ severity: "error", code: "construction_value_invalid", params: { what, expr: String(v) }, cabinet: cab });
+      return 0;
+    }
+    return x;
+  };
+  /** Setbacks of each fixed shelf by its bottom y (rear setback keeps it off the back). */
+  const fixedSetback = new Map<number, { front: number; rear: number }>();
+  for (const [k, f] of Object.entries(cons?.fixed ?? {})) {
+    const i = Number(k) - 1;
+    if (!(i >= 0 && i < fixedAt.length) || fixedAt[i] === undefined) {
+      diagnostics.push({ severity: "warning", code: "construction_fixed_unknown", params: { index: k }, cabinet: cab });
+      continue;
+    }
+    if (!f.panel) fixedAt[i] = undefined;
+    else fixedSetback.set(fixedAt[i]!, { front: cval(f.setbackFront, `fixed ${k}`), rear: cval(f.setbackRear, `fixed ${k}`) });
+  }
+  const extraPanels = (cons?.panels ?? []).map((pn, k) => {
+    const y = roundMm(cval(pn.y, `panel ${k + 1}`));
+    if (y < t - 1e-6 || y + t > H - t + 1e-6) diagnostics.push({ severity: "error", code: "construction_panel_outside", params: { index: k + 1 }, cabinet: cab });
+    return { y, front: cval(pn.setbackFront, `panel ${k + 1}`), rear: cval(pn.setbackRear, `panel ${k + 1}`) };
+  });
+  const noBack = new Set(cons?.noBack ?? []);
+  // A split back needs the panels it ends at to reach into its groove.
+  const splitBack = noBack.size > 0;
+  const backReachZ = splitBack && !backBehind && backMount !== "surface" ? carcaseZ0 : backFrontZ;
+
   // Clear interior of each zone, between fixed shelves (or bottom / top).
   const zoneRange = (i: number): [number, number] => {
     const f = fronts[i]!;
@@ -402,16 +420,71 @@ export function buildBox(
   });
 
   const fsEdges = front(edgeCarcase);
-  const fsZ0 = backFrontZ;
   const fsZ1 = D - num("fixed_shelf_setback");
   let fixedNo = 0;
-  const fixedShelf = (x0: number, x1: number, y: number): void => {
-    add("fixed_shelf", ++fixedNo, { x: x0, y, z: fsZ0, dx: x1 - x0, dy: t, dz: fsZ1 - fsZ0 }, "x", "z", "material.carcase", fsEdges);
+  /** Panels the back may end at: full depth to the back (no rear setback). */
+  const backStops: number[] = [];
+  const fixedShelf = (x0: number, x1: number, y: number, sb = { front: 0, rear: 0 }): void => {
+    const z0 = (sb.rear > 0 ? backFrontZ : backReachZ) + sb.rear;
+    add("fixed_shelf", ++fixedNo, { x: x0, y, z: z0, dx: x1 - x0, dy: t, dz: fsZ1 - sb.front - z0 }, "x", "z", "material.carcase", fsEdges);
   };
   for (let i = 0; i < fixedAt.length; i++) {
     const y = fixedAt[i];
     if (y === undefined) continue;
-    for (const [sx0, sx1] of sections) fixedShelf(sx0, sx1, y);
+    const sb = fixedSetback.get(y);
+    for (const [sx0, sx1] of sections) fixedShelf(sx0, sx1, y, sb);
+    if (!sb || sb.rear <= 0) backStops.push(y);
+  }
+  for (const pn of extraPanels) {
+    for (const [sx0, sx1] of sections) fixedShelf(sx0, sx1, pn.y, pn);
+    if (pn.rear <= 0) backStops.push(pn.y);
+  }
+
+  // --- Back ----------------------------------------------------------------
+  // Inner opening between the carcase panels; the back reaches `engage` mm
+  // into the surrounding panels (groove or rebate depth minus play). With
+  // zones left without a back (D38) it splits into panels between the
+  // fixed panels around the zones that keep one.
+  {
+    const engage = backMount === "surface" ? 0 : (backMount === "groove" ? num("back_groove_depth") : num("back_rebate_depth")) - play;
+    const zBack = backMount === "groove" ? num("back_groove_offset") : 0;
+    const topFace = top === "full" ? H - t : H; // underside of the top (rails: none)
+    /** Back from the panel at yLo (bottom face; 0 = bottom) to the panel at yHi (bottom face; topFace = top). */
+    const backBox = (yLo: number, yHi: number): Box => {
+      if (backMount === "surface") {
+        const y0 = yLo <= 0 ? 0 : yLo + t / 2;
+        const y1 = yHi >= topFace ? H : yHi + t / 2;
+        return { x: 0, y: y0, z: 0, dx: W, dy: y1 - y0, dz: tBack };
+      }
+      const y0 = backBehind ? (yLo <= 0 ? 0 : yLo + t / 2) : yLo + t - engage;
+      const y1 = backBehind
+        ? yHi >= topFace ? H : yHi + t / 2
+        : yHi >= topFace ? (top === "full" ? H - t + engage : H - play) : yHi + engage;
+      return { x: t - engage, y: y0, z: zBack, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
+    };
+    if (!splitBack) {
+      add("back", undefined, backBox(0, topFace), "y", "x", "material.back", none);
+    } else {
+      // Sections between the stops; a section keeps its back unless the zone at its middle has none.
+      const stops = [0, ...[...new Set(backStops)].sort((a, b) => a - b), topFace];
+      const zoneAt = (y: number): number => fronts.findIndex((f, i) => {
+        const [lo, hi] = zoneRange(i);
+        return y >= lo - 1e-6 && y <= hi + 1e-6;
+      }) + 1;
+      let k = 0;
+      let runStart: number | undefined;
+      for (let i = 0; i + 1 < stops.length; i++) {
+        const mid = (stops[i]! + (i === 0 ? t : t) + stops[i + 1]!) / 2;
+        const keep = !noBack.has(zoneAt(mid));
+        if (keep && runStart === undefined) runStart = stops[i]!;
+        const last = i + 2 === stops.length;
+        if (runStart !== undefined && (!keep || last)) {
+          const end = keep ? stops[i + 1]! : stops[i]!;
+          if (end > runStart) add("back", ++k, backBox(runStart, end), "y", "x", "material.back", none);
+          runStart = undefined;
+        }
+      }
+    }
   }
 
   // Shelves (and a wardrobe interior) live in the tallest door or open zone;

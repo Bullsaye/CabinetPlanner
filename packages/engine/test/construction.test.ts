@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProject, dowelPositions, loadProject, neighbours } from "../src/index.ts";
+import { FACTORY_TEMPLATES, buildProject, dowelPositions, loadProject, neighbours } from "../src/index.ts";
 import { buildOne, partsByCode } from "./helpers.ts";
 
 import type { Operation, Part } from "../src/index.ts";
@@ -143,5 +143,51 @@ describe("neighbours and cabinet screws (D37)", () => {
     expect(a.length).toBe(2);
     expect(a.map((o) => (o.kind === "bore" ? o.u : 0))).toEqual(b.map((o) => (o.kind === "bore" ? o.u : 0)));
     expect(r.cabinets[0]!.hardware.find((h) => h.item === "generic-cabinet-connector-screw")?.qty).toBe(2);
+  });
+});
+
+describe("construction elements (D38)", () => {
+  const fridge = FACTORY_TEMPLATES.find((t) => t.id === "tall-fridge")!.cabinet;
+
+  it("builds the fridge housing: set-back board, gap, full board, back only above", () => {
+    const r = buildOne(fridge as never);
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const [fs1, fs2] = [p.FS1!, p.FS2!];
+    // FS1: automatic shelf over the fridge, 50 shorter at the rear.
+    expect(fs1.box.z).toBe(18 + 50);
+    // FS2: one gap (50) above FS1, reaching into the back groove.
+    expect(fs2.box.y).toBe(fs1.box.y + 19 + 50);
+    expect(fs2.box.z).toBe(0);
+    // One back, from FS2 to the top; grooves in FS2 and the top, none in the bottom.
+    expect(r.parts.filter((x) => x.role === "back").map((x) => x.code)).toEqual(["BK1"]);
+    expect(p.BK1!.box.y).toBe(fs2.box.y + 19 - 7);
+    const groove = (x: Part) => x.operations.filter((o) => o.sources.some((s) => s.kind === "back"));
+    expect(groove(fs2).length).toBe(1);
+    expect(groove(p.BO!)).toEqual([]);
+  });
+
+  it("can drop an automatic fixed shelf and add panels at any height", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      fronts: [{ type: "door" }, { type: "door", h: 717 }],
+      construction: { fixed: { "1": { panel: false } }, panels: [{ y: 1000, setbackFront: 30 }] },
+    });
+    expect(r.diagnostics).toEqual([]);
+    const fs = r.parts.filter((x) => x.role === "fixed_shelf");
+    expect(fs.map((x) => [x.box.y, x.box.z + x.box.dz])).toEqual([[1000, 560 - 30]]);
+  });
+
+  it("splits the back around a zone without one", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { shelf_count: 0 },
+      fronts: [{ type: "door" }, { type: "appliance", h: "oven_h" }, { type: "drawer" }],
+      construction: { noBack: [2] },
+    });
+    expect(r.diagnostics).toEqual([]);
+    expect(r.parts.filter((x) => x.role === "back").length).toBe(2);
   });
 });

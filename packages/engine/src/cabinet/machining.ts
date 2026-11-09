@@ -14,7 +14,7 @@ import {
   type Point3,
   type ThroughMode,
 } from "../ops.ts";
-import { roundMm, type Axis, type Part } from "../part.ts";
+import { boxSize, roundMm, thicknessAxis, type Axis, type Part } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
 import { gridPositions, type BoxLayout } from "./box.ts";
 
@@ -103,26 +103,29 @@ export function machineBox(
   const t = num("t_carcase");
 
   // --- Back groove / rebate ---------------------------------------------------
-  const back = byCode.get("BK");
+  // Every back panel (one, or several with zones left open, D38) gets its
+  // groove or rebate in the carcase panels around it.
   const backMount = opt<string>("back_mount");
-  if (back && backMount !== "surface") {
+  if (backMount !== "surface") {
     const play = num("back_play");
     const c = num("back_groove_clearance") / 2;
-    const b = back.box;
-    const region = {
-      x0: b.x - play,
-      x1: b.x + b.dx + play,
-      y0: b.y - play,
-      y1: b.y + b.dy + play,
-      z0: b.z - c,
-      z1: b.z + b.dz + c,
-    };
     const source: OpSource = { kind: "back", ref: backMount };
     // Back behind the horizontals: grooves/rebates only in the sides, full height.
     const behind = opt<string>("back_extent") === "behind_horizontals";
-    for (const code of behind ? ["SL", "SR"] : ["SL", "SR", "BO", "TO"]) {
-      const p = byCode.get(code);
-      if (p) addPocketFromBox(p, region, source);
+    const hosts = parts.filter((p) =>
+      behind ? p.role === "side_left" || p.role === "side_right" : ["side_left", "side_right", "bottom", "top", "fixed_shelf"].includes(p.role),
+    );
+    for (const back of parts.filter((p) => p.role === "back")) {
+      const b = back.box;
+      const region = { x0: b.x - play, x1: b.x + b.dx + play, y0: b.y - play, y1: b.y + b.dy + play, z0: b.z - c, z1: b.z + b.dz + c };
+      for (const p of hosts) {
+        // Only where the back ends in the panel, not where it passes behind it.
+        const ax = thicknessAxis(p.lengthAxis, p.widthAxis);
+        const lo = ax === "x" ? region.x0 : ax === "y" ? region.y0 : region.z0;
+        const hi = ax === "x" ? region.x1 : ax === "y" ? region.y1 : region.z1;
+        if (lo <= p.box[ax] + 1e-6 && hi >= p.box[ax] + boxSize(p.box, ax) - 1e-6) continue;
+        addPocketFromBox(p, region, source);
+      }
     }
   }
 

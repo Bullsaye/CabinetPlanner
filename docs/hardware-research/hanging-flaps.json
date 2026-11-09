@@ -1,0 +1,291 @@
+{
+  "brand": "Hettich, Blum",
+  "access_note": "Collected 2026-11-09. Sources were downloaded with curl and read (pdftotext, plus PNG renders of the drawings at 200-600 dpi). URLs below are the files actually read. catalog.hettich.com (TA 2025 catalogue pages, e.g. bk_850.pdf for SAH 130 and bk_858.pdf for the rails) and publications.blum.com were blocked by the session's network policy (403 / not resolvable), so catalogue pages were not read. Where a value is read from a dimension label on a drawing rather than stated in text, the notes say so. Rail profile dimensions come from Hettich's own CAD file (DXF line coordinates), not from a dimensioned drawing.",
+  "items": [
+    {
+      "id": "hettich-sah-130-cabinet-hanger",
+      "name": "Hettich cabinet hanger SAH 130 for mounting in the carcase (Schrankaufhänger SAH 130 zur Montage im Korpus), press-in",
+      "category": "hanger",
+      "articles": [
+        "79724 (SAH 130 set: 1 hanger left + 1 hanger right, housing plastic white, steel galvanised, PU 25 sets; EAN 4023149797248). No other housing colour listed in the shop.",
+        "79725 (cover caps for SAH 130 / SAH 131, white, set left and right, PU 25)",
+        "79726 (cover caps for SAH 130 / SAH 131, silver, set left and right, PU 25)",
+        "9007651 (universal mounting rail type B, 3000 mm, steel galvanised, with slots; previous no. 65479; PU 50) — rail for SAH 15, SAH 116, SAH 130, SAH 215/216",
+        "9208678 (mounting rail type L, 130 mm, bendable, with anti-slip ends; previous no. 25099; PU 200) — short rail piece for SAH 15, SAH 116, SAH 130",
+        "65480 (special screw ø5.5 x 50 mm, PZ2 + wall plug ø8 x 40 mm) — rail fixing",
+        "46103 (suspension hook + wall plug ø8 x 40 mm) — alternative hook hanging instead of a rail"
+      ],
+      "values": {
+        "load_per_hanger_kg": 35,
+        "load_per_pair_kg": null,
+        "load_test_standard": "EN 15939, test rig A (one pair of SAH per carcase)",
+        "rail_load_per_cabinet_kg": 130,
+        "height_adjust_plus_minus": 7,
+        "depth_adjust_max": 15,
+        "lateral_adjust_hook_plus_minus": 3,
+        "lateral_adjust_rail_plus_minus": 7,
+        "lift_off_height": 7.5,
+        "depth_preset_back_to_hook_end": 19,
+        "back_setback_min": 16,
+        "back_setback_reference": "side rear edge to the FRONT face of the back panel ('Rückwandversprung (bis Vorderkante Rückwand) min. 16 mm')",
+        "back_thickness_min": 3,
+        "back_thickness_max": 5,
+        "back_groove_depth_max": 5,
+        "wall_to_back_front_face_min": 16,
+        "wall_to_back_front_face_max": 31,
+        "fix_hole_d": 10,
+        "fix_hole_depth": 11.5,
+        "fix_hole_count": 2,
+        "fix_hole_spacing": 32,
+        "fix_hole_from_back_front_face": 20.5,
+        "fix_hole_from_top_edge": 23.7,
+        "side_thickness_min": null,
+        "notch_width": null,
+        "notch_height": null,
+        "rail_profile_height": 28,
+        "rail_profile_depth_off_wall": 6.5,
+        "rail_sheet_thickness": 1.75,
+        "rail_fixing_screw": "ø5.5 x 50, 2 per hanger area; one extra screw centred behind each carcase from 900 mm carcase width",
+        "hook_wall_drilling_d": 8
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "op": "bore",
+          "d": 10,
+          "depth": 11.5,
+          "position": "Two press-in holes on the INSIDE face of each side, top rear corner. Hole row 23.7 below the side's top edge; first hole 20.5 in front of the back panel's front face, second hole 32 further forward (i.e. 20.5 and 52.5 in front of the back's front face). With the minimum setback of 16 the holes are 36.5 and 68.5 from the side's rear edge. Read from the dimensioned drawing in MTA_74387 (panel view: 20.5 / 32 / 23.7 / min. 16; section: ø10, 11.5)."
+        },
+        {
+          "on": "side",
+          "op": "groove",
+          "d": null,
+          "depth": 5,
+          "position": "Back panel groove shown in the same drawing: width '3 - 5' (back thickness), depth 'max. 5', front face of the groove at min. 16 from the side's rear edge. Read from the drawing; Hettich does not state in text that a groove is required (a back panel 'Rückwandversprung' of min. 16 is the stated requirement)."
+        }
+      ],
+      "rules": [
+        "Hanger sits in the top rear corner on the inside face of each side, directly below the top panel (drawing shows the top panel's dowel holes in the band above the hanger holes).",
+        "Back panel front face must be at least 16 mm in front of the side's rear edge.",
+        "Hanging distance wall → front face of back panel is 16–31 mm (15 mm depth adjustment); drawn the same for hook hanging and rail hanging.",
+        "Adjustment: height ±7 mm, depth max. 15 mm, lateral ±3 mm on hooks, ±7 mm on the rail. Lift-off height 7.5 mm.",
+        "Load: 35 kg per hanger per EN 15939 rig A, one pair per carcase. Add-on units (e.g. end shelves) without their own hangers are not allowed. Hettich does not state a per-pair figure; 2 x 35 is not stated.",
+        "Rail type B: 2 special screws ø5.5 x 50 in the area of each hanger; one extra screw centred behind each carcase from 900 mm carcase width. Type B has no anti-slip stop: a cabinet pushed sideways can slide off the rail end. Type L (130 mm, bendable) has anti-slip ends and is fixed with a special screw in the area of each hanger.",
+        "Hooks/plugs: ø8 hole in solid masonry, plug driven in flush; minimum hook screw-in depth = hook length minus 10 mm.",
+        "Furniture maker is responsible for EN 14749 compliance."
+      ],
+      "sources": [
+        {
+          "url": "https://shop.hettich.com/de_DE/p/79724",
+          "what": "article 79724, press-in, rail types A and B, 35 kg/piece EN 15939 rig A, adjustments ±7 / max 15 / ±3 / ±7, back setback min 16 (to front face of back), lift-off 7.5, depth preset 19, white, set L+R, PU 25"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/MTA_74387_SAH_130_Sprachneutral.pdf",
+          "what": "assembly instruction (MTA_SAH 130_0914): drilling drawing 20.5 / 32 / 23.7 / min. 16, ø10 x 11.5, groove 3-5 x max. 5, wall distance 16-31, mounting steps, rail screw rules; isometric with dimensions 32, 40, 29, 18 (not explained)"
+        },
+        {
+          "url": "https://shop.hettich.com/de_DE/-/Kappen-f%C3%BCr-SAH-130/bp/variant1580780157426",
+          "what": "cover caps 79725 white, 79726 silver"
+        },
+        {
+          "url": "https://shop.hettich.com/de_DE/p/9007651",
+          "what": "rail type B 3000 mm, 130 kg/cabinet, for SAH 15/116/130/215/216, no anti-slip, fixing screws"
+        },
+        {
+          "url": "https://shop.hettich.com/de_DE/p/9208678",
+          "what": "rail type L 130 mm bendable, anti-slip, for SAH 15/116/130"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/cad/9007651_3d.zip",
+          "what": "Hettich CAD for rail type B; 9007651_2D_Top_View.dxf line coordinates give the profile: 28 mm tall (y −10.5…17.5), 6.5 mm deep off the wall, sheet 1.75 mm, one long edge formed into an 8 mm upstand hook"
+        },
+        {
+          "url": "https://shop.hettich.com/de_DE/p/65480",
+          "what": "special screw ø5.5 x 50 + plug ø8 x 40 for rails"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "High confidence for articles, load, adjustment ranges and the min. 16 setback (stated in text). Medium for the drilling pattern: numbers are dimension labels on the drawing; the reading 'holes on the side's inside face, 23.7 below the top edge' follows from the drawing (the band above the holes shows the top panel's dowel holes as circles, i.e. a face view of the side) and from the mounting steps. Back groove width 3-5 and depth max. 5 are read from the section and are not stated in text. NOT FOUND: side notch (Ausklinkung) width x height for the rail — the isometric shows a cut-out of height 29 at a top rear corner and a dimension 18, but no text explains them, so notch values are null (29 matches the 28 mm rail height plus clearance, but that is an inference). NOT FOUND: Hettich guidance for visible sides (short rail or cover) — the only related fact is that type L is a 130 mm rail piece per hanger, so a full-width rail is not the only option; whether this avoids the notch is not stated. NOT FOUND: minimum side thickness (holes are 11.5 deep), load per pair, rail type A article number (the shop lists only type B, type L and type H text references). System 32: the two holes are 32 apart but are positioned from the back panel's front face, not from the front system line; they coincide with the 37/32 system row only for particular carcase depths. The catalogue page (TA 2025 p. 848/850) probably has the notch and rail drawings but catalog.hettich.com was blocked."
+    },
+    {
+      "id": "blum-aventos-hk-top",
+      "name": "Blum AVENTOS HK top stay lift (lift-up flap, standard / SERVO-DRIVE / TIP-ON)",
+      "category": "lift_system",
+      "articles": [
+        "22K2310 (lift mechanism set, pre-mounted system screws, LF 420–1610)",
+        "22K2510 (system screws, LF 930–2800)",
+        "22K2710 (system screws, LF 1730–5200)",
+        "22K2910 (system screws, LF 3200–9000)",
+        "22K2300 (chipboard screws with positioning system, LF 420–1610; incl. 8x chipboard screws ø4 x 35)",
+        "22K2500 (chipboard screws, LF 930–2800)",
+        "22K2700 (chipboard screws, LF 1730–5200)",
+        "22K2900 (chipboard screws, LF 3200–9000)",
+        "22K2300T / 22K2500T / 22K2700T / 22K2900T (TIP-ON versions, same LF ranges; opening angle 75–107° for 2300T/2500T, 75–100° for 2700T/2900T)",
+        "22K8000 (cover cap set SW silk white / HGR light grey / TGR dark grey), 23K8000 (cover cap set for SERVO-DRIVE)",
+        "20S4200 (front fixing bracket set, screw-on, wooden fronts and wide aluminium frames), 20S4200A (narrow aluminium frames), 20S42E1 (EXPANDO, wooden fronts), 20S42T1 (EXPANDO T, thin fronts)",
+        "23KA000 (SERVO-DRIVE set), ZML.2200 (front marking template), 65.1051.02 (universal individual template)"
+      ],
+      "values": {
+        "power_factor_formula": "LF = cabinet height KH [mm] x front weight incl. double handle weight [kg]",
+        "power_factor_third_mechanism_bonus": "LF can be increased by 50% with a third lift mechanism",
+        "front_weight_max_two_mechanisms_kg": 18,
+        "cabinet_height_min": 205,
+        "cabinet_height_max": 600,
+        "cabinet_width_max": 1800,
+        "internal_height_min": 173,
+        "internal_depth_min": 187,
+        "internal_depth_min_servo_drive": 235,
+        "internal_depth_min_visible_wall_hanger": 261,
+        "mechanism_width_from_side": 30,
+        "servo_drive_width_from_side": 67,
+        "opening_angle_min": 75,
+        "opening_angle_max": 107,
+        "front_gap_min": 2,
+        "upper_front_overlay_max": 25.4,
+        "system_screw_hole_d": 5,
+        "system_screw_hole_depth": 11.5,
+        "front_screw": "4 chipboard screws (609.1x00) per side for wooden fronts",
+        "front_screw_predrill_d": null,
+        "side_thickness_min": null,
+        "top_panel_clearance_formula": "Y = FH x 0.29 + FD − SOB (height above the cabinet top at max. opening)",
+        "cornice_clearance_X_by_front_thickness": {"16": 68, "19": 57, "22": 47, "26": 33, "28": 27}
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "op": "bore",
+          "d": 5,
+          "depth": 11.5,
+          "position": "System-screw version (22K2x10): 4 holes on the inside face of each side on one line 36 below the cabinet top edge, at 37, 69, 133 and 165 from the front edge (drawing: 37 / 32 / 64 / 32). 37 + 32 grid = System 32 compatible."
+        },
+        {
+          "on": "side",
+          "op": "screw",
+          "d": null,
+          "depth": null,
+          "position": "Chipboard-screw version (22K2x00): 4 chipboard screws ø4 x 35 through the mechanism, positioned by its integrated positioning system (no pre-drilling stated). Drawing labels: two screws on a line 33 below the top edge at 28 and 39 from the front edge (28 / 11), two on a line 42 below the top edge at 119 and 130 (91 / 11). Read from the drawing; pairing of labels to holes is my reading."
+        },
+        {
+          "on": "side",
+          "op": "bore",
+          "d": 10,
+          "depth": null,
+          "position": "SERVO-DRIVE only: one ø10 hole 82 below the top edge; horizontal dimension 38.5 shown at the rear end of the side (reference line not clear on the drawing)."
+        },
+        {
+          "on": "front",
+          "op": "screw",
+          "d": null,
+          "depth": null,
+          "position": "Front fixing bracket 20S4200, wooden fronts: 4 screws per side on a line SFA + 12.5 from the front's side edge (12.5 from the side panel's inner face; SFA = side front overlay), at 62 + FAo, 94 + FAo, 126 + FAo and 158 + FAo from the front's top edge (62 + FAo, then 3 x 32). FAo = upper front overlay, max. 25.4. Read from the drawing."
+        }
+      ],
+      "rules": [
+        "Choose the mechanism by LF = KH x front weight (incl. double handle weight). In overlapping ranges use the stronger mechanism; trial application near range limits.",
+        "Two mechanisms: max. front weight 18 kg. Third mechanism adds 50% LF and is recommended for wide cabinets to stop the front sagging.",
+        "No hinges needed. Opening angle infinitely adjustable (75–107°).",
+        "Cabinet height 205–600 mm, width up to 1800 mm. Internal height min. 173 mm. Internal depth min. 187 mm (SERVO-DRIVE 235 mm; 261 mm with a visible wall hanging bracket).",
+        "Minimum gap MF 2 mm. Upper front overlay FAo max. 25.4 mm.",
+        "Clearance above the cabinet at max. opening: Y = FH x 0.29 + FD − SOB; cornice offset X by front thickness FD 16/19/22/26/28 → X 68/57/47/33/27.",
+        "Narrow aluminium frame (19 mm): SFA 11–18 mm possible; bracket 20S4200A uses ø7 (+/-0.1) countersunk holes 31 / 33 / 31 apart."
+      ],
+      "sources": [
+        {
+          "url": "https://d2.blum.com/services/BEC003/cme148001_td_dok_bau_$sen-au_$aof_$v1.pdf",
+          "what": "Blum technical data sheet TD-157/1EN-AA AVENTOS HK top (Australian edition, Jan 2025): articles, LF ranges, LF formula, 18 kg, cabinet height 205–600, width 1800, drilling positions (36 / 37-32-64-32 / ø5 x 11.5; 33 / 42 / 28-11-91-11; ø10 / 82 / 38.5), space requirement 173 / 187 / 235 / 261 / 30 / 67, min gap 2, front assembly 62 + FAo / 3x32 / 12.5 / SFA, FAo max 25.4, cornice formula and X table"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Only the Australian edition of the data sheet was reachable (the generic blum.com download list is loaded by script and publications.blum.com is blocked). Articles and planning data in it match the international numbering, but check against an EU edition. Text values (LF, ranges, 18 kg, 205–600, min gap, Y formula) are high confidence; hole positions are dimension labels on 3D drawings (medium). Not given: minimum side thickness, screw pre-drill diameter for the front, which System 32 hole row/height the 36 mm line uses (it is measured from the cabinet top edge, not from a system line). AVENTOS HK-S was not researched."
+    },
+    {
+      "id": "hettich-lift-advanced-hk",
+      "name": "Hettich Lift Advanced HK lift-up flap fitting (Hochklapp-Beschlag Lift Advanced HK, 276–720), gas spring + cup hinges",
+      "category": "lift_system",
+      "articles": [
+        "9079603 (fitting set left + right, cover caps, fixing material; aluminium powder-coated silver / plastic grey; EAN 4023149008900)",
+        "Gas springs (set of 2), by force: 9079618 (150 N), 9079619 (200 N), 9079622 (250 N), 9079624 (300 N), 9079626 (350 N), 9079628 (400 N), 9079630 (450 N), 9079632 (500 N), 9079635 (550 N), 9079637 (600 N), 9079644 (650 N)",
+        "9131495 (drilling jig Lift Advanced)",
+        "9079601 / 9079709 (adapters for 19 mm aluminium frame profiles)",
+        "Hinges ordered separately: quick-assembly cup hinges with min. 95° opening recommended, e.g. Sensys 8645i or Intermat 9943 (handbook also names Intermat 9936 for 95°)"
+      ],
+      "values": {
+        "power_factor_formula": null,
+        "spring_selection": "by internal cabinet height band and flap weight incl. handle (table, see rules)",
+        "flap_weight_min_kg": 2.0,
+        "flap_weight_max_kg": 17.9,
+        "internal_height_min": 276,
+        "internal_height_max": 720,
+        "opening_angle_max_approx": 85,
+        "mechanism_footprint_length": 182,
+        "mechanism_footprint_height": 155,
+        "mechanism_width_from_side": 37,
+        "shelf_setback_from_front_min": 55,
+        "side_screw_hole_d": 5,
+        "side_screw_hole_depth": 12,
+        "side_screw": "Euro screw 6.3 x 14 (6 supplied)",
+        "front_hole_d": 10,
+        "front_hole_depth": 12,
+        "front_fixing": "brass expansion sleeves driven flush into ø10 x 12, M6 screws",
+        "hinge_min_from_side_inner": 90,
+        "side_thickness_min": null,
+        "carcase_depth_min": null
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "op": "bore",
+          "d": 5,
+          "depth": 12,
+          "position": "3 holes on the inside face of each side for Euro screws 6.3 x 14: (22 from front edge, 41 down), (118 from front edge, 41 down), (75 from front edge, 85 down). Same 'one drilling of cabinet' pattern for Lift Advanced HS / HL / HK / HF. Read from the drawing: the vertical dimensions start at a line drawn one panel thickness below the top edge (appears to be the underside of the top panel / inside top), the horizontal ones at the front edge. Not on a System 32 grid (22 / 75 / 118)."
+        },
+        {
+          "on": "front",
+          "op": "bore",
+          "d": 10,
+          "depth": 12,
+          "position": "2 holes per side in the flap's inner face for brass expansion sleeves: 15.5 + A from the flap's side edge, B + 158 and B + 190 from the flap's top edge (B + 158, then 32). A = lateral offset between the flap edge and the cabinet side, B = vertical offset between the flap top and the cabinet top (defined only by a sketch). Read from the drawing."
+        },
+        {
+          "on": "top",
+          "op": "bore",
+          "d": 35,
+          "depth": null,
+          "position": "Flap is hinged at the top with cup hinges (separate articles); hinges min. 90 mm from the side's inner edge. Cup and plate drilling per the chosen hinge, not given in the Lift Advanced documents."
+        }
+      ],
+      "rules": [
+        "Gas spring choice (internal cabinet height 276–360 / 361–480 / 481–540 / 541–600 / 601–720 mm vs flap weight): 150 N: 2.1–4.7 / 2.0–3.8 / – / – / –; 200 N: 4.1–7.0 / 3.3–5.4 / 2.4–4.9 / – / –; 250 N: 6.1–8.9 / 4.5–6.3 / 3.8–6.2 / 3.8–5.6 / 3.8–5.0; 300 N: 7.8–10.7 / 5.7–7.9 / 5.2–7.6 / 4.9–6.7 / 4.4–5.9; 350 N: 9.7–12.4 / 7.1–9.3 / 6.6–9.0 / 6.1–7.7 / 5.4–6.8; 400 N: 11.5–14.3 / 8.6–10.7 / 8.1–10.3 / 7.2–8.8 / 6.3–7.8; 450 N: 13.3–16.0 / 10.2–12.1 / 9.7–11.6 / 8.4–10.0 / 7.3–8.7; 500 N: 15.2–17.9 / 11.7–13.4 / 11.0–12.8 / 9.6–11.0 / 8.2–9.6; 550 N: – / 12.9–14.3 / 12.4–14.1 / 10.7–12.2 / 9.1–10.4; 600 N: – / 14.2–15.5 / 13.7–15.4 / 12.0–13.2 / 10.1–11.4; 650 N: – / 15.4–16.8 / 15.0–16.7 / 13.1–14.3 / 11.1–12.4 (kg).",
+        "If two springs fit, choose the stronger. For cells marked * (276–360 mm, up to 12.4 kg) a hinge without damping is recommended; Sensys (damped) is OK for 276–360 from 12.4 kg and for 360–720 at all weights.",
+        "Flap weight: Hettich table for 19 mm chipboard (700 kg/m³) by flap height x width; other thicknesses x factor (15: 0.79, 16: 0.84, 18: 0.95, 19: 1.00, 20: 1.05, 22: 1.16, 23: 1.21, 26: 1.37, 29: 1.53). Equivalent to height x width x thickness x 700 kg/m³.",
+        "Opening is limited by the fitting to approx. 85°; Hettich recommends limiting it further for easier closing.",
+        "Expansion sleeves must be driven in flush (rather too deep than protruding). Tighten M6 screws in the middle of the arm's slots.",
+        "19 mm aluminium frames: adapter holes min. 42 mm from frame top; HK adapter cannot reach 0 mm gap (gap 2.8–5 mm for overlay 10.8–13)."
+      ],
+      "sources": [
+        {
+          "url": "https://shop.hettich.com/de_DE/p/9079603",
+          "what": "article 9079603, flap weight incl. handle 2.0–17.9 kg, internal cabinet height 276–720, hinges min 95° (Sensys 8645i / Intermat 9943), gas springs separate"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/LA_HK_04_2012.pdf",
+          "what": "mounting instructions and technical data Lift Advanced HK: cabinet drilling 22 / 75 / 118 x 41 / 85, ø5 x 12, Euro 6.3 x 14; footprint 182 x 155 x 37; 276–720; shelf 55; flap holes ø10 x 12 at 15.5 + A and B + 158 / +32"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/380303_HK_Gasdruckfedern.pdf",
+          "what": "gas spring selection table by internal height and weight, article numbers 150–650 N"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/389999_1906_Spanplatte_de.pdf",
+          "what": "flap weight table, chipboard 19 mm 700 kg/m³, thickness factors"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/Lift_Advanced_Handbuch_DE_032017.pdf",
+          "what": "Lift Advanced handbook: hinge recommendations, ~85° max opening, Sensys table, ø5 x 12 Euro screws, ø10 x 12 brass sleeves + M6, hinges min 90 mm from side inner edge, aluminium frame notes"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Hettich Kinvaro T-slim was not found in the German Hettich shop (search 'Kinvaro' returned nothing), so Lift Advanced HK was used; Lift Advanced HF is the bi-fold version and not a single lift-up flap. Lift Advanced HK has NO power factor: springs are chosen from the height/weight table. The mounting instruction is dated 04/2012 (Italian-made multi-language sheet); the shop page is current. Drilling numbers are dimension labels on drawings (medium). Unclear: the exact vertical reference of 41 / 85 (drawn from a line one panel thickness below the top edge — most likely the inside of the top panel, not confirmed in text), and the exact definition of A and B (sketch only). Not found: minimum side thickness, minimum carcase depth, top clearance above the cabinet when open. Source typo: chipboard table row 500 mm / 1300 mm reads 6.7 kg (neighbours suggest 8.7)."
+    }
+  ]
+}
