@@ -229,3 +229,20 @@ describe("cabinet hangers and flaps (D39)", () => {
     expect(r.cabinets[0]!.hardware.find((h) => h.item === "blum-aventos-hk-top")).toMatchObject({ qty: 1, article: "22K2510" });
   });
 });
+
+describe("front stack per zone", () => {
+  it("builds a tall unit with a door opening right over a large and two small drawers", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      fronts: [{ type: "door", doors: 1, hinge: "right" }, { type: "drawer", h: 150 }, { type: "drawer", h: 150 }, { type: "drawer", h: 300 }],
+    });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    expect([p.DF1!.box.dy, p.DF2!.box.dy, p.DF3!.box.dy]).toEqual([150, 150, 300]);
+    // Hinges on the right side (cup bores near the door's right edge).
+    const plates = refs(p.SR!, "generic-hinge-110");
+    expect(plates.length).toBeGreaterThan(0);
+    expect(refs(p.SL!, "generic-hinge-110")).toEqual([]);
+  });
+});

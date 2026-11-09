@@ -65,6 +65,8 @@ export const FrontZone = z.object({
   h: VarInputSchema.optional(),
   /** Door zones: 1 or 2 doors side by side (default: door_count). */
   doors: z.number().int().min(1).max(2).optional(),
+  /** Door zones with one door: the hinge side (default: option door_hinge_side). */
+  hinge: z.enum(["left", "right"]).optional(),
   front: z.boolean().optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;

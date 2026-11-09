@@ -3,10 +3,14 @@
   import { FACTORY_TEMPLATES, formatNumber, localName } from "@cabinet-planner/engine";
 
   const groups = ["kitchen", "storage", "wardrobe", "bath"] as const;
-  const shopTemplates = $derived(store.built.shop?.library.templates ?? []);
+  // Shop templates with a factory id replace that factory template (saved from the construction editor).
+  const allShop = $derived(store.built.shop?.library.templates ?? []);
+  const factoryIds = new Set(FACTORY_TEMPLATES.map((x) => x.id));
+  const shopTemplates = $derived(allShop.filter((x) => !factoryIds.has(x.id)));
+  const factoryList = $derived(FACTORY_TEMPLATES.map((f) => allShop.find((x) => x.id === f.id) ?? f));
   function pick(e: Event): void {
     const sel = e.target as HTMLSelectElement;
-    const tpl = FACTORY_TEMPLATES.find((x) => x.id === sel.value) ?? shopTemplates.find((x) => `shop:${x.id}` === sel.value);
+    const tpl = factoryList.find((x) => x.id === sel.value) ?? shopTemplates.find((x) => `shop:${x.id}` === sel.value);
     if (tpl) addFromTemplate(tpl as never);
     sel.value = "";
   }
@@ -40,7 +44,7 @@
       {/if}
       {#each groups as g}
         <optgroup label={t(`ui.template_group.${g}`)}>
-          {#each FACTORY_TEMPLATES.filter((x) => x.group === g) as tpl}
+          {#each FACTORY_TEMPLATES.filter((x) => x.group === g).map((f) => factoryList.find((x) => x.id === f.id) ?? f) as tpl}
             <option value={tpl.id}>{localName(tpl.name, store.ui.lang)}</option>
           {/each}
         </optgroup>

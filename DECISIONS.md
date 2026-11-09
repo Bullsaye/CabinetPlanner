@@ -562,3 +562,20 @@ Two shop settings, because they are used for different things:
   mechanisms, cabinet height 205–600, ≤ 18 kg. Front brackets are screwed
   on and not drilled.
 - Materials may give `density` (kg/m³); factory boards carry typical values.
+
+### D40 · 2026-11-09 · Cabinet design and construction editor
+
+- The app splits a cabinet into design (size, material thickness, front
+  stack with hinge side per door zone, gaps with advanced top/bottom/left/
+  right/middle, handles, plinth or wall height, shelves) and construction
+  (carcase, back, joints, panels and back per zone, fittings, all
+  variables). Both write the cabinet layer; project and shop defaults have
+  their own tabs.
+- Front zones may set `hinge` (left/right) for a single door.
+- Leaving the construction editor after a change asks: keep for this
+  cabinet only, save to its template (asked twice; a factory template gets
+  a shop version with the same id that replaces it in the add menu), save
+  as a new shop template, or discard. Templates store the whole cabinet
+  except id, name, place and template.
+- `CabinetResult.layout` exposes the box layout (zones with their
+  automatic fixed shelf) for the editor.

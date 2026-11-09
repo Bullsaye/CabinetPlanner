@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { buildBox } from "./cabinet/box.ts";
+import { buildBox, type BoxLayout } from "./cabinet/box.ts";
 import { machineBox, type Fitting, type HandlePlacement, type HardwareUse } from "./cabinet/machining.ts";
 import { hasErrors, type Diagnostic } from "./diagnostics.ts";
 import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
@@ -73,6 +73,8 @@ export interface CabinetResult {
   handles: HandlePlacement[];
   /** Rails and legs for 3D. */
   fittings: Fitting[];
+  /** Layout facts of the box (zones, fixed shelves), when it could be built. */
+  layout?: BoxLayout;
   diagnostics: Diagnostic[];
 }
 
@@ -105,9 +107,11 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     let hardware: HardwareUse[] = [];
     let handles: HandlePlacement[] = [];
     let fittings: Fitting[] = [];
+    let layout: BoxLayout | undefined;
     if (!hasErrors(diagnostics)) {
       const built = buildBox(resolved, library);
       parts = sortParts(built.parts);
+      layout = built.layout;
       diagnostics.push(...built.diagnostics);
       // Machining needs sound geometry; skip it when the parts are already wrong.
       if (!hasErrors(built.diagnostics)) {
@@ -118,7 +122,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
         fittings = machined.fittings;
       }
     }
-    return { resolved, parts, hardware, handles, fittings, diagnostics };
+    return { resolved, parts, hardware, handles, fittings, diagnostics, ...(layout ? { layout } : {}) };
   };
   let cabinets: CabinetResult[] = project.cabinets.map((c) => build(c));
   let room: RoomLayout | undefined;

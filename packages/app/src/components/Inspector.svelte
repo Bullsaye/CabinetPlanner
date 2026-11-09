@@ -4,15 +4,14 @@
     localName,
     OPTIONS,
     VARIABLES,
-    FACTORY_PRESETS,
     type OptionDef,
     type VarDef,
   } from "@cabinet-planner/engine";
-  import { parseInput, setKind, setOption, setVar, store, type Layer } from "../lib/store.svelte.ts";
-  import FrontStack from "./FrontStack.svelte";
+  import { parseInput, setOption, setVar, store, type Layer } from "../lib/store.svelte.ts";
 
+  /** All variables and options of one layer (cabinet, project or shop defaults). */
+  let { layer = "cabinet" }: { layer?: Layer } = $props();
   const t = $derived(store.tr.t);
-  const layer = $derived(store.ui.layer);
   const doc = $derived(store.layerDoc(layer));
   const res = $derived(store.cabinet?.resolved);
   const lib = $derived(store.result?.library);
@@ -66,46 +65,14 @@
     ];
   }
 
-  const LAYERS: Layer[] = ["cabinet", "project", "shop"];
-  const allPresets = $derived([...FACTORY_PRESETS, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
+
   let customName = $state("");
   let customValue = $state("");
   const customVars = $derived(Object.keys(doc?.vars ?? {}).filter((n) => !VARIABLES.some((v) => v.name === n)));
 </script>
 
 <section class="panel insp">
-  <div class="layers" role="group" aria-label={t("ui.edit_layer")}>
-    {#each LAYERS as l}
-      <button aria-pressed={layer === l} onclick={() => (store.ui.layer = l)} disabled={l === "cabinet" && !store.cabinetDoc}>
-        {l === "cabinet" && store.ui.selected ? store.ui.selected : t(`ui.layer.${l}`)}
-      </button>
-    {/each}
-  </div>
   <p class="hint muted">{t(`ui.layer_hint.${layer}`)}</p>
-
-  {#if layer === "cabinet" && store.cabinetDoc}
-    {@const c = store.cabinetDoc}
-    <div class="row2">
-      <label for="cab-name">{t("ui.name")}</label>
-      <input id="cab-name" type="text" bind:value={c.name} placeholder={t(`ui.kind.${c.kind ?? "base"}`)} />
-      <label for="cab-kind">{t("ui.kind")}</label>
-      <select id="cab-kind" value={c.kind ?? "base"} onchange={(e) => setKind((e.target as HTMLSelectElement).value as "base")}>
-        {#each ["base", "wall", "tall"] as k}<option value={k}>{t(`ui.kind.${k}`)}</option>{/each}
-      </select>
-      <span class="label-like">{t("ui.presets")}</span>
-      <div class="chips">
-        {#each c.presets ?? [] as p, i}
-          <span class="chip">{store.presetName(p)}<button class="quiet x" aria-label={`${t("ui.remove")} ${store.presetName(p)}`} onclick={() => c.presets.splice(i, 1)}>×</button></span>
-        {/each}
-        <select id="add-preset" aria-label={t("ui.add_preset")} onchange={(e) => { const s = e.target as HTMLSelectElement; if (s.value) { c.presets = [...(c.presets ?? []), s.value]; s.value = ""; } }}>
-          <option value="">+ {t("ui.add_preset")}</option>
-          {#each allPresets.filter((p) => !(c.presets ?? []).includes(p.id)) as p}<option value={p.id}>{store.presetName(p.id)}</option>{/each}
-        </select>
-      </div>
-    </div>
-  {/if}
-
-  {#if layer === "cabinet" && store.cabinetDoc}<FrontStack />{/if}
 
   {#if !doc}
     <p class="muted">{t("ui.select_cabinet")}</p>
@@ -226,7 +193,7 @@
 </section>
 
 <style>
-  .insp { padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 90px); overflow: auto; }
+  .insp { display: flex; flex-direction: column; gap: 8px; }
   .layers { display: flex; gap: 4px; }
   .layers button { flex: 1; }
   .hint { margin: 0; font-size: 12px; }

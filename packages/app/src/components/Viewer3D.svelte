@@ -308,7 +308,7 @@
     if (hit) {
       store.ui.selected = hit.object.userData.cabinet;
       store.ui.part = hit.object.userData.part;
-      if (store.ui.layer === "cabinet" || !store.ui.layer) store.ui.layer = "cabinet";
+      store.ui.pane = "cabinet";
     }
   }
 

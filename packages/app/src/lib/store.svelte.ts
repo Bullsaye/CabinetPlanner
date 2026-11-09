@@ -1,6 +1,7 @@
 import {
   buildProject,
   FACTORY_PRESETS,
+  FACTORY_TEMPLATES,
   FileFormatError,
   localName,
   loadProject,
@@ -102,6 +103,10 @@ class Store {
     fronts: true,
     style: "machine",
     panel: null as null | "list" | "inspector",
+    /** Right pane: cabinet design, project or shop defaults. */
+    pane: "cabinet" as "cabinet" | "project" | "shop",
+    /** Cabinet open in the construction editor. */
+    construction: null as string | null,
     ...(read(KEY_UI) ?? {}),
   });
 
@@ -339,7 +344,7 @@ export function addCabinet(kind: keyof typeof PREFIX): void {
   store.ui.part = null;
 }
 
-/** Adds a cabinet from a factory template (D30), named after it. */
+/** Adds a cabinet from a template (factory or shop, D30/D33), named after it; it remembers the template. */
 export function addFromTemplate(tpl: CabinetTemplate): void {
   const id = nextId(tpl.cabinet.kind);
   store.project.cabinets ??= [];
@@ -349,9 +354,75 @@ export function addFromTemplate(tpl: CabinetTemplate): void {
     name: localName(tpl.name, store.ui.lang),
     ...clone(tpl.cabinet),
     options: clone(tpl.cabinet.options ?? {}),
+    template: tpl.id,
   });
   store.ui.selected = id;
   store.ui.part = null;
+}
+
+// ---------------------------------------------------------------------------
+// Construction editor
+
+let constructionSnapshot = "";
+const cabinetJson = (): string => JSON.stringify($state.snapshot(store.cabinetDoc ?? {}));
+
+export function openConstruction(): void {
+  if (!store.cabinetDoc) return;
+  constructionSnapshot = cabinetJson();
+  store.ui.construction = store.ui.selected;
+  store.ui.pane = "cabinet";
+}
+export const constructionChanged = (): boolean => !!store.ui.construction && cabinetJson() !== constructionSnapshot;
+
+/** Leaves the editor; the cabinet keeps its changes. */
+export function closeConstruction(): void {
+  store.ui.construction = null;
+}
+export function discardConstruction(): void {
+  const list = store.project.cabinets as Doc[];
+  const i = list.findIndex((c) => c.id === store.ui.construction);
+  if (i >= 0 && constructionSnapshot) list[i] = JSON.parse(constructionSnapshot);
+  store.ui.construction = null;
+}
+
+/** Template content of a cabinet: everything except id, name, place and template. */
+function templateBody(c: Doc): Doc {
+  const { id: _i, type: _t, name: _n, place: _p, template: _tp, ...rest } = clone($state.snapshot(c));
+  return { kind: "base", presets: [], vars: {}, options: {}, parts: {}, ...rest };
+}
+
+/**
+ * Saves the cabinet in the editor as a shop template. With `id` of an
+ * existing template it replaces it (a factory id gets a shop version that
+ * takes its place); without, a new one is made. The cabinet then refers to it.
+ */
+export function saveCabinetTemplate(opts: { id?: string; name: string }): string {
+  const c = store.cabinetDoc;
+  if (!c) return "";
+  store.shop.library ??= {};
+  store.shop.library.templates ??= [];
+  const list = store.shop.library.templates as Doc[];
+  let id = opts.id;
+  if (!id) {
+    const base = opts.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "template";
+    const used = new Set([...list.map((x) => x.id), ...FACTORY_TEMPLATES.map((x) => x.id)]);
+    id = base;
+    for (let k = 2; used.has(id); k++) id = `${base}-${k}`;
+  }
+  const tpl = { id, name: opts.name, group: "shop", cabinet: templateBody(c) };
+  const i = list.findIndex((x) => x.id === id);
+  if (i >= 0) list[i] = tpl;
+  else list.push(tpl);
+  c.template = id;
+  constructionSnapshot = cabinetJson();
+  return id;
+}
+
+/** Name of the template a cabinet refers to (shop version first). */
+export function templateName(id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  const tpl = (store.shop.library?.templates as Doc[] | undefined)?.find((x) => x.id === id) ?? FACTORY_TEMPLATES.find((x) => x.id === id);
+  return tpl ? localName(tpl.name, store.ui.lang) : undefined;
 }
 
 export function duplicateCabinet(id: string): void {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { store, type Tab } from "./lib/store.svelte.ts";
   import CabinetList from "./components/CabinetList.svelte";
-  import Inspector from "./components/Inspector.svelte";
+  import RightPane from "./components/RightPane.svelte";
   import Viewer3D from "./components/Viewer3D.svelte";
   import CutlistView from "./components/CutlistView.svelte";
   import DrawingsView from "./components/DrawingsView.svelte";
@@ -134,7 +134,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="scrim" onclick={() => (store.ui.panel = null)}></div>
   {/if}
-  <div class="body">
+  <div class="body" class:wide={store.ui.construction !== null}>
     <aside class="left" class:open={store.ui.panel === "list"}><CabinetList /></aside>
     <main>
       <div class="work">
@@ -156,7 +156,7 @@
     </main>
     <aside class="right-pane" class:open={store.ui.panel === "inspector"}>
       <button class="quiet close only-tablet" aria-label={t("ui.close")} onclick={() => (store.ui.panel = null)}>×</button>
-      <Inspector />
+      <RightPane />
     </aside>
   </div>
   {/if}
@@ -187,10 +187,11 @@
   .fatal { margin: 12px 16px; padding: 12px; border: 1px solid var(--err); background: var(--err-soft); border-radius: 8px; }
   .fatal pre { white-space: pre-wrap; font-size: 12px; }
   .body {
-    flex: 1; display: grid; grid-template-columns: 230px minmax(0, 1fr) 340px; gap: 12px;
+    flex: 1; display: grid; grid-template-columns: 230px minmax(0, 1fr) 360px; gap: 12px;
     padding: 12px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px));
     min-height: 0;
   }
+  .body.wide { grid-template-columns: 230px minmax(0, 1fr) 460px; }
   main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .work { flex: 1; min-height: 0; }
   aside { min-width: 0; }

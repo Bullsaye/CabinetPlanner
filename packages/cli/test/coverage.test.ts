@@ -11,9 +11,9 @@ import { describe, expect, it } from "vitest";
  */
 const engineSrc = join(import.meta.dirname, "../../engine/src");
 
-function sources(dir: string): string[] {
+function sources(dir: string, ext: RegExp = /\.ts$/): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? sources(join(dir, e.name)) : e.name.endsWith(".ts") ? [readFileSync(join(dir, e.name), "utf8")] : [],
+    e.isDirectory() ? sources(join(dir, e.name), ext) : ext.test(e.name) ? [readFileSync(join(dir, e.name), "utf8")] : [],
   );
 }
 
@@ -66,5 +66,12 @@ describe("factory hardware library", () => {
       expect(h.source, h.id).toBeTruthy();
       expect(h.articles.length, h.id).toBeGreaterThan(0);
     }
+  });
+
+  it("has a text for every literal key the app uses", () => {
+    const app = sources(join(import.meta.dirname, "../../app/src"), /\.(ts|svelte)$/).join("\n");
+    const keys = new Set([...app.matchAll(/\bt\("([a-z_]+\.[A-Za-z0-9_.]+)"/g)].map((m) => m[1]!));
+    const missing = [...keys].filter((k) => !Object.hasOwn(en, k)).sort();
+    expect(missing).toEqual([]);
   });
 });

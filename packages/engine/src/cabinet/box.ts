@@ -41,6 +41,8 @@ export interface BoxLayout {
   applianceFronts: { code: string; hinge: "left" | "right" }[];
   /** Lift-up flaps (D39). */
   flaps: { code: string }[];
+  /** Front zones top to bottom, and the automatic fixed shelf under each (bottom face; null: none) before construction changes. */
+  zones: { type: FrontZone["type"]; y0: number; y1: number; fixedBelow: number | null }[];
   /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
   rails: { x0: number; x1: number; y: number; z: number }[];
 }
@@ -49,6 +51,8 @@ export interface PlacedFront {
   type: FrontZone["type"];
   /** Appliance zones: a panel fixed to the appliance door. */
   front?: boolean;
+  /** Door zones: hinge side of a single door. */
+  hinge?: "left" | "right";
   doors: number;
   /** Front bottom and top edge (cabinet Y). */
   y0: number;
@@ -101,6 +105,7 @@ export function layoutFronts(
     fronts.push({
       type: z.type,
       ...(z.type === "appliance" ? { front: z.front ?? false } : {}),
+      ...(z.hinge ? { hinge: z.hinge } : {}),
       doors: z.doors ?? Math.max(1, doorCount),
       y0: roundMm(top - h),
       y1: roundMm(top),
@@ -372,6 +377,7 @@ export function buildBox(
     fixedAt[i] = roundMm(y);
   }
   // --- Construction elements (D38) ------------------------------------------------
+  const fixedAuto = fronts.map((_, i) => fixedAt[i] ?? null);
   const cons = rc.cabinet.construction;
   const zoneVars = new Map(rc.values);
   fronts.forEach((f, i) => {
@@ -630,7 +636,7 @@ export function buildBox(
           add("door", doorNo, { x, y: f.y0, z: D, dx: doorW, dy: h, dz: tFront }, "y", "x", "material.front", all);
           // One door: hinge side from the option (corner units: away from the blind side).
           // Two doors: hinged outwards.
-          const single = corner === "blind_right" ? "left" : corner === "blind_left" ? "right" : opt<"left" | "right">("door_hinge_side");
+          const single = corner === "blind_right" ? "left" : corner === "blind_left" ? "right" : (f.hinge ?? opt<"left" | "right">("door_hinge_side"));
           const hinge = n === 1 ? single : i === 1 ? "left" : "right";
           doors.push({ code: `${ROLE_CODES.door}${doorNo}`, hinge });
         }
@@ -657,6 +663,7 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, flaps, rails },
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, flaps, rails,
+      zones: fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: fixedAuto[i] ?? null })) },
   };
 }
