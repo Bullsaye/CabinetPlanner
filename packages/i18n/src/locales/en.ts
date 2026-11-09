@@ -269,6 +269,7 @@ export const en = {
   "col.note": "Note",
 
   // Bill of materials, costing and sheet export (one block; see output/bom.ts, output/sheets.ts)
+  "cutlist.shaped": "Not a rectangle: cut to the contour (part sheet, DXF)",
   "bom.col.section": "Section",
   "bom.col.item": "Item",
   "bom.col.name": "Name",
@@ -323,7 +324,8 @@ export const en = {
   "ui.sheets_scope": "Sheets of",
   "ui.sheets_zip": "SVG (ZIP)",
   "ui.sheets_print": "Print / PDF",
-  "ui.sheets_preparing": "Preparing {n} sheets…",
+  "ui.paper": "Paper",
+  "ui.paper.sheet": "Sheet size 1:1",
   "ui.sheets_printed": "{n} sheets sent to the print dialog; choose “Save as PDF” there for a PDF.",
   "ui.sheets_failed": "The sheets could not be made: {error}",
 

@@ -255,6 +255,7 @@ export const de: Record<MessageKey, string> = {
   "col.note": "Bemerkung",
 
   // Materialliste, Kalkulation und Blattexport (ein Block; siehe output/bom.ts, output/sheets.ts)
+  "cutlist.shaped": "Kein Rechteck: nach Kontur zuschneiden (Teileblatt, DXF)",
   "bom.col.section": "Bereich",
   "bom.col.item": "Artikel",
   "bom.col.name": "Bezeichnung",
@@ -309,7 +310,8 @@ export const de: Record<MessageKey, string> = {
   "ui.sheets_scope": "Blätter von",
   "ui.sheets_zip": "SVG (ZIP)",
   "ui.sheets_print": "Drucken / PDF",
-  "ui.sheets_preparing": "{n} Blätter werden vorbereitet…",
+  "ui.paper": "Papier",
+  "ui.paper.sheet": "Blattgröße 1:1",
   "ui.sheets_printed": "{n} Blätter an den Druckdialog übergeben; dort „Als PDF speichern“ wählen, um ein PDF zu erhalten.",
   "ui.sheets_failed": "Die Blätter konnten nicht erstellt werden: {error}",
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { cutlistCsv, cutlistRows, cutlistTable, localName, type CutlistRow } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
+  import { csvForDownload } from "../lib/export.ts";
 
   const t = $derived(store.tr.t);
   let group = $state(true);
@@ -12,6 +13,7 @@
   );
   const text = $derived({
     locale: store.tr.locale,
+    shaped: t("cutlist.shaped"),
     header: (col: string) => t(`col.${col}`),
     role: (row: CutlistRow) => {
       const codes = new Set(row.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));
@@ -43,7 +45,7 @@
     </div>
     <button aria-pressed={group} onclick={() => (group = !group)}>{t("ui.group_identical")}</button>
     <span class="sp"></span>
-    <button onclick={async () => (note = downloadNote(await download("cutlist.csv", csv(), "text/csv"), "cutlist.csv", t))}>{t("ui.download_csv")}</button>
+    <button onclick={async () => (note = downloadNote(await download("cutlist.csv", csvForDownload(csv()), "text/csv"), "cutlist.csv", t))}>{t("ui.download_csv")}</button>
     <button onclick={async () => (note = (await copy(csv())) ? t("ui.copied") : t("ui.copy_failed"))}>{t("ui.copy_csv")}</button>
   </div>
   {#if note}<p class="note muted">{note}</p>{/if}

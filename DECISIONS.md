@@ -683,3 +683,20 @@ Two shop settings, because they are used for different things:
 - One table for CSV and text: section, item id, name, article no., count
   (parts or edges), net, quantity to order, unit, unit price, cost, note
   (cut lengths of rails). Numbers per D10.
+
+### D46 · 2026-11-09 · Shaped parts in the cutlist, CSV downloads, sheet export
+
+- Written cutlists (CSV, table) mark a non-rectangular part (D43) with a
+  remark in the note column, after the part's own note: the sizes are the
+  bounding rectangle, the contour is on the part sheet and in the DXF.
+  Grouping compares the contour itself, so two different shapes with the
+  same bounding rectangle stay two rows.
+- CSV files downloaded from the app start with a UTF-8 byte order mark so
+  spreadsheet programs read umlauts, ², Ø and × correctly. CLI output and
+  the clipboard copy have none (D10 stays as it is for those).
+- "All sheets" (`output/sheets.ts`): floor plan and wall elevations, then
+  per cabinet the assembly drawing and its part sheets (two-sided parts:
+  `-1`, `-2`), then worktops and plinth panels; file names
+  `room/…`, `<cabinet>/<part>.svg`. The app offers them as a ZIP of SVGs
+  and through the print dialog, one sheet per page, each page as large as
+  its sheet (true to scale) or fitted to A4 / A3.

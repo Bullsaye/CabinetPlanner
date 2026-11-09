@@ -443,6 +443,7 @@ export function run(argv: readonly string[], io: Io): number {
 export function cutlistText(tr: Translator): CutlistText {
   return {
     locale: tr.locale,
+    shaped: tr.t("cutlist.shaped"),
     header: (col) => tr.t(`col.${col}`),
     role: (row: CutlistRow) => {
       if (row.qty > 1 && (row.role === "side_left" || row.role === "side_right")) {

@@ -5,7 +5,7 @@
   import Viewer3D from "./components/Viewer3D.svelte";
   import CutlistView from "./components/CutlistView.svelte";
   import DrawingsView from "./components/DrawingsView.svelte";
-  import HardwareView from "./components/HardwareView.svelte";
+  import BomView from "./components/BomView.svelte";
   import Diagnostics from "./components/Diagnostics.svelte";
   import FileMenu from "./components/FileMenu.svelte";
   import RoomView from "./components/RoomView.svelte";
@@ -149,7 +149,7 @@
         {:else if store.ui.tab === "library"}
           <LibraryView />
         {:else}
-          <HardwareView />
+          <BomView />
         {/if}
       </div>
       <Diagnostics />
