@@ -700,3 +700,14 @@ step, with everything still a formula:
   a formula.
 - Not yet: free grooves/pockets and contours, system hole rows and
   hinges on free parts, angled parts.
+
+### D46 · 2026-11-09 · DXF and part sheets: contour direction, through pockets
+
+- The outline polyline runs counter-clockwise in every DXF file, also for
+  a non-rectangular part (D43) seen from its t0 face, where the stored
+  contour would come out clockwise. CAMs take the tool side from the
+  direction; rectangle, contour and pockets (D32) now always agree.
+- A pocket through the whole thickness (hanger notch D39, worktop cutout
+  D31) is not machining of one face: it does not make a part two-sided
+  (D22) and does not decide which face is shown. It is drawn solid on
+  every sheet and written to the first side's DXF only, like edge bores.

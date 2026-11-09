@@ -64,7 +64,9 @@ export interface DxfMeta {
 }
 
 const fmtFactory = (decimals: number) => (x: number): string => {
-  const s = (Math.round(x * 10 ** decimals) / 10 ** decimals).toFixed(decimals).replace(/\.?0+$/, "");
+  const fixed = (Math.round(x * 10 ** decimals) / 10 ** decimals).toFixed(decimals);
+  // Only trailing zeros of the fraction go: with 0 decimals "720" must stay "720".
+  const s = fixed.includes(".") ? fixed.replace(/\.?0+$/, "") : fixed;
   return s === "-0" ? "0" : s;
 };
 
@@ -90,12 +92,19 @@ export function partDxf(
   const faces: ("t0" | "t1")[] = machined.has("t0") && machined.has("t1") ? [first, otherFace(first)] : [first];
   return faces.map((face, i) => {
     const view = partView(part, spec, cabinet, face);
-    // Edge features belong to the first side's program only.
-    const feats = extractFeatures(view).filter((f) => f.where === "face" || (f.where === "edge" && i === 0));
+    // Edge features and through pockets belong to the first side's program only.
+    const feats = extractFeatures(view).filter((f) =>
+      f.op === "pocket" && f.through ? i === 0 : f.where === "face" || (f.where === "edge" && i === 0),
+    );
     const contour = part.outline?.map(([u, v]) => {
       const q = view.projectLocal({ u, v, w: 0 });
       return [q.X, q.Y] as [number, number];
     });
+    // Seen from the other face the contour runs clockwise; the outline is
+    // written counter-clockwise on every side, like the rectangle and the pockets.
+    if (contour && contour.reduce((a, [x, y], k) => a + x * contour[(k + 1) % contour.length]![1] - contour[(k + 1) % contour.length]![0] * y, 0) < 0) {
+      contour.reverse();
+    }
     const content = writeDxf(part, view.width, view.height, feats, profile, {
       ...(contour ? { contour } : {}),
       ...meta,
@@ -225,7 +234,9 @@ function writeDxf(
   }
 
   // Header comment, header, layer table, entities.
-  g(999, `Cabinet Planner · ${meta.project ?? ""} rev ${meta.revision ?? ""} · ${part.id} · side ${meta.side}/${meta.sides} (${meta.face} up) · ${f(width)} x ${f(height)} x ${f(t)} mm${meta.timestamp ? ` · ${meta.timestamp}` : ""}`);
+  // One line only: a line break in a project name would end the comment and corrupt the file.
+  const comment = `Cabinet Planner · ${meta.project ?? ""} rev ${meta.revision ?? ""} · ${part.id} · side ${meta.side}/${meta.sides} (${meta.face} up) · ${f(width)} x ${f(height)} x ${f(t)} mm${meta.timestamp ? ` · ${meta.timestamp}` : ""}`;
+  g(999, comment.replace(/[\u0000-\u001f\u007f]+/g, " "));
   g(0, "SECTION");
   g(2, "HEADER");
   g(9, "$ACADVER");

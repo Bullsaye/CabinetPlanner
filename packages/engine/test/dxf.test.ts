@@ -56,6 +56,17 @@ describe("DXF export (D27)", () => {
     expect(layers[1]).toContain("DRILL_V_D5_THROUGH"); // handle from the outside
   });
 
+  it("cuts a through notch from the machined face instead of asking for a second side", () => {
+    // Hidden sides of a wall unit with hangers get a notch through the whole thickness (D39).
+    const w = partsByCode(buildOne({ kind: "wall", presets: ["wall-unit"], options: { "hardware.hanger": "hettich-sah-130" } }));
+    for (const side of [w.SL!, w.SR!]) {
+      expect(side.operations.some((o) => o.kind === "pocket" && o.w0 === 0 && o.w1 === side.thickness)).toBe(true);
+      const files = partDxf(side, { W: 600, H: 720, D: 320 });
+      expect(files.map((f) => f.name)).toEqual([`${side.id}.dxf`]);
+      expect(entities(files[0]!.content).filter((e) => e.type === "POLYLINE").map((e) => e.layer).sort()).toEqual(["CONTOUR", "POCKET_Z19", "POCKET_Z8"]);
+    }
+  });
+
   it("uses a shop's layer names", () => {
     const profile = DxfProfileSchema.parse({
       id: "maestro",

@@ -107,10 +107,17 @@ export interface PartView {
   projectLocal(l: { u: number; v: number; w: number }): { X: number; Y: number };
 }
 
-/** Thickness faces that have machining entering through them. */
+/** A pocket through the whole thickness (notch, cutout): it can be cut from either face. */
+export const isThroughPocket = (part: Part, o: Part["operations"][number]): boolean =>
+  o.kind === "pocket" && (o.face === "t0" || o.face === "t1") && o.w0 <= 1e-6 && o.w1 >= part.thickness - 1e-6;
+
+/**
+ * Thickness faces that have machining entering through them. Through
+ * pockets do not count: they are cut from whichever face is up (D46).
+ */
 export function machinedFaces(part: Part): Set<"t0" | "t1"> {
   const out = new Set<"t0" | "t1">();
-  for (const o of part.operations) if (o.face === "t0" || o.face === "t1") out.add(o.face);
+  for (const o of part.operations) if ((o.face === "t0" || o.face === "t1") && !isThroughPocket(part, o)) out.add(o.face);
   return out;
 }
 

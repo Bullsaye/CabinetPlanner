@@ -59,6 +59,58 @@ describe("room layout (D28)", () => {
     expect(w.ok).toBe(true); // room findings never block parts
   });
 
+  it("never makes a plinth panel or worktop of zero or negative length", () => {
+    // A unit standing wholly past the wall's end: warned, but no part may come out with a negative length.
+    const past = build([{ id: "B01", type: "box", place: { wall: "A", x: 4000 } }]);
+    expect(past.diagnostics.map((d) => d.code)).toContain("room_cabinet_outside_wall");
+    expect(past.room!.parts.filter((q) => !(q.length > 0))).toEqual([]);
+    expect(past.room!.plinths).toEqual([]);
+    for (const length of [0, -500]) {
+      const r = build([{ id: "B01", type: "box", place: { wall: "A" } }], { walls: [{ id: "A", length }] });
+      expect(r.diagnostics).toContainEqual({ severity: "error", code: "room_value_invalid", params: { what: "wall A length", expr: String(length) } });
+      expect(r.room!.parts.filter((q) => !(q.length > 0))).toEqual([]);
+    }
+  });
+
+  it("treats a corner unit as covered by its worktop, which starts at the other worktop's front edge", () => {
+    // B01 fills the end of wall A; B02 starts behind it on wall B (at 579), its worktop at 600 (D29).
+    const r = build([
+      { id: "B01", type: "box", place: { wall: "A", x: 3000 } },
+      { id: "B02", type: "box", place: { wall: "B" } },
+    ]);
+    expect(r.room!.worktops.map((w) => [w.wall, w.x0])).toEqual([["A", 2980], ["B", 600]]);
+    // No floor unit is drawn on top of the worktops in the plan.
+    expect(floorPlanSvg(r.room!, "R", text)).not.toContain('class="rm-cab"');
+    // Elevation of wall B: the id sits above the worktop (858 + 38 + 40), not on it.
+    const el = elevationSvg(r.room!, "B", r.cabinets, "R", text);
+    const y = (label: string): number => Number(new RegExp(`y="([\\d.]+)"[^>]*>${label}<`).exec(el)![1]);
+    const a = elevationSvg(r.room!, "A", r.cabinets, "R", text);
+    const ya = Number(/y="([\d.]+)"[^>]*>B01</.exec(a)![1]);
+    expect(y("B02")).toBe(ya);
+  });
+
+  it("writes the names of vertical walls beside their dimension chains, not across them", () => {
+    const plan = floorPlanSvg(build([]).room!, "R", text);
+    expect(plan).toMatch(/text-anchor="middle">room.wall A</);
+    expect(plan).toMatch(/text-anchor="start">room.wall B</);
+    expect(plan).toMatch(/text-anchor="middle">room.wall C</);
+    expect(plan).toMatch(/text-anchor="end">room.wall D</);
+  });
+
+  it("escapes names in the drawings and draws an empty room", () => {
+    const name = 'Küche <Müller> & "Söhne"';
+    const r = build([{ id: "B01", type: "box", place: { wall: "<A&>" } }], { walls: [{ id: "<A&>", length: 3000 }] });
+    for (const svg of [floorPlanSvg(r.room!, name, text), elevationSvg(r.room!, "<A&>", r.cabinets, name, text)]) {
+      expect(svg).toContain('Küche &lt;Müller&gt; &amp; "Söhne"');
+      expect(svg).toContain("room.wall &lt;A&amp;&gt;");
+      expect(svg).not.toMatch(/<Müller>|<A&>|NaN|undefined|Infinity/);
+    }
+    const empty = build([]);
+    expect(empty.diagnostics).toEqual([]);
+    expect(floorPlanSvg(empty.room!, "R", text)).not.toMatch(/NaN|undefined|Infinity/);
+    expect(elevationSvg(empty.room!, "C", empty.cabinets, "R", text)).not.toMatch(/NaN|undefined|Infinity/);
+  });
+
   it("draws a floor plan and elevations", () => {
     const r = build([
       { id: "B01", type: "box", place: { wall: "A" }, options: { "hardware.handle": "generic-bar-128" } },

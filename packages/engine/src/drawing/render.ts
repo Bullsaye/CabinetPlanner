@@ -372,7 +372,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
   const header = headerLines(part, view, style, den, text, cabinet, input.side);
   const headerH = 6 + header.length * h * 1.7;
   const legend = style.show.legend ? legendRows(visible, view, text, num) : [];
-  const table = style.show.table ? tableRows(visible, num, (k) => t(k)) : [];
+  const table = style.show.table ? tableRows(visible, view, num, t) : [];
 
   const contentW = b.x1 - b.x0;
   const drawTop = MARGIN + headerH + 4;
@@ -409,6 +409,8 @@ export function drawPart(input: DrawingInput): PartDrawing {
   // Legend.
   if (legend.length) {
     out.push(`<text class="pd-head" x="${MARGIN}" y="${r3(legendTop)}" font-size="${r3(h)}">${esc(t("drawing.legend"))}</text>`);
+    // The description column starts right of the widest size text (at least at the usual place).
+    const descrX = Math.max(46, ...legend.map((row) => textW(row.spec, h) + 3));
     legend.forEach((row, i) => {
       const y = legendTop + (i + 1) * h * 1.75;
       if (row.tag) {
@@ -416,7 +418,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
         out.push(`<text class="pd-tagtext" x="${r3(MARGIN + h * 0.75)}" y="${r3(y)}" font-size="${r3(h * 0.9)}" text-anchor="middle">${esc(row.tag)}</text>`);
       }
       out.push(`<text class="pd-mono" x="${r3(MARGIN + h * 2.4)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.spec)}</text>`);
-      out.push(`<text class="pd-sub" x="${r3(MARGIN + h * 2.4 + 46)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.text)}</text>`);
+      out.push(`<text class="pd-sub" x="${r3(MARGIN + h * 2.4 + descrX)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.text)}</text>`);
     });
   }
 
@@ -775,7 +777,7 @@ function legendRows(groups: FeatureGroup[], view: PartView, text: DrawingText, n
     });
 }
 
-function tableRows(groups: FeatureGroup[], num: (x: number) => string, t: (k: string) => string): string[][] {
+function tableRows(groups: FeatureGroup[], view: PartView, num: (x: number) => string, t: DrawingText["t"]): string[][] {
   const rows: string[][] = [];
   for (const g of groups) {
     if (!g.rules.table || g.op !== "bore") continue;
@@ -783,7 +785,15 @@ function tableRows(groups: FeatureGroup[], num: (x: number) => string, t: (k: st
       .slice()
       .sort((a, b) => a.Y - b.Y || a.X - b.X)
       .forEach((f, i) =>
-        rows.push([`${g.tag || "·"}${i + 1}`, num(f.X), num(f.Y), num(f.d), num(f.depth), t(`drawing.where.${f.where}`)]),
+        rows.push([
+          `${g.tag || "·"}${i + 1}`,
+          num(f.X),
+          num(f.Y),
+          num(f.d),
+          num(f.depth),
+          // Same wording as the legend: an edge bore names the edge it enters.
+          f.where === "edge" && f.side ? t("drawing.where.edge", { edge: t(`drawing.dir.${view.sides[f.side]}`) }) : t(`drawing.where.${f.where}`),
+        ]),
       );
   }
   return rows;

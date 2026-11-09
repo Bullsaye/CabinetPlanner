@@ -1,7 +1,7 @@
 import type { OpSource } from "../ops.ts";
 import type { Part } from "../part.ts";
 import type { ResolvedStyle, Rule, Selector } from "./style.ts";
-import { dot, faceNormal, type PartView, type Side } from "./view.ts";
+import { dot, faceNormal, isThroughPocket, type PartView, type Side } from "./view.ts";
 
 /** A machining feature in drawing coordinates (mm, origin bottom-left, Y up). */
 export interface DFeature {
@@ -82,7 +82,8 @@ export function extractFeatures(view: PartView): DFeature[] {
   for (const op of part.operations) {
     const nrm = faceNormal(part, op.face);
     const facing = dot(nrm, view.n);
-    const where: DFeature["where"] = facing > 0.5 ? "face" : facing < -0.5 ? "far" : "edge";
+    const cutThrough = isThroughPocket(part, op);
+    const where: DFeature["where"] = facing > 0.5 || cutThrough ? "face" : facing < -0.5 ? "far" : "edge";
     const side = where === "edge" ? sideOfNormal(nrm) : undefined;
     if (op.kind === "bore") {
       const at = view.projectLocal(op);
@@ -115,6 +116,7 @@ export function extractFeatures(view: PartView): DFeature[] {
         rect,
         ...(op.r ? { r: op.r } : {}),
         sources: op.sources,
+        ...(cutThrough ? { through: true } : {}),
       });
     }
   }
