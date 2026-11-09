@@ -17,6 +17,8 @@ import {
 import { boxSize, roundMm, thicknessAxis, type Axis, type Part } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
 import { gridPositions, type BoxLayout } from "./box.ts";
+import { evaluateGraph } from "../graph.ts";
+import { applyCustomBores, customJoints } from "./custom.ts";
 
 /** Where a handle or knob sits (for 3D and drawings): holes on the outer face, cabinet coordinates. */
 export interface HandlePlacement {
@@ -209,7 +211,7 @@ export function machineBox(
       return { item: screw, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: 0, spacingMax: Infinity };
     };
 
-    for (const j of carcaseJoints(parts, opt<string>("carcase_joint"))) {
+    for (const j of [...carcaseJoints(parts, opt<string>("carcase_joint")), ...customJoints(parts, layout.custom)]) {
       // Positions along the joint line (Z for flat panels, Y for upright rails),
       // counted from its front end — the top for top rails, the bottom for bottom rails.
       const L = j.line;
@@ -644,6 +646,17 @@ export function machineBox(
     }
   }
 
+  // --- Free bores and extra hardware (D45) -------------------------------------------------
+  applyCustomBores(rc, parts, diagnostics);
+  for (const [k, h] of (rc.cabinet.construction?.hardware ?? []).entries()) {
+    const item = library.hardware.get(h.item);
+    const r = typeof h.qty === "number" ? undefined : evaluateGraph(new Map([["__q", h.qty]]), rc.values);
+    const qty = typeof h.qty === "number" ? h.qty : r!.diagnostics.length ? undefined : r!.values.get("__q");
+    if (!item) diagnostics.push({ severity: "error", code: "hardware_unknown", params: { key: `construction.hardware ${k + 1}`, value: h.item }, ...at });
+    else if (qty === undefined || !Number.isFinite(qty) || qty < 0) diagnostics.push({ severity: "error", code: "construction_value_invalid", params: { what: `hardware ${k + 1}`, expr: String(h.qty) }, ...at });
+    else use(item, qty);
+  }
+
   // --- Opposing holes, then checks ---------------------------------------------------
   const minWall = num("bore_min_wall");
   const opposite = opt<"both_sides" | "through" | "error">("bore.opposite");
@@ -660,7 +673,7 @@ export function machineBox(
  * A butt joint where the end/edge of one part meets the face of another.
  * Connectors run along `line` (always Z for carcase joints: front to back).
  */
-interface Joint {
+export interface Joint {
   ref: string;
   facePart: Part;
   edgePart: Part;

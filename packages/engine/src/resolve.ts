@@ -20,6 +20,8 @@ export type LayerName = (typeof LAYERS)[number];
 export interface Source {
   layer: LayerName;
   preset?: string;
+  /** The default of a cabinet parameter (D45). */
+  param?: boolean;
 }
 
 export interface ResolvedVar {
@@ -131,6 +133,15 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
 
   applyLayer(ctx.shop, "shop");
   applyLayer(project, "project");
+  // Parameter defaults (D45) sit under the cabinet's own values.
+  for (const p of cabinet.params) {
+    if (p.default === undefined) continue;
+    if (Object.hasOwn(MATERIAL_CONSTANTS, p.name) || (ROOM_CONSTANTS as readonly string[]).includes(p.name)) {
+      diagnostics.push({ severity: "error", code: "var_shadows_constant", params: { name: p.name }, variable: p.name, ...at });
+      continue;
+    }
+    push(varStack, p.name, { value: p.default, source: { layer: "cabinet", param: true } });
+  }
   applyLayer(cabinet, "cabinet");
 
   // Options: validate the winners.
@@ -194,6 +205,16 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     if (def.max !== undefined && value > def.max) {
       diagnostics.push({ severity: "error", code: "var_above_max", params: { name: def.name, value, max: def.max }, ...base });
     }
+  }
+
+  // Limits of the cabinet's own parameters (D45).
+  for (const p of cabinet.params) {
+    const value = graph.values.get(p.name);
+    if (value === undefined) continue;
+    const base = { variable: p.name, ...at };
+    if (p.integer && !Number.isInteger(value)) diagnostics.push({ severity: "error", code: "var_not_integer", params: { name: p.name, value }, ...base });
+    if (p.min !== undefined && value < p.min) diagnostics.push({ severity: "error", code: "var_below_min", params: { name: p.name, value, min: p.min }, ...base });
+    if (p.max !== undefined && value > p.max) diagnostics.push({ severity: "error", code: "var_above_max", params: { name: p.name, value, max: p.max }, ...base });
   }
 
   // Thickness overridden away from the material: allowed, but worth a warning.

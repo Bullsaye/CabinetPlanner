@@ -1,4 +1,5 @@
 import type { Operation } from "./ops.ts";
+import type { LocalizedText } from "./text.ts";
 
 /**
  * A finished part. Geometry is an axis-aligned box in cabinet coordinates
@@ -23,6 +24,7 @@ export type PartRole =
   | "appliance_front"
   | "flap"
   | "ceiling_filler"
+  | "custom"
   | "worktop"
   | "plinth"
   | "drawer_front"
@@ -54,6 +56,7 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   appliance_front: "AF",
   flap: "FL",
   ceiling_filler: "PB",
+  custom: "X",
   worktop: "WT",
   plinth: "PL",
   drawer_front: "DF",
@@ -77,6 +80,7 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "partition",
   "fixed_shelf",
   "shelf",
+  "custom",
   "door",
   "blind_panel",
   "appliance_front",
@@ -145,6 +149,8 @@ export interface Part {
    * bounding rectangle.
    */
   outline?: [number, number][];
+  /** Free parts (D45): the name its author gave it, shown in place of the role name. */
+  label?: LocalizedText;
   note?: string;
 }
 

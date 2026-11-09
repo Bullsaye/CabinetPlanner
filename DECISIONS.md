@@ -652,3 +652,51 @@ Two shop settings, because they are used for different things:
   every kink. Below `ceiling_filler_min` it is left out (warning).
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
+
+### D45 · 2026-11-09 · Free construction: parameters, free parts, free bores
+
+The box rule covers the usual carcase; it cannot foresee every way of
+building. A cabinet (and so a template) can leave the rule behind step by
+step, with everything still a formula:
+
+- `params`: variables the author puts into the simple editor, each with
+  name, label, default, limits, step and unit. The default sits under the
+  cabinet's own values (source `cabinet` + `param`), limits are checked
+  like catalogue limits. The name may be a catalogue variable; then the
+  parameter only adds it to the simple editor. Formulas anywhere in the
+  cabinet may use parameters.
+- `construction.parts`: free parts, role `custom`. A board in one plane
+  (`horizontal`: thickness along Y, `vertical`: along X, `frontal`: along
+  Z), minimum corner `x`, `y`, `z` and sizes `dx`, `dy`, `dz` as formulas
+  in cabinet coordinates (D2); the size across the board defaults to the
+  material thickness (D8). `material` is a material option key or a
+  material id. Length (and grain) runs along X, for vertical parts along
+  Y, unless `grain` names another axis. Edges are named by the direction
+  they face in the cabinet (`front`, `rear`, `left`, `right`, `top`,
+  `bottom`) and hold an edge option key, an edgeband id or null. `when`
+  (formula, 0 = absent) and `repeat` (count; formulas see `i` = 1…n and
+  `n`) make parts conditional and repeated.
+- Part code = the part's `id` (1–6 capitals/digits), plus the index with
+  `repeat`; it must not be a code of the box rule and stays stable (D6).
+  Part overrides (`parts.<code>`) apply as for every part. A `name` is
+  shown in lists and drawings in place of the role name.
+- `joint: auto` (default): wherever an end of the free part lies on the
+  face of another panel (not fronts, loose shelves, backs, drawer parts)
+  with its whole thickness, the two are joined over the stretch they
+  share by the cabinet's construction method, like a fixed shelf (D16,
+  D36). The joint is named `<face part>-<free part>`.
+- `construction.omit`: codes of box-rule parts to leave out (with their
+  joints, grooves and fittings), to replace them with free parts. With
+  everything left out, a piece of furniture consists of free parts only
+  (factory template `bench`).
+- `construction.bores`: free bores in part-local coordinates (D13) on any
+  part: `face` (`t0`/`t1` wide faces at the low/high end of the thickness
+  axis; `l1`, `l2`, `w1`, `w2` edges, there `u` runs along the edge and
+  `v` across the thickness), `u`, `v`, `d`, `depth` as formulas (they see
+  `part_l`, `part_w`, `part_t`), `repeat`, `when`. Depth 0, `through` or
+  at least the thickness drills through (D23). Source kind `custom`.
+  They pass the same checks as every operation (D17).
+- `construction.hardware`: extra items for the hardware list, quantity as
+  a formula.
+- Not yet: free grooves/pockets and contours, system hole rows and
+  hinges on free parts, angled parts.

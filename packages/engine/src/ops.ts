@@ -13,7 +13,7 @@ export type Face = "t0" | "t1" | "l1" | "l2" | "w1" | "w2";
 
 /** Why an operation exists; used for labels, BOM and collision messages. */
 export interface OpSource {
-  kind: "system" | "joint" | "hardware" | "back";
+  kind: "system" | "joint" | "hardware" | "back" | "custom";
   /** e.g. "SL-BO" for a joint, a hardware item id, "rows" for system holes. */
   ref: string;
   /** Operations of one fitting that are meant to meet (cam housing and bolt hole). */

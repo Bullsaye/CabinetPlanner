@@ -1,6 +1,7 @@
 import { localName, type Library } from "../library.ts";
 import type { Part, PartRole } from "../part.ts";
 import { formatNumber, toCsv } from "./format.ts";
+import type { LocalizedText } from "../text.ts";
 
 /**
  * Cutlist rows, independent of format and language. Text that depends on
@@ -14,6 +15,8 @@ export interface CutlistRow {
   parts: string[];
   cabinet: string;
   role: PartRole;
+  /** Free parts: the name their author gave them (shown in place of the role). */
+  label?: LocalizedText;
   material: string;
   length: number;
   width: number;
@@ -41,6 +44,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     parts: [p.id],
     cabinet: p.cabinet,
     role: p.role,
+    ...(p.label !== undefined ? { label: p.label } : {}),
     material: p.material,
     length: p.length,
     width: p.width,
@@ -72,6 +76,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.note,
       r.outline,
       groupRole(r.role),
+      r.label ?? "",
     ]);
     const g = groups.get(key);
     if (g) {

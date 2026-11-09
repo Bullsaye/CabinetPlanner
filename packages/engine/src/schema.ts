@@ -71,6 +71,76 @@ export const FrontZone = z.object({
 });
 export type FrontZone = z.infer<typeof FrontZone>;
 
+const EdgeInput = z.string().min(1).nullable();
+
+/**
+ * A free part (D45): a board in one of the three planes, placed by formulas
+ * in cabinet coordinates (D2). The size across the board is the material
+ * thickness unless given. Formulas see every variable of the cabinet, the
+ * zone edges, and with `repeat` the counters `i` (1…n) and `n`.
+ */
+export const CustomPartSchema = z.object({
+  /** Part code, unique in the cabinet and stable (D6); with `repeat` the index is appended. */
+  id: z.string().regex(/^[A-Z][A-Z0-9]{0,5}$/, "1–6 capital letters or digits, starting with a letter"),
+  name: LocalizedText.optional(),
+  /** horizontal: lies flat (thickness along Y); vertical: stands front to back (thickness along X); frontal: stands across (thickness along Z). */
+  plane: z.enum(["horizontal", "vertical", "frontal"]),
+  x: VarInputSchema.default(0),
+  y: VarInputSchema.default(0),
+  z: VarInputSchema.default(0),
+  dx: VarInputSchema.optional(),
+  dy: VarInputSchema.optional(),
+  dz: VarInputSchema.optional(),
+  /** A material option key ("material.carcase") or a material id. */
+  material: z.string().min(1).default("material.carcase"),
+  /** Axis the part length (and grain) runs along; default X, or Y for vertical parts. */
+  grain: z.enum(["x", "y", "z"]).optional(),
+  /** Edgebands by where the edge faces in the cabinet: an edge option key ("edge.carcase"), an edgeband id or null. */
+  edges: z
+    .object({ front: EdgeInput.optional(), rear: EdgeInput.optional(), left: EdgeInput.optional(), right: EdgeInput.optional(), top: EdgeInput.optional(), bottom: EdgeInput.optional() })
+    .default({}),
+  /** Present only when this formula is not 0. */
+  when: VarInputSchema.optional(),
+  /** Number of copies; formulas then see `i` and `n`. */
+  repeat: VarInputSchema.optional(),
+  /** auto: joined (construction method) to every panel face one of its ends meets. */
+  joint: z.enum(["auto", "none"]).default("auto"),
+  note: z.string().optional(),
+});
+export type CustomPartInput = z.infer<typeof CustomPartSchema>;
+
+/** A free bore: on face `face` of part `part`, at (u, v) along its length and width. */
+export const CustomBoreSchema = z.object({
+  part: z.string().min(1),
+  /** t0 / t1: the wide face at the low / high end of the thickness axis; l1, l2, w1, w2: the edges (D13). */
+  face: z.enum(["t0", "t1", "l1", "l2", "w1", "w2"]).default("t1"),
+  u: VarInputSchema,
+  v: VarInputSchema,
+  d: VarInputSchema,
+  /** Depth; 0 or "through" drills through the part. */
+  depth: VarInputSchema,
+  when: VarInputSchema.optional(),
+  repeat: VarInputSchema.optional(),
+});
+export type CustomBoreInput = z.infer<typeof CustomBoreSchema>;
+
+/**
+ * A parameter of a cabinet (D45): a variable the template author puts into
+ * the simple editor, with its own label, default and limits. The name may
+ * be a catalogue variable (then it only adds it to the simple editor).
+ */
+export const ParamSchema = z.object({
+  name: identifier,
+  label: LocalizedText.optional(),
+  default: VarInputSchema.optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  step: z.number().positive().optional(),
+  integer: z.boolean().optional(),
+  unit: z.enum(["mm", "count"]).default("mm"),
+});
+export type ParamInput = z.infer<typeof ParamSchema>;
+
 /**
  * Construction elements of a cabinet (D38), beyond what the variables
  * describe: extra horizontal panels, changes to the automatic fixed shelves
@@ -88,6 +158,14 @@ export const ConstructionSchema = z.object({
     .default({}),
   /** Zones (1 = top) that get no back; the back splits at the panels around them. */
   noBack: z.array(z.number().int().min(1)).default([]),
+  /** Free parts (D45): boards placed by formulas, beyond what the box rule builds. */
+  parts: z.array(CustomPartSchema).max(200).default([]),
+  /** Part codes of the box rule to leave out (e.g. "TO", "BK"), to replace them with free parts. */
+  omit: z.array(z.string().min(1)).default([]),
+  /** Free bores on any part, in part-local coordinates (D13). */
+  bores: z.array(CustomBoreSchema).max(500).default([]),
+  /** Extra hardware and consumables for the lists. */
+  hardware: z.array(z.object({ item: z.string().min(1), qty: VarInputSchema.default(1) })).max(100).default([]),
 });
 export type ConstructionInput = z.infer<typeof ConstructionSchema>;
 
@@ -105,6 +183,8 @@ export const CabinetSchema = z.object({
   fronts: z.array(FrontZone).max(12).optional(),
   /** Construction elements (extra panels, back zones). */
   construction: ConstructionSchema.optional(),
+  /** Parameters shown in the simple editor (D45). */
+  params: z.array(ParamSchema).max(60).default([]),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
   /** Template this cabinet was made from (the app saves construction changes back to it). */
@@ -127,6 +207,7 @@ export const CabinetTemplateSchema = z.object({
     options: z.record(z.string(), OptionValueSchema).default({}),
     fronts: z.array(FrontZone).max(12).optional(),
     construction: ConstructionSchema.optional(),
+    params: z.array(ParamSchema).max(60).default([]),
     parts: z.record(z.string(), PartOverride).default({}),
   }),
 });

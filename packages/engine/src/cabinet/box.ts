@@ -14,6 +14,8 @@ import {
 import type { ResolvedCabinet } from "../resolve.ts";
 import type { FrontZone } from "../schema.ts";
 import { evaluateGraph } from "../graph.ts";
+import type { LocalizedText } from "../text.ts";
+import { buildCustomParts } from "./custom.ts";
 import { buildDrawer } from "./drawer.ts";
 import type { CabinetContext } from "./machining.ts";
 
@@ -46,6 +48,8 @@ export interface BoxLayout {
   zones: { type: FrontZone["type"]; y0: number; y1: number; fixedBelow: number | null }[];
   /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
   rails: { x0: number; x1: number; y: number; z: number }[];
+  /** Free parts (D45) and whether their ends are joined to the panels they meet. */
+  custom: { code: string; joint: boolean }[];
 }
 
 export interface PlacedFront {
@@ -132,6 +136,8 @@ export type AddPart = (
   widthAxis: Axis,
   materialKey: string,
   edges: PartEdges,
+  /** Free parts (D45): their own code, material id and name. */
+  custom?: { code: string; material: string; label?: LocalizedText; note?: string },
 ) => void;
 
 export function buildBox(
@@ -197,10 +203,11 @@ export function buildBox(
     widthAxis: Axis,
     materialKey: string,
     edges: PartEdges,
+    custom?: { code: string; material: string; label?: LocalizedText; note?: string },
   ): void => {
-    const code = ROLE_CODES[role] + (index ?? "");
+    const code = custom?.code ?? ROLE_CODES[role] + (index ?? "");
     const override = rc.cabinet.parts[code];
-    const material = override?.material ?? (rc.options.get(materialKey)!.value as string);
+    const material = override?.material ?? custom?.material ?? (rc.options.get(materialKey)!.value as string);
     const finalEdges: PartEdges = { ...edges };
     if (override?.edges) {
       for (const k of ["l1", "l2", "w1", "w2"] as const) {
@@ -266,7 +273,8 @@ export function buildBox(
       edges: finalEdges,
       box: rounded,
       operations: [],
-      ...(override?.note ? { note: override.note } : {}),
+      ...(custom?.label !== undefined ? { label: custom.label } : {}),
+      ...(override?.note ?? custom?.note ? { note: override?.note ?? custom?.note } : {}),
     };
     if (part.length <= 0 || part.width <= 0 || part.thickness <= 0 || part.cutLength <= 0 || part.cutWidth <= 0) {
       diagnostics.push({
@@ -719,8 +727,21 @@ export function buildBox(
     }
   }
 
+  // --- Free parts (D45), then the parts left out ------------------------------------
+  const custom = buildCustomParts({ rc, library, scope: zoneVars, add, parts, diagnostics });
+  const omit = new Set(cons?.omit ?? []);
+  for (const code of omit) {
+    if (!parts.some((p) => p.code === code)) diagnostics.push({ severity: "warning", code: "construction_omit_unknown", params: { code }, cabinet: cab });
+  }
+  if (omit.size) {
+    const kept = parts.filter((p) => !omit.has(p.code));
+    parts.length = 0;
+    parts.push(...kept);
+  }
+  const has = (code: string): boolean => !omit.has(code);
+
   // Part overrides that point at parts this cabinet does not have.
-  const codes = new Set(parts.map((p) => p.code));
+  const codes = new Set([...parts.map((p) => p.code), ...omit]);
   for (const code of Object.keys(rc.cabinet.parts)) {
     if (!codes.has(code)) {
       diagnostics.push({ severity: "warning", code: "part_override_unused", params: { code }, cabinet: cab });
@@ -730,7 +751,12 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, flaps, rails,
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t,
+      doors: doors.filter((d) => has(d.code)),
+      drawers: drawers.filter((d) => has(`${ROLE_CODES.drawer_front}${d.index}`)),
+      applianceFronts: applianceFronts.filter((d) => has(d.code)),
+      flaps: flaps.filter((d) => has(d.code)),
+      rails, custom,
       zones: fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: fixedAuto[i] ?? null })) },
   };
 }

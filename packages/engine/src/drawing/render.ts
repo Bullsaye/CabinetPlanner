@@ -1,5 +1,6 @@
 import type { OpSource } from "../ops.ts";
 import type { Part, PartEdges } from "../part.ts";
+import { localName } from "../text.ts";
 import { formatNumber } from "../output/format.ts";
 import { extractFeatures, groupFeatures, tagName, type DFeature, type FeatureGroup } from "./features.ts";
 import type { ResolvedStyle } from "./style.ts";
@@ -24,6 +25,8 @@ export interface DrawingText {
   materialName?: (id: string) => string | undefined;
   edgeCode?: (id: string) => string | undefined;
   roleName?: (role: string) => string;
+  /** Locale for names given by the user (free parts). */
+  locale?: string;
   styleName?: string;
 }
 
@@ -709,7 +712,7 @@ function headerLines(
 ): string[] {
   const t = text.t;
   const f = (x: number): string => formatNumber(x);
-  const role = text.roleName?.(part.role) ?? t(`role.${part.role}`);
+  const role = part.label !== undefined ? localName(part.label, text.locale ?? "en") : (text.roleName?.(part.role) ?? t(`role.${part.role}`));
   const mat = text.materialName?.(part.material) ?? part.material;
   const inner = innerFace(part, cabinet) === view.face;
   return [
@@ -735,6 +738,7 @@ function describeSources(sources: OpSource[], text: DrawingText): string {
       if (s.kind === "hardware") return text.hardwareName?.(s.ref) ?? s.ref;
       if (s.kind === "system") return t("drawing.src.system");
       if (s.kind === "joint") return t("drawing.src.joint", { ref: s.ref });
+      if (s.kind === "custom") return t("drawing.src.custom");
       return t("drawing.src.back", { ref: s.ref });
     })
     .join(" + ");

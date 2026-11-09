@@ -20,7 +20,12 @@ export interface CabinetTemplate {
       panels?: { y: number | string; setbackFront?: number | string; setbackRear?: number | string }[];
       fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;
       noBack?: number[];
+      parts?: Record<string, unknown>[];
+      omit?: string[];
+      bores?: Record<string, unknown>[];
+      hardware?: { item: string; qty?: number | string }[];
     };
+    params?: { name: string; label?: LocalizedText; default?: number | string; min?: number; max?: number; step?: number; integer?: boolean; unit?: "mm" | "count" }[];
   };
 }
 
@@ -117,6 +122,31 @@ export const FACTORY_TEMPLATES: readonly CabinetTemplate[] = [
     cabinet: tall({ W: 800, D: 400, door_count: 2, shelf_count: 3 }, { fronts: [{ type: "open" }, { type: "door", h: LOWER }] }),
   },
   { id: "sideboard", group: "storage", name: { en: "Sideboard, two doors", de: "Sideboard, zwei Türen" }, cabinet: base({ W: 1200, D: 450, door_count: 2 }) },
+  {
+    // Free construction (D45): nothing of the box rule, four free parts and two parameters.
+    id: "bench",
+    group: "storage",
+    name: { en: "Bench (free construction)", de: "Sitzbank (freie Konstruktion)" },
+    cabinet: {
+      kind: "base",
+      presets: [],
+      vars: { W: 1200, H: 450, D: 380, shelf_count: 0, door_count: 0, plinth_h: 0 },
+      options: { back_mount: "none", system_holes: "none", "hardware.leg": null },
+      params: [
+        { name: "stretcher_h", label: { en: "Stretcher height", de: "Zargenhöhe" }, default: 120, min: 40, max: 400, step: 10 },
+        { name: "stretcher_y", label: { en: "Stretcher above floor", de: "Zarge über Boden" }, default: 100, min: 0, max: 600, step: 10 },
+      ],
+      construction: {
+        omit: ["SL", "SR", "BO", "RF", "RR"],
+        parts: [
+          { id: "WL", name: { en: "Cheek left", de: "Wange links" }, plane: "vertical", x: 0, y: 0, z: 0, dy: "H", dz: "D", edges: { front: "edge.carcase", rear: "edge.carcase", top: "edge.carcase" } },
+          { id: "WR", name: { en: "Cheek right", de: "Wange rechts" }, plane: "vertical", x: "W - t_carcase", y: 0, z: 0, dy: "H", dz: "D", edges: { front: "edge.carcase", rear: "edge.carcase", top: "edge.carcase" } },
+          { id: "SI", name: { en: "Seat", de: "Sitzfläche" }, plane: "horizontal", x: "t_carcase", y: "H - t_carcase", z: 0, dx: "W - 2 * t_carcase", dz: "D", edges: { front: "edge.carcase", rear: "edge.carcase" } },
+          { id: "ST", name: { en: "Stretcher", de: "Zarge" }, plane: "frontal", x: "t_carcase", y: "stretcher_y", z: "D / 2 - t_carcase / 2", dx: "W - 2 * t_carcase", dy: "stretcher_h", edges: { top: "edge.carcase", bottom: "edge.carcase" } },
+        ],
+      },
+    },
+  },
   // Wardrobes
   { id: "wardrobe-hanging", group: "wardrobe", name: { en: "Wardrobe, hanging", de: "Kleiderschrank, Stange" }, cabinet: wardrobe({ W: 1000 }) },
   {

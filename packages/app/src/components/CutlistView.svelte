@@ -14,6 +14,7 @@
     locale: store.tr.locale,
     header: (col: string) => t(`col.${col}`),
     role: (row: CutlistRow) => {
+      if (row.label !== undefined) return localName(row.label, store.tr.locale);
       const codes = new Set(row.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));
       if (row.qty > 1 && codes.has("SL") && codes.has("SR")) return t("role.side_pair");
       if (row.qty > 1 && codes.has("RF") && codes.has("RR")) return t("role.rail_pair");

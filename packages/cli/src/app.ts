@@ -382,6 +382,7 @@ export function cutlistText(tr: Translator): CutlistText {
     locale: tr.locale,
     header: (col) => tr.t(`col.${col}`),
     role: (row: CutlistRow) => {
+      if (row.label !== undefined) return localName(row.label, tr.locale);
       if (row.qty > 1 && (row.role === "side_left" || row.role === "side_right")) {
         const roles = new Set(row.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));
         if (roles.has("SL") && roles.has("SR")) return tr.t("role.side_pair");
