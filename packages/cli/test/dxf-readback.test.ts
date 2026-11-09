@@ -172,4 +172,11 @@ describe("DXF numbers and header", () => {
     expect(polylines(dxf)[0]!.pts).toEqual([[0, 0], [720, 0], [720, 560], [0, 560]]);
     expect(dxf.comment).toContain("720 x 560 x 19 mm");
   });
+
+  it("keeps the header comment on one line whatever the project is called", () => {
+    const [f] = partDxf(p.SR!, { W: 600, H: 720, D: 560 }, undefined, { project: "Küche\r\nMüller\n0\tEOF", revision: 2, timestamp: "now\nlater" });
+    const dxf = parseDxf(f!.content);
+    expect(dxf.comment).toContain("Küche Müller 0 EOF rev 2");
+    expect(dxf.entities.filter((e) => e.type === "CIRCLE").length).toBeGreaterThan(0);
+  });
 });

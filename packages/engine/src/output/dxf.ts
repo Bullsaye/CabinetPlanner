@@ -227,7 +227,9 @@ function writeDxf(
   }
 
   // Header comment, header, layer table, entities.
-  g(999, `Cabinet Planner · ${meta.project ?? ""} rev ${meta.revision ?? ""} · ${part.id} · side ${meta.side}/${meta.sides} (${meta.face} up) · ${f(width)} x ${f(height)} x ${f(t)} mm${meta.timestamp ? ` · ${meta.timestamp}` : ""}`);
+  // One line only: a line break in a project name would end the comment and corrupt the file.
+  const comment = `Cabinet Planner · ${meta.project ?? ""} rev ${meta.revision ?? ""} · ${part.id} · side ${meta.side}/${meta.sides} (${meta.face} up) · ${f(width)} x ${f(height)} x ${f(t)} mm${meta.timestamp ? ` · ${meta.timestamp}` : ""}`;
+  g(999, comment.replace(/[\u0000-\u001f\u007f]+/g, " "));
   g(0, "SECTION");
   g(2, "HEADER");
   g(9, "$ACADVER");
