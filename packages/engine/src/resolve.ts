@@ -236,6 +236,13 @@ function validateOption(
     case "material":
       if (typeof value !== "string" || !library.materials.has(value)) bad("material_unknown");
       return;
+    case "hardware": {
+      const item = typeof value === "string" ? library.hardware.get(value) : undefined;
+      if (value === null && def.kind.nullable) return;
+      if (!item) bad("hardware_unknown");
+      else if (item.category !== def.kind.category) bad("hardware_wrong_category", { category: def.kind.category });
+      return;
+    }
     case "edgeband":
       if (value !== null && (typeof value !== "string" || !library.edgebands.has(value))) bad("edgeband_unknown");
       return;

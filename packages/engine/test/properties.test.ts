@@ -76,3 +76,44 @@ describe("box cabinet invariants", () => {
     );
   });
 });
+
+/**
+ * Machining invariants: within practical sizes every construction variant
+ * must machine cleanly, i.e. no bore outside a part, too deep, too close to
+ * an edge, and no colliding operations. A failure here is a rule bug.
+ */
+describe("machining invariants", () => {
+  const input = fc.record({
+    W: fc.integer({ min: 300, max: 1200 }),
+    H: fc.integer({ min: 400, max: 2400 }),
+    D: fc.integer({ min: 280, max: 650 }),
+    shelf_count: fc.integer({ min: 0, max: 5 }),
+    door_count: fc.integer({ min: 0, max: 2 }),
+    carcase_joint: fc.constantFrom("sides_over", "sides_between"),
+    top: fc.constantFrom("full", "rails"),
+    back_mount: fc.constantFrom("groove", "rebate", "surface"),
+    system_holes: fc.constantFrom("full", "none"),
+    door_hinge_side: fc.constantFrom("left", "right"),
+  });
+
+  it("practical cabinets machine without errors", () => {
+    fc.assert(
+      fc.property(input, (i) => {
+        const r = buildOne({
+          vars: { W: i.W, H: i.H, D: i.D, shelf_count: i.shelf_count, door_count: i.door_count },
+          options: {
+            carcase_joint: i.carcase_joint,
+            top: i.top,
+            back_mount: i.back_mount,
+            system_holes: i.system_holes,
+            door_hinge_side: i.door_hinge_side,
+          },
+        });
+        const errors = r.diagnostics.filter((d) => d.severity === "error");
+        expect(errors).toEqual([]);
+        for (const p of r.parts) expect(p.operations.length).toBeGreaterThanOrEqual(0);
+      }),
+      { numRuns: 400, seed: 3 },
+    );
+  });
+});

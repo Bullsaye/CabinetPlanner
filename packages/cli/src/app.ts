@@ -5,6 +5,7 @@ import {
   cutlistTable,
   FileFormatError,
   formatNumber,
+  localName,
   loadProject,
   loadShop,
   VARIABLE_BY_NAME,
@@ -37,6 +38,7 @@ Commands:
   cutlist   Write the cutlist (CSV or a text table)
   resolve   Show every variable with its value and where it came from
   check     Validate the project and list errors and warnings
+  ops       Show machining operations and hardware per part (part-local mm)
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
@@ -45,7 +47,7 @@ Options:
   --group                Merge identical parts into one row with a quantity
   --delimiter <char>     CSV delimiter (default: ",")
   --out <file>           Write to a file instead of stdout
-  --cabinet <id>         resolve: only this cabinet
+  --cabinet <id>         resolve, ops: only this cabinet
   -h, --help             Show this help
 `;
 
@@ -76,7 +78,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
-  if (!["cutlist", "resolve", "check"].includes(command) || !file) {
+  if (!["cutlist", "resolve", "check", "ops"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
   }
@@ -142,6 +144,62 @@ export function run(argv: readonly string[], io: Io): number {
           rows.push([o.key, tr.t(`option.${o.key}`), String(o.value), "", sourceLabel(o.source, tr)]);
         }
         out.push(alignTable(rows));
+      }
+      emit(out.join("\n"));
+      printDiagnostics(result.diagnostics, tr, io);
+      return result.ok ? 0 : 1;
+    }
+    case "ops": {
+      const cabinets = result.cabinets.filter((c) => !opts.cabinet || c.resolved.cabinet.id === opts.cabinet);
+      const out: string[] = [];
+      const f = (x: number): string => formatNumber(x);
+      for (const c of cabinets) {
+        out.push(`# ${c.resolved.cabinet.id}${c.resolved.cabinet.name ? " · " + c.resolved.cabinet.name : ""}`);
+        const rows: string[][] = [
+          [
+            tr.t("col.part"),
+            tr.t("cli.col.op"),
+            tr.t("cli.col.face"),
+            "u",
+            "v",
+            "w",
+            tr.t("cli.col.diameter"),
+            tr.t("cli.col.depth"),
+            tr.t("cli.col.size"),
+            tr.t("cli.col.from"),
+          ],
+        ];
+        for (const p of c.parts) {
+          for (const o of p.operations) {
+            const from = o.sources.map((s) => `${s.kind}:${s.ref}`).join(" + ");
+            if (o.kind === "bore") {
+              rows.push([p.id, tr.t("cli.op.bore"), o.face, f(o.u), f(o.v), f(o.w), f(o.d), f(o.depth), "", from]);
+            } else {
+              rows.push([
+                p.id,
+                tr.t("cli.op.pocket"),
+                o.face,
+                f(o.u0),
+                f(o.v0),
+                f(o.w0),
+                "",
+                "",
+                `${f(o.u1 - o.u0)} × ${f(o.v1 - o.v0)} × ${f(o.w1 - o.w0)}`,
+                from,
+              ]);
+            }
+          }
+        }
+        out.push(alignTable(rows));
+        if (c.hardware.length) {
+          out.push(`## ${tr.t("cli.hardware")}`);
+          const hw: string[][] = [[tr.t("cli.col.item"), "", tr.t("cli.col.qty")]];
+          for (const h of c.hardware) {
+            const item = result.library.hardware.get(h.item);
+            hw.push([h.item, item ? localName(item.name, tr.locale) : "", `${h.qty} ${tr.has(`unit.${h.unit}`) ? tr.t(`unit.${h.unit}`) : h.unit}`]);
+          }
+          out.push(alignTable(hw));
+        }
       }
       emit(out.join("\n"));
       printDiagnostics(result.diagnostics, tr, io);

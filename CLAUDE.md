@@ -7,7 +7,8 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 
 - `packages/engine` – pure TypeScript engine. No DOM, no Node APIs, no UI
   text. Pipeline: presets → variables (expression graph) → cabinet rules →
-  parts → output writers.
+  parts → machining (back pockets, joints, system holes, hardware) → checks
+  → output writers. Hardware seed items are JSON in `packages/engine/library/hardware/`.
 - `packages/i18n` – message catalogues (`en` base, `de` complete) and the
   translator.
 - `packages/cli` – `cabinet-planner` command; the first client of the engine.
@@ -25,6 +26,7 @@ pnpm typecheck
 pnpm check           # typecheck + tests (what CI runs)
 pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --format table --lang de
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
+pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + hardware per part
 ```
 
 ## Rules
@@ -35,7 +37,11 @@ pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 - New variable, option, role or diagnostic → add English and German text in
   `packages/i18n/src/locales/`. A coverage test checks this.
 - Engine reports problems as `Diagnostic` (code + params), never throws on
-  user data and never formats text.
+  user data and never formats text. It may throw for rule bugs (e.g. a bore
+  entry that is not on the part surface).
+- Machining lives in the part-local frame (D13). Before placing a bore that
+  can move (dowels), check `boreWouldCollide`; everything is re-checked by
+  `checkOperations`.
 - Output must be deterministic. Changing a golden file means a real change
   in production data: say so in the commit message.
 - Any change to a convention in DECISIONS.md gets a new entry there.
@@ -61,7 +67,14 @@ pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 | Kante / Umleimer | edgeband | `edge.*` |
 | Zuschnitt | cut size | `cutLength`, `cutWidth` |
 | Maserung | grain | `grain` |
-| Dübel | dowel | (phase 1) |
-| Lochreihe | system hole row | (phase 1) |
-| Topfband | cup hinge | (phase 1) |
-| Auszug | drawer slide | (phase 1) |
+| Dübel | dowel | `dowel-8x35`, `joint_method: dowel` |
+| Lochreihe / Systembohrung | system hole row | `sys_*`, `system_holes` |
+| Raster | pitch / grid | `sys_pitch`, `sys_grid_y0` |
+| Topfband | cup hinge | `hardware.hinge` |
+| Topfbohrung | hinge cup bore | `cup_d`, `cup_depth` |
+| Bohrabstand (K) | cup boring distance | `cup_boring_distance` |
+| Montageplatte | mounting plate | `plate_*` |
+| Bodenträger | shelf support pin | `hardware.shelf_support` |
+| Anschlag | hinge side | `door_hinge_side` |
+| Restwandstärke | remaining wall | `bore_min_wall` |
+| Auszug | drawer slide | (next) |

@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { Edgeband, LocalizedText, Material } from "./library.ts";
+import { HardwareItem } from "./hardware/schema.ts";
+import { Edgeband, Material } from "./library.ts";
+import { LocalizedText } from "./text.ts";
 
 /**
  * File formats. Every file carries `schemaVersion`; `migrate()` in
@@ -60,9 +62,10 @@ const LibraryFile = z
   .object({
     materials: z.array(Material).default([]),
     edgebands: z.array(Edgeband).default([]),
+    hardware: z.array(HardwareItem).default([]),
     presets: z.array(Preset).default([]),
   })
-  .default({ materials: [], edgebands: [], presets: [] });
+  .default({ materials: [], edgebands: [], hardware: [], presets: [] });
 
 export const ProjectSchema = z
   .object({

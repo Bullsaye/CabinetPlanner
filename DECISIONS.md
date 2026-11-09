@@ -25,7 +25,8 @@ sit at `z = D … D + t_front`. The plinth is below `y = 0`.
 Each part's local origin is its **front-left-bottom** corner as seen when
 the part lies on the machine with face A up. Face naming and the exact
 mapping per role are fixed when the DXF writer is built and recorded here
-before the first machined part.
+before the first machined part. The engine itself stores machining in a
+neutral part frame (D13); the writer maps it.
 
 ### D4 · 2026-11-09 · Part length, width and edges
 
@@ -99,3 +100,61 @@ Numbers, variables, `+ − × ÷` (ASCII or typographic), comparisons,
 `&& || !`, and the functions `min max abs round floor ceil clamp roundTo
 floorTo ceilTo if`. No `eval`, no member access, no strings. Comparisons
 return 1/0. `if()` is lazy. Any non-finite result is an error.
+
+### D13 · 2026-11-09 · Part-local frame for machining
+
+Operations are stored per part in local coordinates: `u` along the length,
+`v` along the width, `w` along the thickness, origin at the part's minimum
+corner in cabinet coordinates. Faces: `t0` (w = 0), `t1` (w = thickness),
+`l1`/`l2` (v = 0 / width, same as the edge names in D4), `w1`/`w2`
+(u = 0 / length). A bore is stored by its entry point on the face, diameter
+and depth; grooves and rebates are rectangular pockets open to a face.
+Machine faces (A/B), origins and mirroring are applied by the export
+writers (D3), never in the model.
+
+### D14 · 2026-11-09 · 32 mm system grid
+
+- Vertical grid: `y = sys_grid_y0 + k · sys_pitch` in cabinet coordinates,
+  `sys_grid_y0 = t_carcase / 2` by default, so bottom dowels, system holes
+  and hinge plates share one grid.
+- Front row `sys_row_front` (37) from the front edge of the sides. Rear row
+  on the pitch from the front row, at least `sys_row_rear_min` in front of
+  the back panel.
+- Holes only between `sys_margin` above the bottom and below the top.
+- Adjustable shelves rest `shelf_pin_rest` above the hole nearest to even
+  spacing; height never changes the cutlist.
+
+### D15 · 2026-11-09 · Hardware items and drilling frames
+
+- Hardware items are JSON files (schema in `hardware/schema.ts`). Params are
+  expressions that may read cabinet variables and placement context; a
+  param must not reuse a cabinet variable name.
+- Drilling is given per `mount` in a placement frame with `a` (along) and
+  `b` (across). Hinge frames: `door` = face towards the carcase, `a` from
+  the hinge centre upwards, `b` from the hinge edge inwards; `side` = inner
+  face of the hinge side, `a` as above, `b` from the front edge backwards.
+- Hinge count comes from the item's `count` param; centres start
+  `end_offset` from the door ends, are spread evenly and, with system holes,
+  snapped so that `centre − grid_offset` lies on the grid.
+- Single door: hinge side from `door_hinge_side`; two doors hinge outwards.
+- Factory items are generic and `untested`. They must be replaced or
+  confirmed from datasheets before machining.
+
+### D16 · 2026-11-09 · Dowel joints
+
+Carcase joints run front to back. Dowels sit on the system pitch measured
+from the front end of the joint, the first at `dowel_offset_front` (front
+row), none closer than `dowel_offset_rear` to the rear end, at most
+`dowel_max_spacing` apart. Positions whose hole would come within
+`bore_min_wall` of existing machining (e.g. the back groove) are skipped.
+Sides over: face bore in the side, edge bore in the horizontal part.
+Sides between: face bore in the bottom/top, end bore in the side. Depths
+come from the connector item (`face_depth`, `edge_depth`).
+
+### D17 · 2026-11-09 · Machining checks
+
+Every bore must leave `bore_min_wall` to every surface it does not enter
+through; operations may not overlap except identical bores, which are
+merged with all their sources (e.g. a hinge plate screw in a system hole).
+Pockets may meet each other. Violations are errors and block output.
+Overlap tests use axis-aligned bounds, so they are conservative.

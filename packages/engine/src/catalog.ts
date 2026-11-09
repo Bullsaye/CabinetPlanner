@@ -7,7 +7,16 @@ import type { VarInput } from "./graph.ts";
  * `var.<name>`, `var.<name>.hint`, `option.<key>` and `option.<key>.<value>`.
  */
 
-export type VarGroup = "dimensions" | "board" | "construction" | "back" | "shelves" | "fronts";
+export type VarGroup =
+  | "dimensions"
+  | "board"
+  | "construction"
+  | "system"
+  | "back"
+  | "shelves"
+  | "fronts"
+  | "hardware"
+  | "machining";
 export type VarUnit = "mm" | "count";
 
 export interface VarDef {
@@ -45,18 +54,33 @@ export const VARIABLES: readonly VarDef[] = [
 
   // Construction.
   v({ name: "rail_w", group: "construction", unit: "mm", factory: 100, min: 30, max: 300, step: 10 }),
+  v({ name: "dowel_offset_front", group: "construction", unit: "mm", factory: "sys_row_front", min: 5, max: 200 }),
+  v({ name: "dowel_offset_rear", group: "construction", unit: "mm", factory: 20, min: 5, max: 200 }),
+  v({ name: "dowel_max_spacing", group: "construction", unit: "mm", factory: 160, min: 32, max: 1000 }),
+  v({ name: "dowel_min_count", group: "construction", unit: "count", factory: 2, min: 1, max: 20, integer: true, step: 1 }),
+
+  // 32 mm system.
+  v({ name: "sys_pitch", group: "system", unit: "mm", factory: 32, min: 1, max: 100 }),
+  v({ name: "sys_row_front", group: "system", unit: "mm", factory: 37, min: 5, max: 200 }),
+  v({ name: "sys_row_rear_min", group: "system", unit: "mm", factory: 37, min: 5, max: 300 }),
+  v({ name: "sys_grid_y0", group: "system", unit: "mm", factory: "t_carcase / 2", min: 0, max: 200 }),
+  v({ name: "sys_hole_d", group: "system", unit: "mm", factory: 5, min: 2, max: 12 }),
+  v({ name: "sys_hole_depth", group: "system", unit: "mm", factory: 13, min: 1, max: 40 }),
+  v({ name: "sys_margin", group: "system", unit: "mm", factory: 40, min: 0, max: 500 }),
 
   // Back panel.
   v({ name: "back_groove_offset", group: "back", unit: "mm", factory: 10, min: 0, max: 100 }),
   v({ name: "back_groove_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
   v({ name: "back_rebate_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
   v({ name: "back_play", group: "back", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
+  v({ name: "back_groove_clearance", group: "back", unit: "mm", factory: 0.5, min: 0, max: 5, step: 0.1 }),
 
   // Shelves.
   v({ name: "shelf_count", group: "shelves", unit: "count", factory: 1, min: 0, max: 20, integer: true, step: 1, quick: true }),
   v({ name: "shelf_gap", group: "shelves", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
   v({ name: "shelf_front_setback", group: "shelves", unit: "mm", factory: 10, min: 0, max: 200 }),
   v({ name: "shelf_back_gap", group: "shelves", unit: "mm", factory: 2, min: 0, max: 50 }),
+  v({ name: "shelf_pin_rest", group: "shelves", unit: "mm", factory: 3, min: 0, max: 30 }),
 
   // Fronts (full overlay in phase 0).
   v({ name: "door_count", group: "fronts", unit: "count", factory: 1, min: 0, max: 2, integer: true, step: 1, quick: true }),
@@ -64,6 +88,9 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "front_gap_top", group: "fronts", unit: "mm", factory: "front_gap", min: 0, max: 100 }),
   v({ name: "front_gap_bottom", group: "fronts", unit: "mm", factory: 0, min: -50, max: 100 }),
   v({ name: "front_gap_side", group: "fronts", unit: "mm", factory: "front_gap / 2", min: 0, max: 50 }),
+
+  // Machining limits.
+  v({ name: "bore_min_wall", group: "machining", unit: "mm", factory: 2, min: 0, max: 20, step: 0.5 }),
 ];
 
 export const VARIABLE_BY_NAME: ReadonlyMap<string, VarDef> = new Map(VARIABLES.map((d) => [d.name, d]));
@@ -79,9 +106,12 @@ export const MATERIAL_CONSTANTS = {
 // ---------------------------------------------------------------------------
 // Options: non-numeric choices (construction variants, library references).
 
+export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "leg" | "other";
+
 export type OptionKind =
   | { type: "enum"; values: readonly string[] }
   | { type: "material" }
+  | { type: "hardware"; category: HardwareCategory; nullable?: boolean }
   | { type: "edgeband" } // edgeband id, or null for "no banding"
   | { type: "boolean" };
 
@@ -106,6 +136,22 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["groove", "rebate", "surface"] },
     factory: "groove",
   },
+  { key: "joint_method", group: "construction", kind: { type: "enum", values: ["dowel", "none"] }, factory: "dowel" },
+  {
+    key: "hardware.connector",
+    group: "construction",
+    kind: { type: "hardware", category: "connector" },
+    factory: "dowel-8x35",
+  },
+  { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "none"] }, factory: "full" },
+  { key: "hardware.hinge", group: "hardware", kind: { type: "hardware", category: "hinge" }, factory: "generic-hinge-110" },
+  {
+    key: "hardware.shelf_support",
+    group: "hardware",
+    kind: { type: "hardware", category: "shelf_support", nullable: true },
+    factory: "shelf-pin-5",
+  },
+  { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.back", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "material.shelf", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },

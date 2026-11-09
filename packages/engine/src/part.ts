@@ -1,3 +1,5 @@
+import type { Operation } from "./ops.ts";
+
 /**
  * A finished part. Geometry is an axis-aligned box in cabinet coordinates
  * (see DECISIONS.md: origin rear-left-bottom of the carcase, X right, Y up,
@@ -90,6 +92,8 @@ export interface Part {
   grain: boolean;
   edges: PartEdges;
   box: Box;
+  /** Machining in part-local coordinates (see ops.ts). */
+  operations: Operation[];
   note?: string;
 }
 

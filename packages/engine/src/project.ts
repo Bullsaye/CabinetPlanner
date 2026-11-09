@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { buildBox } from "./cabinet/box.ts";
+import { machineBox, type HardwareUse } from "./cabinet/machining.ts";
 import { hasErrors, type Diagnostic } from "./diagnostics.ts";
-import { buildLibrary, FACTORY_EDGEBANDS, FACTORY_MATERIALS, type Library } from "./library.ts";
+import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
 import { presetRegistry, resolveCabinet, type ResolvedCabinet } from "./resolve.ts";
 import { ProjectSchema, SCHEMA_VERSION, ShopSchema, type Project, type Shop } from "./schema.ts";
@@ -63,6 +64,8 @@ export function loadShop(raw: unknown): Shop {
 export interface CabinetResult {
   resolved: ResolvedCabinet;
   parts: Part[];
+  /** Hardware and consumables, aggregated per library item. */
+  hardware: HardwareUse[];
   diagnostics: Diagnostic[];
 }
 
@@ -81,11 +84,7 @@ export interface ProjectResult {
  * of its inputs; every output writer reads the result of this.
  */
 export function buildProject(project: Project, shop?: Shop): ProjectResult {
-  const library = buildLibrary(
-    { materials: FACTORY_MATERIALS, edgebands: FACTORY_EDGEBANDS },
-    shop?.library ?? {},
-    project.library,
-  );
+  const library = buildLibrary(FACTORY_LIBRARY, shop?.library ?? {}, project.library);
   const presets = presetRegistry(shop, project);
   // A shop file wins over an inline `shop` block in the project.
   const shopLayer = shop?.defaults ?? project.shop;
@@ -95,12 +94,19 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     const resolved = resolveCabinet(project, cabinet, { library, presets, shop: shopLayer });
     const diagnostics = [...resolved.diagnostics];
     let parts: Part[] = [];
+    let hardware: HardwareUse[] = [];
     if (!hasErrors(diagnostics)) {
       const built = buildBox(resolved, library);
       parts = sortParts(built.parts);
       diagnostics.push(...built.diagnostics);
+      // Machining needs sound geometry; skip it when the parts are already wrong.
+      if (!hasErrors(built.diagnostics)) {
+        const machined = machineBox(resolved, library, parts, built.layout);
+        diagnostics.push(...machined.diagnostics);
+        hardware = machined.hardware;
+      }
     }
-    cabinets.push({ resolved, parts, diagnostics });
+    cabinets.push({ resolved, parts, hardware, diagnostics });
   }
   const diagnostics = cabinets.flatMap((c) => c.diagnostics);
   return {

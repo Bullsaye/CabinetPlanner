@@ -1,0 +1,116 @@
+# W01
+Part     Operation  Face  u      v      w    Ø   Depth  Size           From
+W01-SL   Pocket     t1    11     9.75   11              698 × 8.5 × 8  back:groove
+W01-SL   Bore       t1    9.5    283    19   8   12                    joint:SL-BO
+W01-SL   Bore       t1    9.5    123    19   8   12                    joint:SL-BO
+W01-SL   Bore       t1    9.5    27     19   8   12                    joint:SL-BO
+W01-SL   Bore       t1    710.5  283    19   8   12                    joint:SL-TO
+W01-SL   Bore       t1    710.5  123    19   8   12                    joint:SL-TO
+W01-SL   Bore       t1    710.5  27     19   8   12                    joint:SL-TO
+W01-SL   Bore       t1    73.5   283    19   5   13                    system:rows + hardware:generic-hinge-110
+W01-SL   Bore       t1    105.5  283    19   5   13                    system:rows + hardware:generic-hinge-110
+W01-SL   Bore       t1    137.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    169.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    201.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    233.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    265.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    297.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    329.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    361.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    393.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    425.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    457.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    489.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    521.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    553.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    585.5  283    19   5   13                    system:rows + hardware:generic-hinge-110
+W01-SL   Bore       t1    617.5  283    19   5   13                    system:rows + hardware:generic-hinge-110
+W01-SL   Bore       t1    649.5  283    19   5   13                    system:rows
+W01-SL   Bore       t1    73.5   59     19   5   13                    system:rows
+W01-SL   Bore       t1    105.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    137.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    169.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    201.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    233.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    265.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    297.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    329.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    361.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    393.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    425.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    457.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    489.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    521.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    553.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    585.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    617.5  59     19   5   13                    system:rows
+W01-SL   Bore       t1    649.5  59     19   5   13                    system:rows
+W01-SR   Pocket     t0    11     9.75   0               698 × 8.5 × 8  back:groove
+W01-SR   Bore       t0    9.5    283    0    8   12                    joint:SR-BO
+W01-SR   Bore       t0    9.5    123    0    8   12                    joint:SR-BO
+W01-SR   Bore       t0    9.5    27     0    8   12                    joint:SR-BO
+W01-SR   Bore       t0    710.5  283    0    8   12                    joint:SR-TO
+W01-SR   Bore       t0    710.5  123    0    8   12                    joint:SR-TO
+W01-SR   Bore       t0    710.5  27     0    8   12                    joint:SR-TO
+W01-SR   Bore       t0    73.5   283    0    5   13                    system:rows + hardware:generic-hinge-110
+W01-SR   Bore       t0    105.5  283    0    5   13                    system:rows + hardware:generic-hinge-110
+W01-SR   Bore       t0    137.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    169.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    201.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    233.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    265.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    297.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    329.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    361.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    393.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    425.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    457.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    489.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    521.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    553.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    585.5  283    0    5   13                    system:rows + hardware:generic-hinge-110
+W01-SR   Bore       t0    617.5  283    0    5   13                    system:rows + hardware:generic-hinge-110
+W01-SR   Bore       t0    649.5  283    0    5   13                    system:rows
+W01-SR   Bore       t0    73.5   59     0    5   13                    system:rows
+W01-SR   Bore       t0    105.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    137.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    169.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    201.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    233.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    265.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    297.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    329.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    361.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    393.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    425.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    457.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    489.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    521.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    553.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    585.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    617.5  59     0    5   13                    system:rows
+W01-SR   Bore       t0    649.5  59     0    5   13                    system:rows
+W01-BO   Pocket     t1    0      9.75   11              762 × 8.5 × 8  back:groove
+W01-BO   Bore       w1    0      283    9.5  8   25                    joint:SL-BO
+W01-BO   Bore       w1    0      123    9.5  8   25                    joint:SL-BO
+W01-BO   Bore       w1    0      27     9.5  8   25                    joint:SL-BO
+W01-BO   Bore       w2    762    283    9.5  8   25                    joint:SR-BO
+W01-BO   Bore       w2    762    123    9.5  8   25                    joint:SR-BO
+W01-BO   Bore       w2    762    27     9.5  8   25                    joint:SR-BO
+W01-TO   Pocket     t0    0      9.75   0               762 × 8.5 × 8  back:groove
+W01-TO   Bore       w1    0      283    9.5  8   25                    joint:SL-TO
+W01-TO   Bore       w1    0      123    9.5  8   25                    joint:SL-TO
+W01-TO   Bore       w1    0      27     9.5  8   25                    joint:SL-TO
+W01-TO   Bore       w2    762    283    9.5  8   25                    joint:SR-TO
+W01-TO   Bore       w2    762    123    9.5  8   25                    joint:SR-TO
+W01-TO   Bore       w2    762    27     9.5  8   25                    joint:SR-TO
+W01-DO1  Bore       t0    89.5   21.5   0    35  13                    hardware:generic-hinge-110
+W01-DO1  Bore       t0    601.5  21.5   0    35  13                    hardware:generic-hinge-110
+W01-DO2  Bore       t0    89.5   375.5  0    35  13                    hardware:generic-hinge-110
+W01-DO2  Bore       t0    601.5  375.5  0    35  13                    hardware:generic-hinge-110
+
+## Hardware
+Item                                         Qty
+dowel-8x35         Dowel Ø8 × 35             12 pcs
+generic-hinge-110  Cup hinge 110° (generic)  4 pcs
+shelf-pin-5        Shelf support pin Ø5      8 pcs

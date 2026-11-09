@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 
 /**
  * Golden-file tests: every project in reference/cabinets must produce exactly
- * the cutlist in reference/expected (byte for byte). After an intended
+ * the cutlist and the machining listing in reference/expected (byte for byte). After an intended
  * change, regenerate with `pnpm test -u` and review the diff before
  * committing — the diff is the change your machine will see.
  */
@@ -40,6 +40,12 @@ describe("reference cabinets", () => {
       expect(r.err).toBe("");
       expect(r.code).toBe(0);
       await expect(r.out).toMatchFileSnapshot(join(root, "reference/expected", `${name}.cutlist.csv`));
+    });
+    it(`${name} (machining)`, async () => {
+      const r = cli(["ops", join(dir, file), "--lang", "en"]);
+      expect(r.err).toBe("");
+      expect(r.code).toBe(0);
+      await expect(r.out).toMatchFileSnapshot(join(root, "reference/expected", `${name}.ops.txt`));
     });
   }
 });

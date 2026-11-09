@@ -21,7 +21,31 @@ import type { ResolvedCabinet } from "../resolve.ts";
  * hard-coded size. Coordinates: origin rear-left-bottom of the carcase,
  * X right, Y up, Z towards the front.
  */
-export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]; diagnostics: Diagnostic[] } {
+/** Layout facts the machining stage needs besides the parts themselves. */
+export interface BoxLayout {
+  /** Z of the back panel's front face (first usable depth behind it). */
+  backFrontZ: number;
+  /** Z where carcase parts start (t_back for a surface back, else 0). */
+  carcaseZ0: number;
+  /** Interior between bottom and top/rails. */
+  innerBottomY: number;
+  innerTopY: number;
+  /** Doors with the side their hinges are on. */
+  doors: { code: string; hinge: "left" | "right" }[];
+}
+
+/** System-hole Y positions on the grid inside [lo, hi]. */
+export function gridPositions(y0: number, pitch: number, lo: number, hi: number): number[] {
+  const out: number[] = [];
+  let k = Math.ceil((lo - y0) / pitch - 1e-9);
+  for (let y = y0 + k * pitch; y <= hi + 1e-9; y = y0 + ++k * pitch) out.push(roundMm(y));
+  return out;
+}
+
+export function buildBox(
+  rc: ResolvedCabinet,
+  library: Library,
+): { parts: Part[]; diagnostics: Diagnostic[]; layout: BoxLayout } {
   const diagnostics: Diagnostic[] = [];
   const cab = rc.cabinet.id;
   const num = (name: string): number => {
@@ -70,6 +94,7 @@ export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]
   }
 
   const parts: Part[] = [];
+  const doors: BoxLayout["doors"] = [];
   const add = (
     role: PartRole,
     index: number | undefined,
@@ -146,6 +171,7 @@ export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]
       grain: mat?.grain ?? false,
       edges: finalEdges,
       box: rounded,
+      operations: [],
       ...(override?.note ? { note: override.note } : {}),
     };
     if (part.length <= 0 || part.width <= 0 || part.thickness <= 0 || part.cutLength <= 0 || part.cutWidth <= 0) {
@@ -212,9 +238,19 @@ export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]
     const innerBottom = t;
     const innerTop = H - t;
     const pitch = (innerTop - innerBottom) / (shelfCount + 1);
+    // With system holes, shelves rest on pins in the nearest hole row so the
+    // view shows a real position; height does not change the cutlist.
+    const holes =
+      opt<string>("system_holes") === "full"
+        ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
+        : [];
     for (let i = 1; i <= shelfCount; i++) {
-      // Even spacing for the view only; adjustable shelves do not change the cutlist with height.
-      const y = innerBottom + i * pitch - tShelf / 2;
+      const target = innerBottom + i * pitch - tShelf / 2;
+      const rest = num("shelf_pin_rest");
+      const nearest = holes.length
+        ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
+        : undefined;
+      const y = nearest !== undefined ? nearest + rest : target;
       add(
         "shelf",
         i,
@@ -239,6 +275,9 @@ export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]
     for (let i = 1; i <= doorCount; i++) {
       const x = gs + (i - 1) * (doorW + gap);
       add("door", i, { x, y: gb, z: D, dx: doorW, dy: H - gt - gb, dz: tFront }, "y", "x", "material.front", all);
+      // One door: hinge side from the option. Two doors: hinged outwards.
+      const hinge = doorCount === 1 ? opt<"left" | "right">("door_hinge_side") : i === 1 ? "left" : "right";
+      doors.push({ code: `${ROLE_CODES.door}${i}`, hinge });
     }
   }
 
@@ -250,5 +289,9 @@ export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]
     }
   }
 
-  return { parts, diagnostics };
+  return {
+    parts,
+    diagnostics,
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors },
+  };
 }

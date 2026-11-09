@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "shelf-pin-5",
+  "name": { "en": "Shelf support pin Ø5", "de": "Bodenträger Ø5" },
+  "category": "shelf_support",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Plain Ø5 pin for 32 mm system holes.",
+  "params": { "per_shelf": 4 },
+  "drilling": [],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

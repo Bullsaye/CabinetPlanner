@@ -1,16 +1,10 @@
 import { z } from "zod";
 
-/**
- * Library items are user data, so their names are plain text. Factory items
- * may carry a name per locale; `localName` picks one with English fallback.
- */
-export const LocalizedText = z.union([z.string(), z.record(z.string(), z.string())]);
-export type LocalizedText = z.infer<typeof LocalizedText>;
+import { FACTORY_HARDWARE } from "./hardware/factory.ts";
+import type { HardwareItem } from "./hardware/schema.ts";
+import { LocalizedText } from "./text.ts";
 
-export function localName(text: LocalizedText, locale: string): string {
-  if (typeof text === "string") return text;
-  return text[locale] ?? text["en"] ?? Object.values(text)[0] ?? "";
-}
+export { LocalizedText, localName } from "./text.ts";
 
 export const Material = z.object({
   id: z.string().min(1),
@@ -40,6 +34,7 @@ export type Edgeband = z.infer<typeof Edgeband>;
 export interface Library {
   materials: ReadonlyMap<string, Material>;
   edgebands: ReadonlyMap<string, Edgeband>;
+  hardware: ReadonlyMap<string, HardwareItem>;
 }
 
 /** Seed library. Values are typical, not tied to a specific supplier. */
@@ -57,17 +52,28 @@ export const FACTORY_EDGEBANDS: readonly Edgeband[] = [
 ];
 
 /** Merges library layers; later items replace earlier ones with the same id. */
-export function buildLibrary(
-  ...layers: { materials?: readonly Material[]; edgebands?: readonly Edgeband[] }[]
-): Library {
+export interface LibraryLayer {
+  materials?: readonly Material[];
+  edgebands?: readonly Edgeband[];
+  hardware?: readonly HardwareItem[];
+}
+
+export const FACTORY_LIBRARY: LibraryLayer = {
+  materials: FACTORY_MATERIALS,
+  edgebands: FACTORY_EDGEBANDS,
+  hardware: FACTORY_HARDWARE,
+};
+
+export function buildLibrary(...layers: LibraryLayer[]): Library {
   const materials = new Map<string, Material>();
   const edgebands = new Map<string, Edgeband>();
+  const hardware = new Map<string, HardwareItem>();
   for (const layer of layers) {
     layer.materials?.forEach((m) => materials.set(m.id, m));
     layer.edgebands?.forEach((e) => edgebands.set(e.id, e));
+    layer.hardware?.forEach((h) => hardware.set(h.id, h));
   }
-  return { materials, edgebands };
+  return { materials, edgebands, hardware };
 }
 
-export const factoryLibrary = (): Library =>
-  buildLibrary({ materials: FACTORY_MATERIALS, edgebands: FACTORY_EDGEBANDS });
+export const factoryLibrary = (): Library => buildLibrary(FACTORY_LIBRARY);

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "dowel-8x35",
+  "name": { "en": "Dowel Ø8 × 35", "de": "Dübel Ø8 × 35" },
+  "category": "connector",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Fluted beech dowel. Depths leave 1 mm glue space per side for a 35 mm dowel in 19 mm board.",
+  "params": {
+    "d": 8,
+    "length": 35,
+    "face_depth": 12,
+    "edge_depth": 25
+  },
+  "drilling": [],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}
