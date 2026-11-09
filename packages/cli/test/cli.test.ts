@@ -91,6 +91,17 @@ describe("cli", () => {
   });
 });
 
+describe("cli assembly", () => {
+  it("writes the assembly drawing of a cabinet", () => {
+    const io = fakeIo();
+    expect(run(["assembly", "examples/kitchen-basic.project.json", "--cabinet", "W01", "--lang", "de"], io)).toBe(0);
+    expect(io.out).toContain("Stückliste");
+    expect(io.out).toContain("Fachboden");
+    const bad = fakeIo();
+    expect(run(["assembly", "examples/kitchen-basic.project.json", "--cabinet", "X9"], bad)).toBe(1);
+  });
+});
+
 describe("cli drawing", () => {
   it("writes an SVG for a part and rejects unknown parts", () => {
     const io = fakeIo();
@@ -99,8 +110,8 @@ describe("cli drawing", () => {
     expect(io.out).toContain("Seite links");
     expect(io.out).toContain("Maschinenblatt");
     const asm = fakeIo();
-    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "assembly"], asm)).toBe(0);
-    expect(asm.out).toContain("Workshop sheet");
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "upright"], asm)).toBe(0);
+    expect(asm.out).toContain("sides upright");
     const badStyle = fakeIo();
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "nope"], badStyle)).toBe(2);
     const bad = fakeIo();

@@ -19,6 +19,9 @@
   --part-edge: #7d8692;
   --drill: #2b3138;
   --pocket: #c9d6ef;
+  --shade-top: #f4f5f7;
+  --shade-front: #e2e5e9;
+  --shade-side: #c9ced5;
   --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -26,13 +29,13 @@
   :root:not([data-theme="light"]) {
     --bg: #15181c; --surface: #1c2025; --surface-2: #20252b; --line: #2e343c; --fg: #e6e9ed; --muted: #9aa3ae;
     --accent: #6d9cf0; --accent-soft: #1f2d45; --accent-fg: #a9c4f6; --view: #191c21; --part: #3a414a;
-    --part-edge: #8a93a0; --drill: #0c0e11; --pocket: #33476b; color-scheme: dark;
+    --part-edge: #8a93a0; --drill: #0c0e11; --pocket: #33476b; --shade-top: #59616c; --shade-front: #464d57; --shade-side: #353b43; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #15181c; --surface: #1c2025; --surface-2: #20252b; --line: #2e343c; --fg: #e6e9ed; --muted: #9aa3ae;
   --accent: #6d9cf0; --accent-soft: #1f2d45; --accent-fg: #a9c4f6; --view: #191c21; --part: #3a414a;
-  --part-edge: #8a93a0; --drill: #0c0e11; --pocket: #33476b; color-scheme: dark;
+  --part-edge: #8a93a0; --drill: #0c0e11; --pocket: #33476b; --shade-top: #59616c; --shade-front: #464d57; --shade-side: #353b43; color-scheme: dark;
 }
 body { background: var(--bg); color: var(--fg); font: 13px/1.45 var(--font-ui); }
 .wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 32px; max-width: 1360px; margin: 0 auto; display: grid; gap: 16px; }
@@ -94,6 +97,26 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 .pd-title, .pd-head { fill: var(--fg); font-weight: 600; }
 .pd-sub { fill: var(--muted); }
 .pd-rule { stroke: var(--line); stroke-width: .2; }
+.asm { font-family: var(--font-ui); }
+.asm-sheet { fill: var(--surface); }
+.asm-f { stroke: var(--fg); stroke-width: .22; stroke-linejoin: round; }
+.asm-top { fill: var(--shade-top); }
+.asm-front { fill: var(--shade-front); }
+.asm-side { fill: var(--shade-side); }
+.asm-door.asm-top { fill: color-mix(in srgb, var(--shade-top) 85%, var(--accent)); }
+.asm-door.asm-front { fill: color-mix(in srgb, var(--shade-front) 82%, var(--accent)); }
+.asm-door.asm-side { fill: color-mix(in srgb, var(--shade-side) 75%, var(--accent)); }
+.asm-back.asm-front { fill: color-mix(in srgb, var(--shade-front) 92%, var(--fg)); }
+.asm-leader { stroke: var(--fg); stroke-width: .18; fill: none; }
+.asm-dot { fill: var(--fg); }
+.asm-balloon { fill: var(--surface); stroke: var(--fg); stroke-width: .3; }
+.asm-num { fill: var(--fg); font-weight: 600; font-family: var(--font-mono); }
+.asm-title, .asm-head { fill: var(--fg); font-weight: 600; }
+.asm-sub { fill: var(--muted); }
+.asm-cell { fill: var(--fg); }
+.asm-mono { fill: var(--fg); font-family: var(--font-mono); }
+.asm-rule { stroke: var(--line); stroke-width: .2; }
+.asm-rule-strong { stroke: var(--fg); stroke-width: .3; }
 .err { padding: 24px; color: var(--muted); }
 </style>
 
@@ -131,8 +154,8 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 
   <section class="panel drawing" aria-label="Part drawing">
     <div class="bar" role="group" aria-label="Sheet">
-      <button id="sheet-machine" aria-pressed="true">Machine sheet</button>
-      <button id="sheet-assembly" aria-pressed="false">Workshop sheet</button>
+      <button id="sheet-machine" aria-pressed="true">Part sheet</button>
+      <button id="sheet-assembly" aria-pressed="false">Assembly drawing</button>
       <span class="note" id="sheet-note">Front edge on the reference, origin at the reference corner.</span>
     </div>
     <div class="scroll" id="drawing"></div>
@@ -148,8 +171,8 @@ const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const state = { cab: 0, part: null, explode: false, bores: true, fronts: true, sheet: "machine" };
 const SHEET_NOTES = {
-  machine: "Front edge on the reference, origin at the reference corner.",
-  assembly: "Parts as in the cabinet: sides upright and folded out, bottom and top flipped.",
+  machine: "Selected part. Front edge on the reference, origin at the reference corner.",
+  assembly: "Whole cabinet, exploded. Balloon numbers match the part list.",
 };
 
 function pressed(btn, on) { btn.setAttribute("aria-pressed", on ? "true" : "false"); }
@@ -308,7 +331,7 @@ function renderParts() {
 
 function renderDrawing() {
   const p = DATA[state.cab].parts.find((x) => x.id === state.part);
-  $("drawing").innerHTML = p ? p.sheets[state.sheet] : "";
+  $("drawing").innerHTML = state.sheet === "assembly" ? DATA[state.cab].assembly : p ? p.sheet : "";
   pressed($("sheet-machine"), state.sheet === "machine");
   pressed($("sheet-assembly"), state.sheet === "assembly");
   $("sheet-note").textContent = SHEET_NOTES[state.sheet];

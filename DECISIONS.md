@@ -200,3 +200,20 @@ Supersedes the face-view convention of the first part drawing.
 - Styles are data with `extends` and selector rules; rule properties
   cascade (first matching rule that sets a property wins). User teaching
   adds rules in front, so the factory styles never change underneath.
+
+### D21 · 2026-11-09 · Sheet types; assembly drawing
+
+- **Part sheet** (per part): machine view by default. Flat parts (bottom,
+  top, rails, shelves) use the same view in every part-sheet style, so two
+  sheets of one part never show it turned around. Only the `upright` style
+  differs, and only for sides (standing, folded outwards).
+- **Assembly drawing** (per cabinet): exploded axonometric view (seen from
+  front-right-above), flat-shaded, A3, to scale. Balloons in two columns
+  point to a visible spot of each part; balloon numbers are the positions
+  of the part list (identical parts share one position). Part list: pos,
+  qty, part, finished L × W × T, material, edge codes (l1 l2 w1 w2).
+  Hardware list below.
+- Overall dimensions end with oblique ticks by default (ISO 129-1
+  alternative to arrowheads); arrows or dots per style.
+
+Supersedes the "assembly" part style of D19/D20 (renamed `upright`).

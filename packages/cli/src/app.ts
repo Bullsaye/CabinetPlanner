@@ -5,6 +5,7 @@ import {
   cutlistTable,
   FileFormatError,
   formatNumber,
+  drawAssembly,
   drawPart,
   FACTORY_STYLES,
   localName,
@@ -44,6 +45,7 @@ Commands:
   check     Validate the project and list errors and warnings
   ops       Show machining operations and hardware per part (part-local mm)
   drawing   Write an SVG drawing of one part (--part <id>, e.g. B01-SL)
+  assembly  Write the assembly drawing of one cabinet: exploded view + part list (--cabinet <id>)
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
@@ -52,9 +54,9 @@ Options:
   --group                Merge identical parts into one row with a quantity
   --delimiter <char>     CSV delimiter (default: ",")
   --out <file>           Write to a file instead of stdout
-  --cabinet <id>         resolve, ops: only this cabinet
+  --cabinet <id>         resolve, ops: only this cabinet; assembly: the cabinet to draw
   --part <id>            drawing: the part to draw
-  --style <id>           drawing: machine (default), machine-iso, machine-chain, assembly,
+  --style <id>           drawing: machine (default), machine-iso, machine-chain, upright,
                          or a style from the shop/project library
   -h, --help             Show this help
 `;
@@ -88,7 +90,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
-  if (!["cutlist", "resolve", "check", "ops", "drawing"].includes(command) || !file) {
+  if (!["cutlist", "resolve", "check", "ops", "drawing", "assembly"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
   }
@@ -213,6 +215,32 @@ export function run(argv: readonly string[], io: Io): number {
         }
       }
       emit(out.join("\n"));
+      printDiagnostics(result.diagnostics, tr, io);
+      return result.ok ? 0 : 1;
+    }
+    case "assembly": {
+      const c = result.cabinets.find((x) => x.resolved.cabinet.id === opts.cabinet) ?? (opts.cabinet ? undefined : result.cabinets[0]);
+      if (!c) {
+        io.stderr(tr.t("cli.cabinet_not_found", { cabinet: opts.cabinet ?? "" }) + "\n");
+        return 1;
+      }
+      if (c.parts.length === 0) {
+        printDiagnostics(result.diagnostics, tr, io);
+        io.stderr(tr.t("cli.errors_block_output") + "\n");
+        return 1;
+      }
+      const v = (n: string): number => c.resolved.values.get(n)!;
+      const cab = c.resolved.cabinet;
+      emit(
+        drawAssembly({
+          cabinet: { id: cab.id, ...(cab.name ? { name: cab.name } : {}), W: v("W"), H: v("H"), D: v("D") },
+          parts: c.parts,
+          hardware: c.hardware,
+          library: result.library,
+          text: drawingText(tr, result.library),
+          project: { name: result.project.name, revision: result.project.revision },
+        }).svg,
+      );
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
     }

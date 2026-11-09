@@ -292,12 +292,12 @@ export function drawPart(input: DrawingInput): PartDrawing {
     const ly = yAxisBottom - 5;
     add({ t: "line", x1: 0, y1: -1, x2: 0, y2: ly - 1, cls: "pd-ext" });
     add({ t: "line", x1: W, y1: -1, x2: W, y2: ly - 1, cls: "pd-ext" });
-    dimLine(0, ly, W, ly, add);
+    dimLine(0, ly, W, ly, add, style.dims.terminator);
     add({ t: "text", x: W / 2, y: ly + 0.8, s: num(view.width), cls: "pd-dimtext pd-overall", size: h * 1.1, anchor: "middle" });
     const lx = xAxisLeft - 5;
     add({ t: "line", x1: -1, y1: 0, x2: lx - 1, y2: 0, cls: "pd-ext" });
     add({ t: "line", x1: -1, y1: H, x2: lx - 1, y2: H, cls: "pd-ext" });
-    dimLine(lx, 0, lx, H, add);
+    dimLine(lx, 0, lx, H, add, style.dims.terminator);
     if (style.dims.text === "aligned") {
       add({ t: "text", x: lx - 0.8, y: H / 2, s: num(view.height), cls: "pd-dimtext pd-overall", size: h * 1.1, anchor: "middle", rot: -90 });
     } else {
@@ -473,13 +473,32 @@ function arrow(x: number, y: number, dx: number, dy: number, add: (p: Prim) => v
   add({ t: "poly", pts: [[x, y], [bx - dy * w, by + dx * w], [bx + dy * w, by - dx * w]], cls: "pd-arrow" });
 }
 
-function dimLine(x1: number, y1: number, x2: number, y2: number, add: (p: Prim) => void): void {
+function dimLine(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  add: (p: Prim) => void,
+  end: "tick" | "arrow" | "dot" = "tick",
+): void {
   add({ t: "line", x1, y1, x2, y2, cls: "pd-dim" });
   const len = Math.hypot(x2 - x1, y2 - y1);
   const dx = (x2 - x1) / len;
   const dy = (y2 - y1) / len;
-  arrow(x2, y2, dx, dy, add);
-  arrow(x1, y1, -dx, -dy, add);
+  for (const [x, y, sx, sy] of [
+    [x2, y2, dx, dy],
+    [x1, y1, -dx, -dy],
+  ] as const) {
+    if (end === "arrow") arrow(x, y, sx, sy, add);
+    else if (end === "dot") add({ t: "circle", cx: x, cy: y, r: 0.45, cls: "pd-arrow" });
+    else {
+      // Oblique stroke at 45° to the dimension line (ISO 129-1).
+      const a = 1.1;
+      const tx = (sx - sy) * Math.SQRT1_2 * a;
+      const ty = (sy + sx) * Math.SQRT1_2 * a;
+      add({ t: "line", x1: x - tx, y1: y - ty, x2: x + tx, y2: y + ty, cls: "pd-tick" });
+    }
+  }
 }
 
 /**

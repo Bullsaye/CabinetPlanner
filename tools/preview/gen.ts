@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import {
   buildProject,
+  drawAssembly,
   drawPart,
   formatNumber,
   loadProject,
@@ -31,6 +32,21 @@ for (const file of projects) {
       id: c.resolved.cabinet.id,
       name: c.resolved.cabinet.name ?? result.project.name,
       size: scene.size,
+      assembly: drawAssembly({
+        cabinet: {
+          id: c.resolved.cabinet.id,
+          ...(c.resolved.cabinet.name ? { name: c.resolved.cabinet.name } : {}),
+          W: scene.size.W,
+          H: scene.size.H,
+          D: scene.size.D,
+        },
+        parts: c.parts,
+        hardware: c.hardware,
+        library: result.library,
+        text: drawingText(tr, result.library),
+        project: { name: result.project.name, revision: result.project.revision },
+        css: false,
+      }).svg,
       hardware: c.hardware.map((h) => ({
         id: h.item,
         name: localName(result.library.hardware.get(h.item)!.name, "en"),
@@ -45,18 +61,13 @@ for (const file of projects) {
           materialName: localName(mat.name, "en"),
           size: `${formatNumber(part.length)} × ${formatNumber(part.width)} × ${formatNumber(part.thickness)}`,
           ops: part.operations.length,
-          sheets: Object.fromEntries(
-            (["machine", "assembly"] as const).map((id) => [
-              id,
-              drawPart({
-                part,
-                cabinet: { W: scene.size.W, H: scene.size.H, D: scene.size.D },
-                style: resolveStyle(id),
-                text: drawingText(tr, result.library, id === "machine" ? "Machine sheet" : "Workshop sheet"),
-                css: false,
-              }).svg,
-            ]),
-          ),
+          sheet: drawPart({
+            part,
+            cabinet: { W: scene.size.W, H: scene.size.H, D: scene.size.D },
+            style: resolveStyle("machine"),
+            text: drawingText(tr, result.library, "Part sheet"),
+            css: false,
+          }).svg,
         };
       }),
     });

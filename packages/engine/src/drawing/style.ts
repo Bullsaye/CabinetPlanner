@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { LocalizedText } from "../text.ts";
-import { ASSEMBLY_VIEW_FLAT, ASSEMBLY_VIEW_UPRIGHT, MACHINE_VIEW, type ViewSpec } from "./view.ts";
+import { ASSEMBLY_VIEW_UPRIGHT, MACHINE_VIEW, type ViewSpec } from "./view.ts";
 
 /**
  * Drawing styles (DECISIONS.md D20). A style says how parts are laid out
@@ -88,6 +88,8 @@ export const DrawingStyleSchema = z.object({
       decimals: z.number().int().min(0).max(2).optional(),
       /** Text height on paper in mm (ISO: 2.5 min. for dimensions). */
       textHeight: z.number().min(1.8).max(7).optional(),
+      /** Dimension line ends: oblique ticks (ISO alternative), arrows or dots. */
+      terminator: z.enum(["tick", "arrow", "dot"]).optional(),
       /** Minimum holes in a row for a pattern note. */
       patternMin: z.number().int().min(2).max(50).optional(),
     })
@@ -125,6 +127,7 @@ export interface ResolvedStyle {
     decimals: number;
     textHeight: number;
     patternMin: number;
+    terminator: "tick" | "arrow" | "dot";
   };
   show: { tags: boolean; legend: boolean; table: boolean; edgeNames: boolean; centreMarks: boolean };
   paper: { size: "A4" | "A3"; orientation: "auto" | "landscape" | "portrait"; scale: "auto" | number };
@@ -138,8 +141,10 @@ const BASE_RULES: Rule[] = [
   { match: {}, positions: "all", tag: true, table: true },
 ];
 
+// Flat parts look the same on every part sheet (machine view), so two sheets
+// of the same part can never show it turned around.
 const flatRoles = Object.fromEntries(
-  ["bottom", "top", "rail_front", "rail_rear", "shelf"].map((r) => [r, ASSEMBLY_VIEW_FLAT]),
+  ["bottom", "top", "rail_front", "rail_rear", "shelf"].map((r) => [r, MACHINE_VIEW]),
 );
 
 export const FACTORY_STYLES: readonly DrawingStyleInput[] = [
@@ -147,7 +152,7 @@ export const FACTORY_STYLES: readonly DrawingStyleInput[] = [
     id: "machine",
     name: { en: "Machine sheet", de: "Maschinenblatt" },
     view: { default: MACHINE_VIEW, roles: {} },
-    dims: { mode: "running", text: "horizontal", overall: true, decimals: 2, textHeight: 2.5, patternMin: 3 },
+    dims: { mode: "running", text: "horizontal", overall: true, decimals: 2, textHeight: 2.5, patternMin: 3, terminator: "tick" },
     show: { tags: true, legend: true, table: false, edgeNames: true, centreMarks: true },
     paper: { size: "A4", orientation: "auto", scale: "auto" },
     rules: BASE_RULES,
@@ -167,8 +172,8 @@ export const FACTORY_STYLES: readonly DrawingStyleInput[] = [
     rules: [],
   },
   {
-    id: "assembly",
-    name: { en: "Workshop sheet, parts as in the cabinet", de: "Werkstattblatt, Teile wie im Schrank" },
+    id: "upright",
+    name: { en: "Part sheet, sides upright", de: "Teileblatt, Seiten stehend" },
     extends: "machine",
     view: { default: ASSEMBLY_VIEW_UPRIGHT, roles: flatRoles },
     show: { table: true },
@@ -202,7 +207,7 @@ export function resolveStyle(id: string, styles: readonly DrawingStyleInput[] = 
   const out: ResolvedStyle = {
     id,
     view: { default: MACHINE_VIEW, roles: {} },
-    dims: { mode: "running", text: "horizontal", overall: true, decimals: 2, textHeight: 2.5, patternMin: 3 },
+    dims: { mode: "running", text: "horizontal", overall: true, decimals: 2, textHeight: 2.5, patternMin: 3, terminator: "tick" },
     show: { tags: true, legend: true, table: false, edgeNames: true, centreMarks: true },
     paper: { size: "A4", orientation: "auto", scale: "auto" },
     rules: [],

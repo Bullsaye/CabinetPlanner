@@ -4,12 +4,29 @@ Drawings are for people who drill by hand or prefer paper to files, so they
 must be right and easy to read. This page describes the conventions
 (DECISIONS.md D19, D20) and how shops adapt them.
 
-## Views
+## Sheets
 
-| View | Use | Layout |
+| Sheet | Command | Content |
 | --- | --- | --- |
-| Machine | CNC operator, manual drilling with stops | Inner face up, **front edge on the reference** (bottom of the sheet = machine Y 0), origin at the bottom-left corner. A right side has its origin at the lower front corner; a left side at the upper front corner (true mirror, same face up). |
-| Assembly | Workshop, checking parts against the cabinet | Parts as if the cabinet were unfolded: sides upright, seen from inside, folded outwards (front edge and banding on the left for a left side, on the right for a right side). Bottom flipped down (seen from above), top flipped up (seen from below). |
+| Part sheet | `pnpm cp drawing <project> --part B01-SL [--style …]` | One part with all machining, dimensions, legend, optional hole table. |
+| Assembly drawing | `pnpm cp assembly <project> --cabinet B01` | The cabinet exploded, balloons, part list and hardware list (A3). |
+
+## Part sheet views
+
+| Style | Layout |
+| --- | --- |
+| `machine` (default) | Inner face up, **front edge on the reference** (bottom of the sheet = machine Y 0), origin at the bottom-left corner. A right side has its origin at the lower front corner; a left side at the upper front corner (true mirror, same face up). |
+| `upright` | Sides standing, seen from inside, folded outwards (front edge and banding on the left for a left side, on the right for a right side). All flat parts exactly as in `machine`, so the same part never appears turned around on two sheets. |
+
+## Assembly drawing
+
+Exploded axonometric view seen from front-right-above: sides moved out,
+top and rails up, bottom down, back to the rear, shelves and doors pulled
+forward. Balloons sit in a column left and right of the view and point to a
+spot of the part that is not covered by another part. Balloon numbers are
+the part list positions; identical parts (e.g. left and right side) share a
+position. The part list gives quantity, finished size, material and edge
+codes; the hardware list gives quantities per item.
 
 Each sheet states which face is shown and where the origin is, e.g.
 "inner face shown · origin: front edge × bottom edge". Edge names (front,
@@ -31,8 +48,8 @@ Based on ISO 129-1 practice for positions that must not drift:
   depth and face) gets a letter at its first feature and a legend line:
   count, Ø × depth, what it is (system holes, dowels SL-BO, the hinge by
   name), which face.
-- **Coordinate table** (style `assembly`): X/Y of every hole except
-  patterned system holes, for drilling from a table.
+- **Coordinate table** (`show.table`): X/Y of every hole except patterned
+  system holes, for drilling from a table.
 - **Readable text**: numbers upright by default, all in one row below the
   part and one column left of it; labels that would touch are pushed apart
   and joined to their tick with a jogged leader. Style `machine-iso` writes
@@ -44,7 +61,8 @@ Based on ISO 129-1 practice for positions that must not drift:
 ## Styles
 
 Factory styles: `machine` (default), `machine-iso`, `machine-chain`,
-`assembly`. A shop defines its own in the shop file (or a project file)
+`upright`. Overall dimensions end with oblique ticks; set
+`dims.terminator` to `arrow` or `dot` to change that. A shop defines its own in the shop file (or a project file)
 under `library.drawingStyles`:
 
 ```json

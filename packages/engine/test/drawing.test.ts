@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ASSEMBLY_VIEW_FLAT,
+  drawAssembly,
   ASSEMBLY_VIEW_UPRIGHT,
   drawPart,
   findPatterns,
@@ -128,7 +129,7 @@ describe("part drawing", () => {
   });
 
   it("uses portrait sheets for upright parts and lists non-system holes in the table", () => {
-    const d = drawPart({ part: p.SL!, cabinet: cab, style: resolveStyle("assembly"), text });
+    const d = drawPart({ part: p.SL!, cabinet: cab, style: resolveStyle("upright", [{ id: "upright-table", name: "T", extends: "upright", show: { table: true }, rules: [] }]), text });
     expect(d.svg).toContain('width="210mm"');
     expect(d.scale).toBe(5);
     expect(d.svg).toContain("drawing.table.hole");
@@ -139,6 +140,62 @@ describe("part drawing", () => {
     const style = resolveStyle("x", [{ id: "x", name: "X", extends: "machine", rules: [{ match: { source: ["system"] }, hide: true }] }]);
     const d = drawPart({ part: p.SR!, cabinet: cab, style, text });
     expect(d.svg).not.toContain(">649.5<");
+  });
+});
+
+describe("part sheet styles agree on flat parts", () => {
+  it("draws bottom, top, rails and shelves identically in machine and upright styles", () => {
+    const r = buildOne({ vars: { shelf_count: 1 } });
+    const by = partsByCode(r);
+    for (const code of ["BO", "RF", "RR", "SH1"]) {
+      const a = drawPart({ part: by[code]!, cabinet: cab, style: resolveStyle("machine"), text }).view.sides;
+      const b = drawPart({ part: by[code]!, cabinet: cab, style: resolveStyle("upright"), text }).view.sides;
+      expect(b, code).toEqual(a);
+    }
+    // Sides differ on purpose: upright vs. lying on the machine.
+    const sl = drawPart({ part: by.SL!, cabinet: cab, style: resolveStyle("upright"), text }).view.sides;
+    expect(sl).toMatchObject({ bottom: "bottom", left: "front" });
+  });
+
+  it("ends overall dimensions with ticks by default, arrows on request", () => {
+    const sr = partsByCode(buildOne()).SR!;
+    expect(drawPart({ part: sr, cabinet: cab, style: resolveStyle("machine"), text }).svg).not.toContain(`class="pd-arrow"`);
+    const arrows = resolveStyle("a", [{ id: "a", name: "A", extends: "machine", dims: { terminator: "arrow" }, rules: [] }]);
+    expect(drawPart({ part: sr, cabinet: cab, style: arrows, text }).svg).toContain(`class="pd-arrow"`);
+  });
+});
+
+describe("assembly drawing (D21)", () => {
+  const r = buildOne({ vars: { W: 800, door_count: 2, shelf_count: 2 } });
+  const c = r.cabinets[0]!;
+  const input = {
+    cabinet: { id: "C1", W: 800, H: 720, D: 560 },
+    parts: c.parts,
+    hardware: c.hardware,
+    library: r.library,
+    text,
+  };
+
+  it("numbers identical parts once and puts a balloon on every part", () => {
+    const d = drawAssembly(input);
+    expect(d.rows.map((x) => [x.pos, x.role, x.qty])).toEqual([
+      [1, "side_left", 2],
+      [2, "bottom", 1],
+      [3, "rail_front", 1],
+      [4, "rail_rear", 1],
+      [5, "back", 1],
+      [6, "shelf", 2],
+      [7, "door", 2],
+    ]);
+    expect((d.svg.match(/class="asm-balloon"/g) ?? []).length).toBe(c.parts.length);
+    expect(d.svg).toContain("dowel-8x35");
+  });
+
+  it("is deterministic, finite and on A3", () => {
+    const a = drawAssembly(input).svg;
+    expect(a).toBe(drawAssembly(input).svg);
+    expect(a).not.toMatch(/NaN|Infinity|undefined/);
+    expect(a).toContain('width="420mm"');
   });
 });
 
