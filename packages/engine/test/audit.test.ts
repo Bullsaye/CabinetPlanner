@@ -42,6 +42,30 @@ describe("middle panels at widths that do not divide evenly", () => {
   });
 });
 
+describe("sizes from formulas (thousandths of a millimetre)", () => {
+  it("builds and machines cabinets whose sizes do not end on 0.01 mm", () => {
+    const cases = [
+      { vars: { W: "2000 / 3", H: "2200 / 3", D: "1700 / 3", t_carcase: "55 / 3" } },
+      { vars: { W: 900.342, H: 720.802, D: 560.991, t_carcase: 18.288 }, options: { back_mount: "surface" } },
+      { vars: { W: 900.002, H: 720.497, D: "1682 / 3", t_carcase: 18.335, partition_count: 1 }, options: { carcase_joint: "sides_between", back_mount: "surface", joint_method: "connector" } },
+      { vars: { W: 900.083, H: 720.096, D: 560.229, t_carcase: 18.008 }, options: { back_mount: "surface" } },
+      { vars: { W: 900.037, H: 720.103, D: 560.233, t_carcase: 18.33, partition_count: 3 }, options: { carcase_joint: "sides_between", back_mount: "surface" } },
+    ];
+    for (const cab of cases) {
+      const r = buildOne(cab);
+      expect(errors(r), JSON.stringify(cab.vars)).toEqual([]);
+      const p = partsByCode(r);
+      // The horizontals end exactly on the sides' inner faces.
+      if (!("options" in cab) || cab.options?.carcase_joint !== "sides_between") {
+        expect(p.BO!.box.x).toBe(p.SL!.box.x + p.SL!.box.dx);
+        expect(Math.abs(p.BO!.box.x + p.BO!.box.dx - p.SR!.box.x)).toBeLessThan(1e-9);
+      }
+      // Board thickness is the variable, not a difference of rounded faces.
+      expect(p.SR!.thickness).toBe(p.SL!.thickness);
+    }
+  });
+});
+
 describe("blind corner units", () => {
   it("refuses two doors beside the blind panel: the inner one has no side to hang on", () => {
     const r = buildOne({ vars: { W: 1300, door_count: 2 }, options: { corner: "blind_left" } });

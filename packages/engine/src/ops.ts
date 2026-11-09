@@ -125,9 +125,11 @@ export function addBore(
   const l = toLocal(part, entry);
   const { normal } = faceAxes(face);
   const expected = faceAtMax(face) ? sizeOf(part, normal) : 0;
-  if (Math.abs(l[normal] - expected) > 1e-3) {
+  // One rounding step (0.01) off is still the face: part faces are rounded, entry points are computed.
+  if (Math.abs(l[normal] - expected) > 0.011) {
     throw new Error(`bore entry not on face ${face} of ${part.id}: ${JSON.stringify(l)}`);
   }
+  l[normal] = expected;
   const bore: Bore = { kind: "bore", face, ...l, d: roundMm(d), depth: roundMm(depth), sources: [source] };
   addOperation(part, bore);
   return bore;
@@ -189,9 +191,10 @@ function addOperation(part: Part, op: Operation): void {
       (o): o is Bore =>
         o.kind === "bore" &&
         o.face === op.face &&
-        Math.abs(o.u - op.u) < 1e-3 &&
-        Math.abs(o.v - op.v) < 1e-3 &&
-        Math.abs(o.w - op.w) < 1e-3,
+        // Within one rounding step (0.01): the same hole reached by two computations.
+        Math.abs(o.u - op.u) < 0.011 &&
+        Math.abs(o.v - op.v) < 0.011 &&
+        Math.abs(o.w - op.w) < 0.011,
     );
     if (same) {
       same.depth = Math.max(same.depth, op.depth);

@@ -208,13 +208,17 @@ export function buildBox(
         if (e !== undefined) finalEdges[k] = e;
       }
     }
+    // Faces are rounded where they lie, so parts that meet in a plane share it exactly
+    // (x and dx rounded separately can end 0.01 apart); the thickness stays the board's.
+    const tAxis = thicknessAxis(lengthAxis, widthAxis);
+    const span = (a: Axis, lo: number, d: number): number => (a === tAxis ? roundMm(d) : roundMm(roundMm(lo + d) - roundMm(lo)));
     const rounded: Box = {
       x: roundMm(box.x),
       y: roundMm(box.y),
       z: roundMm(box.z),
-      dx: roundMm(box.dx),
-      dy: roundMm(box.dy),
-      dz: roundMm(box.dz),
+      dx: span("x", box.x, box.dx),
+      dy: span("y", box.y, box.dy),
+      dz: span("z", box.z, box.dz),
     };
     const length = boxSize(rounded, lengthAxis);
     const width = boxSize(rounded, widthAxis);
