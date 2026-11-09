@@ -140,6 +140,14 @@ describe("part drawing", () => {
     expect(d.svg).not.toMatch(/>F\d+</); // system holes stay out of the table
   });
 
+  it("names the edge of edge bores in the hole table", () => {
+    const d = drawPart({ part: p.BO!, cabinet: cab, style: resolveStyle("upright"), text });
+    // Dowel holes in the ends of the bottom: left and right edge of the sheet.
+    expect(d.svg).toContain('>drawing.where.edge{"edge":"drawing.dir.left"}</text><text class="pd-mono"');
+    expect(d.svg).toContain('>drawing.where.edge{"edge":"drawing.dir.right"}</text><text class="pd-mono"');
+    expect(d.svg).not.toContain(">drawing.where.edge<");
+  });
+
   it("hides groups a rule hides", () => {
     const style = resolveStyle("x", [{ id: "x", name: "X", extends: "machine", rules: [{ match: { source: ["system"] }, hide: true }] }]);
     const d = drawPart({ part: p.SR!, cabinet: cab, style, text });
