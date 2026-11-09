@@ -52,6 +52,17 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "tall_h", group: "dimensions", unit: "mm", factory: 2100, min: 300, max: 2800, step: 10 }),
   v({ name: "room_height", group: "dimensions", unit: "mm", factory: 2500, min: 1800, max: 6000, step: 10 }),
   v({ name: "worktop_t", group: "dimensions", unit: "mm", factory: "mat_worktop_t", min: 10, max: 100 }),
+  v({ name: "worktop_overhang_end", group: "dimensions", unit: "mm", factory: 20, min: 0, max: 600, step: 5 }),
+  v({ name: "plinth_setback", group: "dimensions", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
+  v({ name: "plinth_floor_gap", group: "dimensions", unit: "mm", factory: 3, min: 0, max: 30, step: 0.5 }),
+  v({ name: "cutout_w", group: "dimensions", unit: "mm", factory: 560, min: 50, max: 2000, step: 10 }),
+  v({ name: "cutout_d", group: "dimensions", unit: "mm", factory: 490, min: 50, max: 1000, step: 10 }),
+  v({ name: "cutout_front", group: "dimensions", unit: "mm", factory: 50, min: 0, max: 500, step: 5 }),
+  v({ name: "cutout_offset", group: "dimensions", unit: "mm", factory: 0, min: -1000, max: 1000, step: 5 }),
+  v({ name: "oven_h", group: "dimensions", unit: "mm", factory: 600, min: 300, max: 1200, step: 1 }),
+  v({ name: "fridge_h", group: "dimensions", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
+  v({ name: "wardrobe_h", group: "dimensions", unit: "mm", factory: "tall_h", min: 500, max: 2800, step: 10 }),
+  v({ name: "wardrobe_d", group: "dimensions", unit: "mm", factory: 580, min: 300, max: 900, step: 10 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),
@@ -90,6 +101,9 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "shelf_front_setback", group: "shelves", unit: "mm", factory: 10, min: 0, max: 200 }),
   v({ name: "shelf_back_gap", group: "shelves", unit: "mm", factory: 2, min: 0, max: 50 }),
   v({ name: "shelf_pin_rest", group: "shelves", unit: "mm", factory: 3, min: 0, max: 30 }),
+  v({ name: "fixed_shelf_setback", group: "shelves", unit: "mm", factory: 0, min: 0, max: 200 }),
+  v({ name: "hat_shelf_drop", group: "shelves", unit: "mm", factory: 330, min: 100, max: 1000, step: 10 }),
+  v({ name: "rail_drop", group: "shelves", unit: "mm", factory: 50, min: 20, max: 300, step: 5 }),
 
   // Fronts (full overlay in phase 0).
   v({ name: "door_count", group: "fronts", unit: "count", factory: 1, min: 0, max: 2, integer: true, step: 1, quick: true }),
@@ -98,6 +112,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "front_gap_bottom", group: "fronts", unit: "mm", factory: 0, min: -50, max: 100 }),
   v({ name: "front_gap_side", group: "fronts", unit: "mm", factory: "front_gap / 2", min: 0, max: 50 }),
   v({ name: "blind_w", group: "fronts", unit: "mm", factory: "worktop_d + 50", min: 100, max: 1500, step: 10 }),
+  v({ name: "door_min_w", group: "fronts", unit: "mm", factory: 100, min: 20, max: 600, step: 10 }),
 
   // Hardware placement preferences (product data stays in the hardware items).
   v({ name: "hinge_end_offset", group: "hardware", unit: "mm", factory: 80, min: 20, max: 500, step: 5, quick: true }),
@@ -105,6 +120,10 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "handle_edge_offset", group: "hardware", unit: "mm", factory: 40, min: 10, max: 400, step: 5 }),
   v({ name: "handle_end_offset", group: "hardware", unit: "mm", factory: 60, min: 10, max: 800, step: 5 }),
   v({ name: "handle_drawer_top", group: "hardware", unit: "mm", factory: 40, min: 10, max: 300, step: 5 }),
+  v({ name: "leg_inset_side", group: "hardware", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
+  v({ name: "leg_inset_front", group: "hardware", unit: "mm", factory: "plinth_setback + 50", min: 0, max: 400, step: 5 }),
+  v({ name: "leg_inset_rear", group: "hardware", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
+  v({ name: "leg_max_spacing", group: "hardware", unit: "mm", factory: 700, min: 100, max: 2000, step: 50 }),
 
   // Drawers (shop preferences; product data comes from the slide item).
   v({ name: "drawer_side_t", group: "drawers", unit: "mm", factory: "mat_drawer_t", min: 8, max: 25 }),
@@ -139,7 +158,7 @@ export const MATERIAL_CONSTANTS = {
 // ---------------------------------------------------------------------------
 // Options: non-numeric choices (construction variants, library references).
 
-export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "handle" | "leg" | "other";
+export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "handle" | "leg" | "rail" | "other";
 
 export type OptionKind =
   | { type: "enum"; values: readonly string[] }
@@ -201,12 +220,25 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   /** Corner unit: which side is blind (hidden behind the perpendicular run). */
   { key: "corner", group: "fronts", kind: { type: "enum", values: ["none", "blind_left", "blind_right"] }, factory: "none" },
+  /** Cutout in the worktop above a base unit (sink or hob), sized by cutout_* variables. */
+  { key: "worktop_cutout", group: "construction", kind: { type: "enum", values: ["none", "sink", "hob"] }, factory: "none" },
+  /** Wardrobe interior: hat shelf and hanging rail in all, the first or the last section; else shelves. */
+  {
+    key: "interior",
+    group: "shelves",
+    kind: { type: "enum", values: ["shelves", "hanging", "hanging_first", "hanging_last"] },
+    factory: "shelves",
+  },
+  { key: "hardware.rail", group: "hardware", kind: { type: "hardware", category: "rail" }, factory: "generic-wardrobe-rail" },
+  /** Adjustable feet under floor units with a plinth (none: the plinth is built otherwise). */
+  { key: "hardware.leg", group: "hardware", kind: { type: "hardware", category: "leg", nullable: true }, factory: "generic-leg-100" },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.back", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "material.shelf", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.front", group: "materials", kind: { type: "material" }, factory: "mdf-lacquer-19" },
   { key: "material.worktop", group: "materials", kind: { type: "material" }, factory: "worktop-laminate-38" },
+  { key: "material.plinth", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer_bottom", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "edge.carcase", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },

@@ -263,6 +263,10 @@ T01-BO   Bore       t1    590.5   523   19   8   12                     joint:BO
 T01-BO   Bore       t1    590.5   363   19   8   12                     joint:BO-SR
 T01-BO   Bore       t1    590.5   203   19   8   12                     joint:BO-SR
 T01-BO   Bore       t1    590.5   43    19   8   12                     joint:BO-SR
+T01-BO   Bore       t0    50      68    0    10  12                     hardware:generic-leg-100
+T01-BO   Bore       t0    50      460   0    10  12                     hardware:generic-leg-100
+T01-BO   Bore       t0    550     68    0    10  12                     hardware:generic-leg-100
+T01-BO   Bore       t0    550     460   0    10  12                     hardware:generic-leg-100
 T01-TO   Pocket     t0    11      9.75  0               578 × 8.5 × 8   back:groove
 T01-TO   Bore       t0    9.5     523   0    8   12                     joint:TO-SL
 T01-TO   Bore       t0    9.5     363   0    8   12                     joint:TO-SL
@@ -278,7 +282,8 @@ T01-DO1  Bore       t0    1305.5  21.5  0    35  13                     hardware
 T01-DO1  Bore       t0    1913.5  21.5  0    35  13                     hardware:generic-hinge-110
 
 ## Hardware
-Item                                         Qty
-dowel-8x35         Dowel Ø8 × 35             16 pcs
-generic-hinge-110  Cup hinge 110° (generic)  4 pcs
-shelf-pin-5        Shelf support pin Ø5      16 pcs
+Item                                             Qty
+dowel-8x35         Dowel Ø8 × 35                 16 pcs
+generic-hinge-110  Cup hinge 110° (generic)      4 pcs
+generic-leg-100    Adjustable leg 100 (generic)  4 pcs
+shelf-pin-5        Shelf support pin Ø5          16 pcs

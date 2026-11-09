@@ -47,6 +47,9 @@
             <select id={`front-type-${i}`} aria-label={t("ui.fronts_stack")} bind:value={f.type}>
               <option value="drawer">{t("ui.drawer")}</option>
               <option value="door">{t("ui.door_zone")}</option>
+              <option value="open">{t("ui.open_zone")}</option>
+              <option value="appliance">{t("ui.appliance_zone")}</option>
+              <option value="panel">{t("ui.panel_zone")}</option>
             </select>
             <input
               id={`front-h-${i}`}
@@ -72,6 +75,8 @@
                 <option value="1">1 {t("ui.doors")}</option>
                 <option value="2">2 {t("ui.doors")}</option>
               </select>
+            {:else if f.type === "appliance"}
+              <label class="chk"><input type="checkbox" checked={f.front ?? false} onchange={(e) => (f.front = (e.target as HTMLInputElement).checked)} /> {t("ui.appliance_front")}</label>
             {:else}
               <span></span>
             {/if}
@@ -86,6 +91,8 @@
       <div class="add">
         <button onclick={() => c.fronts.unshift({ type: "drawer", h: 150 })}>{t("ui.add_drawer")}</button>
         <button onclick={() => c.fronts.push({ type: "door" })}>{t("ui.add_door_zone")}</button>
+        <button onclick={() => c.fronts.push({ type: "appliance", h: "oven_h" })}>{t("ui.add_appliance")}</button>
+        <button onclick={() => c.fronts.push({ type: "open" })}>{t("ui.add_open")}</button>
         <button class="quiet" onclick={() => delete c.fronts}>{t("ui.remove_stack")}</button>
       </div>
     {/if}
@@ -101,6 +108,7 @@
   .row input { width: 100%; }
   .val { text-align: right; font-size: 12px; }
   .tools { display: flex; }
+  .chk { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
   .tools button { padding: 0 4px; }
   .add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 </style>

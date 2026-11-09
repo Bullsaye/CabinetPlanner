@@ -109,6 +109,10 @@ B01-BO   Bore       w2    562    523    9.5  8   25                      joint:S
 B01-BO   Bore       w2    562    363    9.5  8   25                      joint:SR-BO
 B01-BO   Bore       w2    562    203    9.5  8   25                      joint:SR-BO
 B01-BO   Bore       w2    562    43     9.5  8   25                      joint:SR-BO
+B01-BO   Bore       t0    31     68     0    10  12                      hardware:generic-leg-100
+B01-BO   Bore       t0    31     460    0    10  12                      hardware:generic-leg-100
+B01-BO   Bore       t0    531    68     0    10  12                      hardware:generic-leg-100
+B01-BO   Bore       t0    531    460    0    10  12                      hardware:generic-leg-100
 B01-RF   Bore       w1    0      63     9.5  8   25                      joint:SL-RF
 B01-RF   Bore       w1    0      31     9.5  8   25                      joint:SL-RF
 B01-RF   Bore       w2    562    63     9.5  8   25                      joint:SR-RF
@@ -132,5 +136,6 @@ B01-DB1  Pocket     t1    0      11.75  9.5             520 × 8.5 × 6.5  joint
 Item                                                                                 Qty
 dowel-8x35         Dowel Ø8 × 35                                                     16 pcs
 generic-hinge-110  Cup hinge 110° (generic)                                          2 pcs
+generic-leg-100    Adjustable leg 100 (generic)                                      4 pcs
 grass-dynapro-40   Grass Dynapro soft-close, full extension, 40 kg (wooden drawers)  1 sets
 shelf-pin-5        Shelf support pin Ø5                                              4 pcs

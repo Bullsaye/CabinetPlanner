@@ -16,9 +16,12 @@ export type PartRole =
   | "back"
   | "shelf"
   | "partition"
+  | "fixed_shelf"
   | "door"
   | "blind_panel"
+  | "appliance_front"
   | "worktop"
+  | "plinth"
   | "drawer_front"
   | "drawer_side_left"
   | "drawer_side_right"
@@ -41,9 +44,12 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   back: "BK",
   shelf: "SH",
   partition: "MP",
+  fixed_shelf: "FS",
   door: "DO",
   blind_panel: "BP",
+  appliance_front: "AF",
   worktop: "WT",
+  plinth: "PL",
   drawer_front: "DF",
   drawer_side_left: "DL",
   drawer_side_right: "DR",
@@ -62,9 +68,11 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "rail_rear",
   "back",
   "partition",
+  "fixed_shelf",
   "shelf",
   "door",
   "blind_panel",
+  "appliance_front",
   "drawer_front",
   "drawer_side_left",
   "drawer_side_right",
@@ -72,6 +80,7 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "drawer_back",
   "drawer_bottom",
   "worktop",
+  "plinth",
 ];
 
 export type Axis = "x" | "y" | "z";

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Diagnostic } from "../diagnostics.ts";
 import { evaluateGraph } from "../graph.ts";
 import type { CabinetResult } from "../project.ts";
+import type { Operation } from "../ops.ts";
 import { roundMm, type Part } from "../part.ts";
 
 /**
@@ -90,6 +91,24 @@ export interface CabinetPlacement {
   H: number;
   /** Depth including fronts. */
   depth: number;
+  /** Carcase depth without fronts. */
+  carcaseD: number;
+  /** Sink or hob cutout in the worktop above (D31). */
+  cutout?: { kind: "sink" | "hob"; w: number; d: number; front: number; offset: number };
+}
+
+/** Plinth panel along a run of floor units (D31). */
+export interface PlinthLayout {
+  id: string;
+  wall: string;
+  x0: number;
+  x1: number;
+  /** Distance of the panel's front face from the wall. */
+  front: number;
+  /** Bottom edge above the floor. */
+  y: number;
+  h: number;
+  t: number;
 }
 
 /** A worktop over a run of base units on one wall (D29). */
@@ -105,13 +124,18 @@ export interface WorktopLayout {
   t: number;
   /** Plan outline: rear-left, rear-right, front-right, front-left. */
   outline: Vec2[];
+  /** Sink/hob cutouts: u along the wall from x0, v from the wall. */
+  cutouts: { kind: string; u0: number; u1: number; v0: number; v1: number }[];
 }
 
-/** Worktop settings, resolved from the project/shop layers. */
+/** Worktop and plinth settings, resolved from the project/shop layers. */
 export interface WorktopSettings {
   material: string;
   depth: number;
   thickness: number;
+  /** Overhang past the last unit at open ends. */
+  overhangEnd: number;
+  plinth?: { material: string; thickness: number; setback: number; floorGap: number };
 }
 
 export interface RoomLayout {
@@ -119,7 +143,8 @@ export interface RoomLayout {
   openings: OpeningLayout[];
   placements: CabinetPlacement[];
   worktops: WorktopLayout[];
-  /** Worktops as parts (cabinet "ROOM") for cutlists and CNC files. */
+  plinths: PlinthLayout[];
+  /** Worktops and plinth panels as parts (cabinet "ROOM") for cutlists and CNC files. */
   parts: Part[];
   /** Outline of the inner faces (closed when the walls close). */
   closed: boolean;
@@ -227,10 +252,15 @@ export function layoutRoom(
     runEnd.set(key, Math.max(runEnd.get(key) ?? 0, x + W));
     const front = c.parts.filter((q) => q.role === "door" || q.role === "drawer_front" || q.role === "blind_panel");
     const depth = Math.max(v("D"), ...front.map((q) => q.box.z + q.box.dz));
+    const cut = c.resolved.options.get("worktop_cutout")?.value;
     out.push({
       cabinet: id,
       kind,
       wall: wall.id,
+      carcaseD: v("D"),
+      ...(kind === "base" && (cut === "sink" || cut === "hob")
+        ? { cutout: { kind: cut, w: v("cutout_w"), d: v("cutout_d"), front: v("cutout_front"), offset: v("cutout_offset") } }
+        : {}),
       x: roundMm(x),
       origin: [roundMm(wall.start[0] + wall.d[0] * x), roundMm(wall.start[1] + wall.d[1] * x)],
       d: wall.d,
@@ -280,28 +310,56 @@ export function layoutRoom(
     }
   }
 
-  const { worktops, parts } = worktop ? layoutWorktops(walls, out, worktop) : { worktops: [], parts: [] };
-  return { walls, openings, placements: out, worktops, parts, closed, diagnostics };
+  const { worktops, plinths, parts } = worktop ? layoutWorktops(walls, out, worktop, diagnostics) : { worktops: [], plinths: [], parts: [] };
+  return { walls, openings, placements: out, worktops, plinths, parts, closed, diagnostics };
 }
 
 /**
- * Worktops (D29): one per contiguous run of base units on a wall with the
- * same top height. In an inside corner the earlier wall's worktop runs
- * through to the wall; the next one butts against its front edge.
+ * Worktops (D29, D31): one per contiguous run of base units on a wall with
+ * the same top height. In an inside corner the earlier wall's worktop runs
+ * through to the wall; the next one butts against its front edge. Open ends
+ * (no wall, no neighbouring floor unit) overhang by `overhangEnd`. Sink and
+ * hob cutouts of the units below become through pockets.
+ * Plinth panels: one per run of floor units on the same plinth height, set
+ * back from the carcase front; in an inside corner the earlier panel runs
+ * to the next panel's front face.
  */
-function layoutWorktops(walls: readonly WallLayout[], placements: readonly CabinetPlacement[], s: WorktopSettings): { worktops: WorktopLayout[]; parts: Part[] } {
-  const worktops: WorktopLayout[] = [];
-  for (const wall of walls) {
-    const base = placements
-      .filter((q) => q.wall === wall.id && q.kind === "base")
-      .sort((a, b) => a.x - b.x);
-    const runs: { x0: number; x1: number; top: number }[] = [];
-    for (const q of base) {
-      const top = q.baseY + q.H;
+function layoutWorktops(
+  walls: readonly WallLayout[],
+  placements: readonly CabinetPlacement[],
+  s: WorktopSettings,
+  diagnostics: Diagnostic[],
+): { worktops: WorktopLayout[]; plinths: PlinthLayout[]; parts: Part[] } {
+  const floorOf = (w: WallLayout | undefined) => (w ? placements.filter((q) => q.wall === w.id && q.kind !== "wall") : []);
+  /** Something stands at this end of a run: a floor unit beside it or a unit of the adjoining wall in the corner. */
+  const blockedStart = (wall: WallLayout, x0: number): boolean => {
+    if (x0 <= 1) return true;
+    if (floorOf(wall).some((q) => Math.abs(q.x + q.W - x0) < 1)) return true;
+    const prev = walls[wall.index - 1];
+    return !!prev && prev.turn === "right" && floorOf(prev).some((q) => q.x + q.W >= prev.length - 1 && q.depth >= x0 - 1);
+  };
+  const blockedEnd = (wall: WallLayout, x1: number): boolean => {
+    if (x1 >= wall.length - 1) return true;
+    if (floorOf(wall).some((q) => Math.abs(q.x - x1) < 1)) return true;
+    const next = walls[wall.index + 1];
+    return wall.turn === "right" && !!next && floorOf(next).some((q) => q.x <= s.depth + 1 && q.depth >= wall.length - x1 - 1);
+  };
+  const runsOf = (list: CabinetPlacement[], key: (q: CabinetPlacement) => number) => {
+    const runs: { x0: number; x1: number; key: number; units: CabinetPlacement[] }[] = [];
+    for (const q of [...list].sort((a, b) => a.x - b.x)) {
       const last = runs[runs.length - 1];
-      if (last && q.x <= last.x1 + 1 && Math.abs(last.top - top) < 1) last.x1 = Math.max(last.x1, q.x + q.W);
-      else runs.push({ x0: q.x, x1: q.x + q.W, top });
+      if (last && q.x <= last.x1 + 1 && Math.abs(last.key - key(q)) < 1) {
+        last.x1 = Math.max(last.x1, q.x + q.W);
+        last.units.push(q);
+      } else runs.push({ x0: q.x, x1: q.x + q.W, key: key(q), units: [q] });
     }
+    return runs;
+  };
+
+  const worktops: WorktopLayout[] = [];
+  const cutouts = new Map<string, Operation[]>();
+  for (const wall of walls) {
+    const runs = runsOf(placements.filter((q) => q.wall === wall.id && q.kind === "base"), (q) => q.baseY + q.H);
     const prev = walls[wall.index - 1];
     const prevTop = prev && prev.turn === "right" ? worktops.find((w) => w.wall === prev.id && w.x1 >= prev.length - 1) : undefined;
     for (const r of runs) {
@@ -309,47 +367,112 @@ function layoutWorktops(walls: readonly WallLayout[], placements: readonly Cabin
       let x1 = r.x1;
       if (prevTop && x0 < prevTop.depth) x0 = prevTop.depth;
       else if (x0 <= 1) x0 = 0;
+      else if (!blockedStart(wall, x0)) x0 = Math.max(0, x0 - s.overhangEnd);
       if (x1 >= wall.length - 1) x1 = wall.length;
+      else if (!blockedEnd(wall, x1)) x1 = Math.min(wall.length, x1 + s.overhangEnd);
       if (x1 - x0 < 1) continue;
       const at = (x: number, z: number): Vec2 => [
         roundMm(wall.start[0] + wall.d[0] * x + wall.n[0] * z),
         roundMm(wall.start[1] + wall.d[1] * x + wall.n[1] * z),
       ];
+      const id = `WT${worktops.length + 1}`;
       worktops.push({
-        id: `WT${worktops.length + 1}`,
+        id,
         wall: wall.id,
         x0: roundMm(x0),
         x1: roundMm(x1),
         depth: s.depth,
-        y: roundMm(r.top),
+        y: roundMm(r.key),
         t: s.thickness,
         outline: [at(x0, 0), at(x1, 0), at(x1, s.depth), at(x0, s.depth)],
+        cutouts: [],
+      });
+      // Cutouts in part-local coordinates: u along the wall from x0, v from the wall.
+      const ops: Operation[] = [];
+      for (const q of r.units) {
+        if (!q.cutout) continue;
+        const c = q.cutout;
+        const u0 = q.x + q.W / 2 + c.offset - c.w / 2 - x0;
+        const v1 = s.depth - c.front;
+        const v0 = v1 - c.d;
+        if (u0 < 0 || u0 + c.w > x1 - x0 || v0 < 0) {
+          diagnostics.push({ severity: "warning", code: "worktop_cutout_outside", params: { kind: c.kind, worktop: id }, cabinet: q.cabinet });
+          continue;
+        }
+        ops.push({
+          kind: "pocket",
+          face: "t1",
+          u0: roundMm(u0),
+          u1: roundMm(u0 + c.w),
+          v0: roundMm(v0),
+          v1: roundMm(v1),
+          w0: 0,
+          w1: s.thickness,
+          sources: [{ kind: "hardware", ref: `cutout:${c.kind}:${q.cabinet}` }],
+        });
+      }
+      cutouts.set(id, ops);
+      worktops[worktops.length - 1]!.cutouts = ops.map((o) => {
+        const q = o as Extract<Operation, { kind: "pocket" }>;
+        return { kind: q.sources[0]!.ref.split(":")[1]!, u0: q.u0, u1: q.u1, v0: q.v0, v1: q.v1 };
       });
     }
   }
-  const parts: Part[] = worktops.map((w, i) => {
-    const length = roundMm(w.x1 - w.x0);
+
+  // Plinth panels.
+  const plinths: PlinthLayout[] = [];
+  const pl = s.plinth;
+  if (pl) {
+    const last = new Map<string, PlinthLayout>(); // wall → panel reaching its end
+    for (const wall of walls) {
+      const runs = runsOf(placements.filter((q) => q.wall === wall.id && q.kind !== "wall" && q.baseY > 0), (q) => q.baseY);
+      const prev = walls[wall.index - 1];
+      const prevPanel = prev && prev.turn === "right" ? last.get(prev.id) : undefined;
+      for (const r of runs) {
+        const front = Math.min(...r.units.map((q) => q.carcaseD)) - pl.setback;
+        let x0 = r.x0 <= 1 ? 0 : r.x0;
+        if (prevPanel && r.x0 <= s.depth + 1) {
+          // Corner: this panel starts at the earlier panel's front face, the
+          // earlier panel ends in this panel's front plane.
+          x0 = prevPanel.front;
+          prevPanel.x1 = roundMm(prev!.length - front);
+        }
+        const x1 = r.x1 >= wall.length - 1 ? wall.length : r.x1;
+        const panel: PlinthLayout = { id: "", wall: wall.id, x0: roundMm(x0), x1: roundMm(x1), front: roundMm(front), y: pl.floorGap, h: roundMm(r.key - pl.floorGap), t: pl.thickness };
+        plinths.push(panel);
+        if (x1 >= wall.length - 1) last.set(wall.id, panel);
+      }
+    }
+    plinths.forEach((p, i) => (p.id = `PL${i + 1}`));
+  }
+
+  const part = (id: string, role: "worktop" | "plinth", index: number, material: string, length: number, width: number, t: number, ops: Operation[]): Part => {
+    const l = roundMm(length);
     return {
-      id: `ROOM-${w.id}`,
-      code: w.id,
+      id: `ROOM-${id}`,
+      code: id,
       cabinet: "ROOM",
-      role: "worktop",
-      index: i + 1,
-      material: s.material,
-      length,
-      width: w.depth,
-      thickness: w.t,
-      cutLength: length,
-      cutWidth: w.depth,
+      role,
+      index,
+      material,
+      length: l,
+      width,
+      thickness: t,
+      cutLength: l,
+      cutWidth: width,
       lengthAxis: "x",
-      widthAxis: "z",
+      widthAxis: role === "worktop" ? "z" : "y",
       grain: false,
       edges: { l1: null, l2: null, w1: null, w2: null },
-      box: { x: 0, y: 0, z: 0, dx: length, dy: w.t, dz: w.depth },
-      operations: [],
+      box: role === "worktop" ? { x: 0, y: 0, z: 0, dx: l, dy: t, dz: width } : { x: 0, y: 0, z: 0, dx: l, dy: width, dz: t },
+      operations: ops,
     };
-  });
-  return { worktops, parts };
+  };
+  const parts: Part[] = [
+    ...worktops.map((w, i) => part(w.id, "worktop", i + 1, s.material, w.x1 - w.x0, w.depth, w.t, cutouts.get(w.id) ?? [])),
+    ...(pl ? plinths.map((p, i) => part(p.id, "plinth", i + 1, pl.material, p.x1 - p.x0, p.h, p.t, [])) : []),
+  ];
+  return { worktops, plinths, parts };
 }
 
 /** Cabinet coordinates → plan (x, y) and height, for a placed cabinet. */

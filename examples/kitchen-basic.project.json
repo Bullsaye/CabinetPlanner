@@ -64,6 +64,9 @@
       ],
       "place": {
         "wall": "A"
+      },
+      "options": {
+        "worktop_cutout": "hob"
       }
     },
     {
@@ -77,10 +80,14 @@
       "vars": {
         "W": 750,
         "door_count": 2,
-        "shelf_count": 0
+        "shelf_count": 0,
+        "cutout_w": 600
       },
       "place": {
         "wall": "A"
+      },
+      "options": {
+        "worktop_cutout": "sink"
       }
     },
     {

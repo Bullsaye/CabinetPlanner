@@ -369,3 +369,61 @@ Two shop settings, because they are used for different things:
 - Worktops are parts of the pseudo cabinet `ROOM` (`ROOM-WT1` …), length
   along the wall, no edgebanding, no machining; they appear on cutlists and
   DXF exports like cabinet parts.
+
+### D30 · 2026-11-09 · Zones, fixed shelves, wardrobes, templates
+
+- Front zone types: `door`, `drawer`, `open` (no front), `appliance` (a
+  niche; with `front: true` a panel fixed to the appliance door, role
+  `appliance_front`, handle like a door, no hinges) and `panel` (a fixed
+  blind front, role `blind_panel`).
+- Fixed shelves (role `fixed_shelf`, FS, carcase material, dowelled into
+  the side or middle panel faces like the bottom): between zones where an
+  appliance or open zone meets another zone, between stacked door zones,
+  and in tall units between zones of different type. Under an appliance
+  zone the shelf's top is the zone's lower edge; above it the shelf sits
+  one front gap above the zone, so a niche is zone height + gap. Otherwise
+  the shelf is centred on the gap. Depth from the back to
+  `D − fixed_shelf_setback`. No system holes behind a shelf end (either
+  face of a middle panel).
+- Adjustable shelves: the tallest door/open zone gets `shelf_count`; when
+  fixed shelves split the cabinet, other door/open zones get a share in
+  proportion to their height.
+- Drawers stop at fixed shelves (floor and ceiling of the drawer).
+- Wardrobe interior (`interior`): `hanging` puts a hat shelf (fixed, top at
+  `hat_shelf_drop` below the interior top) and a rail (`rail_drop` below
+  it, centred in depth) in every section, `hanging_first` / `hanging_last`
+  only in the first / last section; other sections get shelves. Rail
+  items (category `rail`) are cut to the clear section width (`length`
+  param over `LS`); their `end` drilling has `a` along the depth from the
+  rail centre and `b` up from the rail axis. Cut lengths are listed with
+  the hardware.
+- Templates (`FACTORY_TEMPLATES`): plain cabinet input without id for the
+  app's add menu, grouped kitchen / storage / wardrobe / bath. Sizes come
+  from variables (`oven_h`, `fridge_h`, `wardrobe_h`, `wardrobe_d`, …) or
+  presets (`wardrobe`).
+- `door_min_w` replaces the fixed 100 mm minimum next to a blind panel.
+
+### D31 · 2026-11-09 · Legs, plinth panels, worktop overhangs and cutouts
+
+- Legs (`hardware.leg`, category `leg`, nullable): floor units (base, tall)
+  with `plinth_h > 0`. Rows `leg_inset_side` from the outer sides,
+  `leg_inset_front` from the front and `leg_inset_rear` in front of the
+  back, with more legs when spacing would exceed `leg_max_spacing`. The
+  item's `bottom` drilling goes into the bottom's underside (`a` along X,
+  `b` along Z); a leg that meets other machining moves sideways in
+  `sys_pitch` steps. The item's limits check `plinth_h`. A drilled leg
+  makes the bottom a two-sided part; a screwed leg has no drilling.
+- Plinth panels (role `plinth`, `material.plinth`): one per run of floor
+  units on a wall with the same plinth height, front face
+  `min(D) − plinth_setback` from the wall, height `plinth_h −
+  plinth_floor_gap`. In an inside corner the next wall's panel starts at
+  the earlier panel's front face and the earlier one ends in the next
+  one's front plane. Parts of `ROOM` (PL1 …).
+- Worktop open ends (no wall, no floor unit beside, no unit of the
+  adjoining wall in the corner) overhang by `worktop_overhang_end`.
+- Cutouts: base units with `worktop_cutout` sink/hob put a through pocket
+  (`cutout_w` × `cutout_d`, `cutout_front` from the worktop front edge,
+  centred over the unit plus `cutout_offset`) into the worktop above, on
+  face t1. A cutout that does not fit warns.
+- Worktops and plinth panels have part sheets and DXF like cabinet parts;
+  the project DXF export includes them.

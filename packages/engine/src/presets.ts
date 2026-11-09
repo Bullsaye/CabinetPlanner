@@ -27,4 +27,11 @@ export const FACTORY_PRESETS: readonly Preset[] = [
     vars: { H: "tall_h", D: "worktop_d - 40", shelf_count: 4, door_count: 1 },
     options: { top: "full" },
   },
+  {
+    id: "wardrobe",
+    name: { en: "Wardrobe", de: "Kleiderschrank" },
+    group: "kind",
+    vars: { H: "wardrobe_h", D: "wardrobe_d", shelf_count: 0, door_count: 2 },
+    options: { top: "full", interior: "hanging" },
+  },
 ];

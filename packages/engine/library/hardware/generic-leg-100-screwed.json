@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-leg-100-screwed",
+  "name": { "en": "Adjustable leg 100, screwed on (generic)", "de": "Stellfuß 100, angeschraubt (generisch)" },
+  "category": "leg",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic plinth leg with a base plate screwed on at assembly, adjustable about 90–125 mm; nothing is drilled on the CNC. Replace with the leg you use.",
+  "params": { "min_h": 90, "max_h": 125, "d": 50 },
+  "drilling": [],
+  "limits": [{ "name": "plinth_h", "value": "plinth_h", "min": "min_h", "max": "max_h" }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

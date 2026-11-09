@@ -6,6 +6,7 @@ import {
   loadProject,
   loadShop,
   type CabinetResult,
+  type CabinetTemplate,
   type ProjectResult,
   type Shop,
 } from "@cabinet-planner/engine";
@@ -146,6 +147,21 @@ export function addCabinet(kind: keyof typeof PREFIX): void {
     presets: [PRESET[kind]],
     vars: { W: 600 },
     options: {},
+  });
+  store.ui.selected = id;
+  store.ui.part = null;
+}
+
+/** Adds a cabinet from a factory template (D30), named after it. */
+export function addFromTemplate(tpl: CabinetTemplate): void {
+  const id = nextId(tpl.cabinet.kind);
+  store.project.cabinets ??= [];
+  store.project.cabinets.push({
+    id,
+    type: "box",
+    name: localName(tpl.name, store.ui.lang),
+    ...clone(tpl.cabinet),
+    options: clone(tpl.cabinet.options ?? {}),
   });
   store.ui.selected = id;
   store.ui.part = null;

@@ -23,7 +23,7 @@ export const ROOM_CSS = `
 .rm-open{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-glass{stroke:#1f5fd1;stroke-width:.3}
 .rm-swing{fill:none;stroke:#5b6470;stroke-width:.2;stroke-dasharray:1 .8}
 .rm-cab{fill:#e4e7eb;stroke:#1b1f24;stroke-width:.3}.rm-cab-wall{fill:none;stroke:#1b1f24;stroke-width:.25;stroke-dasharray:1.6 .9}
-.rm-front{fill:#eef3fb;stroke:#1b1f24;stroke-width:.2}.rm-top{fill:#d8cbb4;stroke:#1b1f24;stroke-width:.3}.rm-plinth{fill:#3a4048}.rm-handle{stroke:#1b1f24;stroke-width:.5}
+.rm-front{fill:#eef3fb;stroke:#1b1f24;stroke-width:.2}.rm-top{fill:#d8cbb4;stroke:#1b1f24;stroke-width:.3}.rm-cut{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-plinth{fill:#3a4048}.rm-handle{stroke:#1b1f24;stroke-width:.5}
 .rm-id{fill:#1b1f24;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600}
 .rm-dim{stroke:#5b6470;stroke-width:.15;fill:none}.rm-tick{stroke:#1b1f24;stroke-width:.3}
 .rm-num{fill:#1b1f24;font-family:"JetBrains Mono",ui-monospace,monospace}
@@ -143,7 +143,12 @@ export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText
     }
   }
   // Worktops under the cabinets' ids, wall units dashed on top.
-  for (const wt of room.worktops) o.push(poly(sh, "rm-top", wt.outline));
+  for (const wt of room.worktops) {
+    o.push(poly(sh, "rm-top", wt.outline));
+    const w = room.walls.find((x) => x.id === wt.wall)!;
+    const at = (u: number, v: number): [number, number] => [w.start[0] + w.d[0] * (wt.x0 + u) + w.n[0] * v, w.start[1] + w.d[1] * (wt.x0 + u) + w.n[1] * v];
+    for (const c of wt.cutouts) o.push(poly(sh, "rm-cut", [at(c.u0, c.v0), at(c.u1, c.v0), at(c.u1, c.v1), at(c.u0, c.v1)]));
+  }
   // Cabinets: wall units dashed over floor units.
   const order = [...room.placements].sort((a, b) => (a.kind === "wall" ? 1 : 0) - (b.kind === "wall" ? 1 : 0));
   for (const q of order) {
@@ -210,7 +215,7 @@ export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonl
     const X = (x: number): number => q.x + x;
     // Carcase outline and plinth.
     o.push(poly(sh, "rm-cab", [[X(0), q.baseY], [X(q.W), q.baseY], [X(q.W), q.baseY + q.H], [X(0), q.baseY + q.H]]));
-    if (q.kind !== "wall" && q.baseY > 0) {
+    if (q.kind !== "wall" && q.baseY > 0 && !room.plinths.length) {
       o.push(poly(sh, "rm-plinth", [[X(0), 0], [X(q.W), 0], [X(q.W), q.baseY], [X(0), q.baseY]]));
     }
     for (const f of c.parts.filter((p) => p.role === "door" || p.role === "drawer_front" || p.role === "blind_panel")) {
@@ -227,6 +232,9 @@ export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonl
     }
     const top = room.worktops.find((wt) => wt.wall === w.id && wt.x0 <= q.x + 1 && wt.x1 >= q.x + q.W - 1 && q.kind === "base");
     o.push(text(sh, "rm-id", [X(q.W / 2), q.baseY + q.H + (top ? top.t : 0) + 40], q.cabinet, TH * 0.9));
+  }
+  for (const p of room.plinths.filter((x) => x.wall === w.id)) {
+    o.push(poly(sh, "rm-plinth", [[p.x0, p.y], [p.x1, p.y], [p.x1, p.y + p.h], [p.x0, p.y + p.h]]));
   }
   for (const wt of room.worktops.filter((x) => x.wall === w.id)) {
     o.push(poly(sh, "rm-top", [[wt.x0, wt.y], [wt.x1, wt.y], [wt.x1, wt.y + wt.t], [wt.x0, wt.y + wt.t]]));

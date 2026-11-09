@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-leg-150",
+  "name": { "en": "Adjustable leg 150 (generic)", "de": "Stellfuß 150 (generisch)" },
+  "category": "leg",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic plastic plinth leg with a plug-in base plate in a Ø10 bore, adjustable about 125–175 mm. Replace with the leg you use.",
+  "params": { "min_h": 125, "max_h": 175, "d": 50 },
+  "drilling": [{ "mount": "bottom", "d": 10, "depth": 12, "a": 0, "b": 0 }],
+  "limits": [{ "name": "plinth_h", "value": "plinth_h", "min": "min_h", "max": "max_h" }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

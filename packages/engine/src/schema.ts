@@ -54,10 +54,17 @@ export type PartOverride = z.infer<typeof PartOverride>;
  * (number or formula); fronts without `h` share the remaining height.
  */
 export const FrontZone = z.object({
-  type: z.enum(["drawer", "door"]),
+  /**
+   * door / drawer; open: no front (shelves stay visible); appliance: a niche
+   * for a built-in appliance, with `front: true` a panel fixed to the
+   * appliance door (integrated fridge, dishwasher) instead of an open niche;
+   * panel: a fixed front without hinges (filler under an oven).
+   */
+  type: z.enum(["drawer", "door", "open", "appliance", "panel"]),
   h: VarInputSchema.optional(),
   /** Door zones: 1 or 2 doors side by side (default: door_count). */
   doors: z.number().int().min(1).max(2).optional(),
+  front: z.boolean().optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;
 

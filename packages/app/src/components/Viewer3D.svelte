@@ -85,7 +85,7 @@
       const selected = store.ui.selected === id;
       const centre = new THREE.Vector3(sc.size.W / 2, sc.size.H / 2, sc.size.D / 2);
       for (const p of sc.parts) {
-        const isFront = p.role === "door" || p.role === "drawer_front" || p.role === "blind_panel";
+        const isFront = p.role === "door" || p.role === "drawer_front" || p.role === "blind_panel" || p.role === "appliance_front";
         if (isFront && !store.ui.fronts) continue;
         const b = p.box;
         const pg = new THREE.Group();
@@ -127,6 +127,23 @@
         }
         g.add(pg);
         meshes.push(mesh);
+      }
+      // Wardrobe rails and adjustable legs (hidden while exploding the selected cabinet).
+      if (!(store.ui.explode && selected)) {
+        const m = metal();
+        const legMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--drill")) });
+        for (const f of c.fittings) {
+          if (f.kind === "rail" && f.length) {
+            const rail = new THREE.Mesh(new THREE.CylinderGeometry(f.d / 2, f.d / 2, f.length, 20), m);
+            rail.quaternion.setFromUnitVectors(AX.y, AX.x);
+            rail.position.set(f.x + f.length / 2, f.y, f.z);
+            g.add(rail);
+          } else if (f.kind === "leg" && f.h) {
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(f.d * 0.3, f.d / 2, f.h, 16), legMat);
+            leg.position.set(f.x, f.y - f.h / 2, f.z);
+            g.add(leg);
+          }
+        }
       }
       root.add(g);
     }
@@ -186,6 +203,29 @@
       lines.position.copy(mesh.position);
       lines.quaternion.copy(mesh.quaternion);
       parent.add(lines);
+      // Cutouts: dark insets on the top face.
+      const cutMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--drill")) });
+      for (const c of wt.cutouts) {
+        const cm = new THREE.Mesh(new THREE.BoxGeometry(c.u1 - c.u0, 2, c.v1 - c.v0), cutMat);
+        cm.position.set(wt.x0 + (c.u0 + c.u1) / 2, wt.y + wt.t - 0.5, (c.v0 + c.v1) / 2);
+        cm.applyMatrix4(basis);
+        parent.add(cm);
+      }
+    }
+    // Plinth panels.
+    const plMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--shade-side")), flatShading: true });
+    for (const p of room.plinths) {
+      const w = room.walls.find((x) => x.id === p.wall);
+      if (!w) continue;
+      const d = new THREE.Vector3(w.d[0], 0, -w.d[1]);
+      const n = new THREE.Vector3(w.n[0], 0, -w.n[1]);
+      const basis = new THREE.Matrix4().makeBasis(d, new THREE.Vector3(0, 1, 0), n);
+      basis.setPosition(w.start[0], 0, -w.start[1]);
+      const geo = new THREE.BoxGeometry(p.x1 - p.x0, p.h, p.t);
+      const mesh = new THREE.Mesh(geo, plMat);
+      mesh.position.set((p.x0 + p.x1) / 2, p.y + p.h / 2, p.front - p.t / 2);
+      mesh.applyMatrix4(basis);
+      parent.add(mesh);
     }
     if (room.closed) {
       const shape = new THREE.Shape(room.walls.map((w) => new THREE.Vector2(w.start[0], w.start[1])));

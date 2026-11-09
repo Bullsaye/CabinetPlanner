@@ -13,6 +13,10 @@ import grassTiomos from "../../library/hardware/grass-tiomos-110-screw.json" wit
 import hettichDuplo from "../../library/hardware/hettich-duplo-5.json" with { type: "json" };
 import hettichSensysFlash from "../../library/hardware/hettich-sensys-8645i-flash.json" with { type: "json" };
 import hettichSensysScrew from "../../library/hardware/hettich-sensys-8645i-screw.json" with { type: "json" };
+import leg100 from "../../library/hardware/generic-leg-100.json" with { type: "json" };
+import leg100Screwed from "../../library/hardware/generic-leg-100-screwed.json" with { type: "json" };
+import leg150 from "../../library/hardware/generic-leg-150.json" with { type: "json" };
+import rail from "../../library/hardware/generic-wardrobe-rail.json" with { type: "json" };
 import shelfPin from "../../library/hardware/shelf-pin-5.json" with { type: "json" };
 import { HardwareItem } from "./schema.ts";
 
@@ -39,6 +43,10 @@ const RAW: readonly unknown[] = [
   bar160,
   bar192,
   knob,
+  leg100,
+  leg100Screwed,
+  leg150,
+  rail,
 ];
 
 export const FACTORY_HARDWARE: readonly HardwareItem[] = RAW.map((raw) => HardwareItem.parse(raw));

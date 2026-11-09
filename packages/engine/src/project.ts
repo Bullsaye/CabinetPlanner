@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { buildBox } from "./cabinet/box.ts";
-import { machineBox, type HandlePlacement, type HardwareUse } from "./cabinet/machining.ts";
+import { machineBox, type Fitting, type HandlePlacement, type HardwareUse } from "./cabinet/machining.ts";
 import { hasErrors, type Diagnostic } from "./diagnostics.ts";
 import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
@@ -69,6 +69,8 @@ export interface CabinetResult {
   hardware: HardwareUse[];
   /** Handles and knobs with their hole positions (cabinet coordinates). */
   handles: HandlePlacement[];
+  /** Rails and legs for 3D. */
+  fittings: Fitting[];
   diagnostics: Diagnostic[];
 }
 
@@ -101,6 +103,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     let parts: Part[] = [];
     let hardware: HardwareUse[] = [];
     let handles: HandlePlacement[] = [];
+    let fittings: Fitting[] = [];
     if (!hasErrors(diagnostics)) {
       const built = buildBox(resolved, library);
       parts = sortParts(built.parts);
@@ -111,9 +114,10 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
         diagnostics.push(...machined.diagnostics);
         hardware = machined.hardware;
         handles = machined.handles;
+        fittings = machined.fittings;
       }
     }
-    cabinets.push({ resolved, parts, hardware, handles, diagnostics });
+    cabinets.push({ resolved, parts, hardware, handles, fittings, diagnostics });
   }
   const diagnostics = cabinets.flatMap((c) => c.diagnostics);
   const ok = !hasErrors(diagnostics);
@@ -130,6 +134,13 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
         material: probe.options.get("material.worktop")?.value as string,
         depth: probe.values.get("worktop_d") ?? 600,
         thickness: probe.values.get("worktop_t") ?? 38,
+        overhangEnd: probe.values.get("worktop_overhang_end") ?? 0,
+        plinth: {
+          material: probe.options.get("material.plinth")?.value as string,
+          thickness: library.materials.get(probe.options.get("material.plinth")?.value as string)?.thickness ?? 16,
+          setback: probe.values.get("plinth_setback") ?? 50,
+          floorGap: probe.values.get("plinth_floor_gap") ?? 0,
+        },
       },
     );
     diagnostics.push(...room.diagnostics);

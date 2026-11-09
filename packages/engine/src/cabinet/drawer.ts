@@ -20,7 +20,8 @@ export function buildDrawer(
   library: Library,
   index: number,
   front: PlacedFront,
-  c: { W: number; H: number; D: number; t: number; backFrontZ: number },
+  /** floor / ceil: top of the panel below and underside of the panel above the drawer. */
+  c: { W: number; H: number; D: number; t: number; backFrontZ: number; floor: number; ceil: number },
   add: AddPart,
   diagnostics: Diagnostic[],
 ): BoxLayout["drawers"][number] | undefined {
@@ -48,7 +49,7 @@ export function buildDrawer(
 
   // Rail screw axis: drawer_axis_offset above the front's lower edge, moved
   // down to a system-grid line, but never below the slide's minimum.
-  const minAxis = c.t + slide.axisMin;
+  const minAxis = c.floor + slide.axisMin;
   let axis = front.y0 + num("drawer_axis_offset");
   if (rc.options.get("system_holes")!.value === "full") {
     const y0 = num("sys_grid_y0");
@@ -87,7 +88,7 @@ export function buildDrawer(
   const clearance = num("drawer_clearance");
   const yb = axis - slide.axisToBox; // box underside
   // The box ends `clearance` below the top of its front, and inside the carcase.
-  const room = Math.min(front.y1 - clearance, c.H - c.t - 3) - yb;
+  const room = Math.min(front.y1 - clearance, c.ceil - 3) - yb;
   const z1 = c.D - num("drawer_setback"); // box front
   const edgeDrawer = rc.options.get("edge.drawer")!.value as string | null;
   const top: PartEdges = { l1: null, l2: edgeDrawer, w1: null, w2: null };
@@ -154,8 +155,8 @@ export function buildDrawer(
     boxTop = yb + fit.h;
   }
 
-  if (boxTop > c.H - c.t + 1e-6) {
-    diagnostics.push({ severity: "error", code: "drawer_too_high", params: { index, over: roundMm(boxTop - (c.H - c.t)) }, ...at });
+  if (boxTop > c.ceil + 1e-6) {
+    diagnostics.push({ severity: "error", code: "drawer_too_high", params: { index, over: roundMm(boxTop - c.ceil) }, ...at });
   }
   return { index, slide: item.id, nl, axisY: axis, box: slide.box };
 }

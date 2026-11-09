@@ -58,23 +58,63 @@ describe("corner runs and worktops (D29)", () => {
 
   it("makes one worktop per run; the first runs into the corner, the next butts against it", () => {
     const wt = r.room!.worktops;
+    // Open ends overhang by worktop_overhang_end (20); walls and the corner do not.
     expect(wt.map((w) => [w.wall, w.x0, w.x1, w.depth, w.t])).toEqual([
-      ["A", 0, 600, 600, 38],
-      ["A", 2000, 3000, 600, 38],
-      ["B", 600, p.B04!.x + 600, 600, 38],
+      ["A", 0, 620, 600, 38],
+      ["A", 1980, 3000, 600, 38],
+      ["B", 600, p.B04!.x + 620, 600, 38],
     ]);
     expect(wt[0]!.y).toBe(100 + 720);
-    expect(wt[1]!.outline).toEqual([[2000, 0], [3000, 0], [3000, -600], [2000, -600]]);
+    expect(wt[1]!.outline).toEqual([[1980, 0], [3000, 0], [3000, -600], [1980, -600]]);
   });
 
   it("puts worktops on the cutlist", () => {
     const parts = r.parts.filter((q) => q.role === "worktop");
     expect(parts.map((q) => [q.id, q.length, q.width, q.thickness, q.material])).toEqual([
-      ["ROOM-WT1", 600, 600, 38, "worktop-laminate-38"],
-      ["ROOM-WT2", 1000, 600, 38, "worktop-laminate-38"],
-      ["ROOM-WT3", p.B04!.x, 600, 38, "worktop-laminate-38"],
+      ["ROOM-WT1", 620, 600, 38, "worktop-laminate-38"],
+      ["ROOM-WT2", 1020, 600, 38, "worktop-laminate-38"],
+      ["ROOM-WT3", p.B04!.x + 20, 600, 38, "worktop-laminate-38"],
     ]);
     const rows = cutlistRows(r.parts, r.library, {});
     expect(rows.some((row) => row.material === "worktop-laminate-38")).toBe(true);
+  });
+});
+
+describe("plinths and cutouts (D31)", () => {
+  const r = build([
+    { id: "B01", type: "box", vars: { W: 800 }, options: { worktop_cutout: "sink" }, place: { wall: "A", x: 1200 } },
+    { id: "B02", type: "box", vars: { W: 1000 }, options: { corner: "blind_right" }, place: { wall: "A" } },
+    { id: "B03", type: "box", place: { wall: "B" } },
+    { id: "T01", type: "box", kind: "tall", presets: ["tall-unit"], place: { wall: "B" } },
+  ]);
+  const p = Object.fromEntries(r.room!.placements.map((q) => [q.cabinet, q]));
+
+  it("stops the worktop at a tall unit without overhang, overhangs at an open end", () => {
+    expect(r.diagnostics).toEqual([]);
+    const wt = r.room!.worktops;
+    expect(wt.map((w) => [w.wall, w.x0, w.x1])).toEqual([
+      ["A", 1180, 3000],
+      ["B", 600, p.T01!.x],
+    ]);
+  });
+
+  it("cuts the sink out of the worktop, centred over its cabinet", () => {
+    const top = r.parts.find((q) => q.id === "ROOM-WT1")!;
+    expect(top.operations).toEqual([
+      expect.objectContaining({ kind: "pocket", face: "t1", u0: 20 + 400 - 280, u1: 20 + 400 + 280, v0: 600 - 50 - 490, v1: 550, w0: 0, w1: 38 }),
+    ]);
+  });
+
+  it("runs plinth panels along floor runs and meets them in the corner", () => {
+    const pl = r.room!.plinths;
+    // A: B01 + B02 (1200 → wall end), front face 560 − 50 from the wall; it ends in B's front plane.
+    expect(pl.map((x) => [x.wall, x.x0, x.x1, x.front, x.h, x.t])).toEqual([
+      ["A", 1200, 3000 - 510, 510, 97, 16],
+      ["B", 510, p.T01!.x + 600, 510, 97, 16],
+    ]);
+    expect(r.parts.filter((q) => q.role === "plinth").map((q) => [q.length, q.width, q.thickness, q.material])).toEqual([
+      [2490 - 1200, 97, 16, "mel-white-16"],
+      [p.T01!.x + 600 - 510, 97, 16, "mel-white-16"],
+    ]);
   });
 });

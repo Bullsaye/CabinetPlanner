@@ -37,10 +37,16 @@ export interface BoxLayout {
   doors: { code: string; hinge: "left" | "right" }[];
   /** Drawers: slide item, nominal length and rail screw axis height. */
   drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal" }[];
+  /** Panels fixed to an appliance door: they get a handle like a door. */
+  applianceFronts: { code: string; hinge: "left" | "right" }[];
+  /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
+  rails: { x0: number; x1: number; y: number; z: number }[];
 }
 
 export interface PlacedFront {
-  type: "drawer" | "door";
+  type: FrontZone["type"];
+  /** Appliance zones: a panel fixed to the appliance door. */
+  front?: boolean;
   doors: number;
   /** Front bottom and top edge (cabinet Y). */
   y0: number;
@@ -90,7 +96,13 @@ export function layoutFronts(
     if (h <= 0) {
       diagnostics.push({ severity: "error", code: "fronts_too_high", params: { index: i + 1, available: roundMm(available) }, ...at });
     }
-    fronts.push({ type: z.type, doors: z.doors ?? Math.max(1, doorCount), y0: roundMm(top - h), y1: roundMm(top) });
+    fronts.push({
+      type: z.type,
+      ...(z.type === "appliance" ? { front: z.front ?? false } : {}),
+      doors: z.doors ?? Math.max(1, doorCount),
+      y0: roundMm(top - h),
+      y1: roundMm(top),
+    });
     top = top - h - gaps.between;
   });
   return { fronts, diagnostics };
@@ -340,35 +352,123 @@ export function buildBox(
   diagnostics.push(...fz.diagnostics);
   const fronts = fz.fronts;
 
-  // Shelves live in the tallest door zone; without fronts, in the whole interior.
-  const doorZones = fronts.filter((f) => f.type === "door").sort((a, b) => b.y1 - b.y0 - (a.y1 - a.y0));
-  const shelfRange: [number, number] | undefined =
-    fronts.length === 0
-      ? [t, H - t]
-      : doorZones[0]
-        ? [Math.max(t, doorZones[0].y0), Math.min(H - t, doorZones[0].y1)]
-        : undefined;
+  // --- Fixed shelves ------------------------------------------------------------
+  // Structural shelves (dowelled like the bottom) where an appliance niche or
+  // an open zone meets another zone, and between stacked door zones. Under
+  // an appliance the shelf's top is the front's lower edge, above it the
+  // shelf sits one gap above the front, so the niche is front height + gap.
+  const between = num("front_gap");
+  const fixedAt: (number | undefined)[] = []; // bottom face of the shelf under zone i
+  for (let i = 0; i + 1 < fronts.length; i++) {
+    const a = fronts[i]!;
+    const b = fronts[i + 1]!;
+    const tallUnit = rc.cabinet.kind === "tall";
+    const needs =
+      a.type === "appliance" ||
+      b.type === "appliance" ||
+      a.type === "open" ||
+      b.type === "open" ||
+      (a.type === "door" && b.type === "door") ||
+      // Tall units close drawers off from the zone above (wardrobes).
+      (tallUnit && a.type !== b.type);
+    if (!needs) continue;
+    const y = a.type === "appliance" ? a.y0 - t : b.type === "appliance" ? b.y1 + between : (a.y0 + b.y1) / 2 - t / 2;
+    if (y < t - 1e-6 || y + t > H - t + 1e-6) {
+      diagnostics.push({ severity: "error", code: "fixed_shelf_outside", params: { index: i + 1 }, cabinet: cab });
+      continue;
+    }
+    fixedAt[i] = roundMm(y);
+  }
+  // Clear interior of each zone, between fixed shelves (or bottom / top).
+  const zoneRange = (i: number): [number, number] => {
+    const f = fronts[i]!;
+    const below = fixedAt[i];
+    const above = i > 0 ? fixedAt[i - 1] : undefined;
+    return [below !== undefined ? below + t : Math.max(t, f.y0), above !== undefined ? above : Math.min(H - t, f.y1)];
+  };
+  // Drawers stop at fixed shelves, else at the carcase bottom and top.
+  const drawerBounds = (i: number): { floor: number; ceil: number } => ({
+    floor: fixedAt[i] !== undefined ? fixedAt[i]! + t : t,
+    ceil: i > 0 && fixedAt[i - 1] !== undefined ? fixedAt[i - 1]! : H - t,
+  });
+
+  const fsEdges = front(edgeCarcase);
+  const fsZ0 = backFrontZ;
+  const fsZ1 = D - num("fixed_shelf_setback");
+  let fixedNo = 0;
+  const fixedShelf = (x0: number, x1: number, y: number): void => {
+    add("fixed_shelf", ++fixedNo, { x: x0, y, z: fsZ0, dx: x1 - x0, dy: t, dz: fsZ1 - fsZ0 }, "x", "z", "material.carcase", fsEdges);
+  };
+  for (let i = 0; i < fixedAt.length; i++) {
+    const y = fixedAt[i];
+    if (y === undefined) continue;
+    for (const [sx0, sx1] of sections) fixedShelf(sx0, sx1, y);
+  }
+
+  // Shelves (and a wardrobe interior) live in the tallest door or open zone;
+  // without fronts, in the whole interior.
+  const shelfZones = fronts
+    .map((f, i) => ({ f, i, r: zoneRange(i) }))
+    .filter((z) => z.f.type === "door" || z.f.type === "open")
+    .sort((a, b) => b.r[1] - b.r[0] - (a.r[1] - a.r[0]));
+  const shelfRange: [number, number] | undefined = fronts.length === 0 ? [t, H - t] : shelfZones[0]?.r;
+
+  // --- Wardrobe interior: hat shelf and hanging rail per hanging section --------
+  const interior = opt<"shelves" | "hanging" | "hanging_first" | "hanging_last">("interior");
+  const hanging = new Set<number>();
+  if (interior !== "shelves" && shelfRange) {
+    if (interior === "hanging") sections.forEach((_, k) => hanging.add(k));
+    else hanging.add(interior === "hanging_first" ? 0 : sections.length - 1);
+  }
+  const rails: BoxLayout["rails"] = [];
+  if (hanging.size && shelfRange) {
+    const hatY = shelfRange[1] - num("hat_shelf_drop") - t;
+    const railY = hatY - num("rail_drop");
+    if (railY <= shelfRange[0]) {
+      diagnostics.push({ severity: "error", code: "hanging_too_low", params: { space: roundMm(shelfRange[1] - shelfRange[0]) }, cabinet: cab });
+    } else {
+      for (const k of [...hanging].sort()) {
+        const [sx0, sx1] = sections[k]!;
+        fixedShelf(sx0, sx1, roundMm(hatY));
+        rails.push({ x0: roundMm(sx0), x1: roundMm(sx1), y: roundMm(railY), z: roundMm((backFrontZ + D) / 2) });
+      }
+    }
+  }
 
   // --- Adjustable shelves ----------------------------------------------------
   const shelfCount = num("shelf_count");
   if (shelfCount > 0 && !shelfRange && rc.vars.get("shelf_count")?.source.layer === "cabinet" && !rc.vars.get("shelf_count")?.source.preset) {
     diagnostics.push({ severity: "warning", code: "shelves_no_door_zone", params: { count: shelfCount }, cabinet: cab });
   }
-  if (shelfCount > 0 && shelfRange) {
+  // The tallest zone gets shelf_count shelves; other door/open zones get
+  // as many in proportion to their height (zones split by fixed shelves).
+  const shelfPlan: { range: [number, number]; count: number; main: boolean }[] =
+    fronts.length === 0
+      ? shelfRange
+        ? [{ range: shelfRange, count: shelfCount, main: true }]
+        : []
+      : shelfZones.map((z, k) => ({
+          range: z.r,
+          count: k === 0 ? shelfCount : Math.round((shelfCount * (z.r[1] - z.r[0])) / (shelfRange![1] - shelfRange![0])),
+          main: k === 0,
+        }));
+  let shelfNo = 0;
+  for (const { range, count, main } of shelfPlan) {
+    if (count <= 0 || (!main && fixedAt.every((y) => y === undefined))) continue;
     const gap = num("shelf_gap");
     const zStart = backFrontZ + num("shelf_back_gap");
     const zEnd = D - num("shelf_front_setback");
-    const [innerBottom, innerTop] = shelfRange;
-    const pitch = (innerTop - innerBottom) / (shelfCount + 1);
+    const [innerBottom, innerTop] = range;
+    const pitch = (innerTop - innerBottom) / (count + 1);
     // With system holes, shelves rest on pins in the nearest hole row so the
     // view shows a real position; height does not change the cutlist.
     const holes =
       opt<string>("system_holes") === "full"
         ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
         : [];
-    let shelfNo = 0;
-    for (const [sx0, sx1] of sections) {
-      for (let i = 1; i <= shelfCount; i++) {
+    for (const [k, [sx0, sx1]] of sections.entries()) {
+      if (main && hanging.has(k)) continue;
+      for (let i = 1; i <= count; i++) {
         const target = innerBottom + i * pitch - tShelf / 2;
         const rest = num("shelf_pin_rest");
         const nearest = holes.length
@@ -390,14 +490,28 @@ export function buildBox(
 
   // --- Fronts: doors and drawer fronts (full overlay) ---------------------------
   const drawers: BoxLayout["drawers"] = [];
+  const applianceFronts: BoxLayout["applianceFronts"] = [];
   {
     const gs = num("front_gap_side");
     const gap = num("front_gap");
     const all: PartEdges = { l1: edgeFront, l2: edgeFront, w1: edgeFront, w2: edgeFront };
     let doorNo = 0;
     let drawerNo = 0;
-    for (const f of fronts) {
+    let applianceNo = 0;
+    for (const [fi, f] of fronts.entries()) {
       const h = f.y1 - f.y0;
+      if (f.type === "open") continue;
+      if (f.type === "panel") {
+        add("blind_panel", fi + 1, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "y", "x", "material.front", all);
+        continue;
+      }
+      if (f.type === "appliance") {
+        if (!f.front) continue;
+        applianceNo++;
+        add("appliance_front", applianceNo, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "y", "x", "material.front", all);
+        applianceFronts.push({ code: `${ROLE_CODES.appliance_front}${applianceNo}`, hinge: opt<"left" | "right">("door_hinge_side") });
+        continue;
+      }
       if (f.type === "door") {
         const n = f.doors;
         // Blind corner: a fixed panel covers the blind side, doors the rest.
@@ -406,7 +520,7 @@ export function buildBox(
         let x1 = W - gs;
         if (corner !== "none") {
           const bw = num("blind_w");
-          if (bw >= W - 100) {
+          if (bw > W - num("door_min_w")) {
             diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
           }
           const split = corner === "blind_right" ? W - bw : bw;
@@ -432,7 +546,7 @@ export function buildBox(
           diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
         }
         add("drawer_front", drawerNo, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "x", "y", "material.front", all);
-        const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ }, add, diagnostics);
+        const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
         if (d) drawers.push(d);
       }
     }
@@ -449,6 +563,6 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers },
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, rails },
   };
 }

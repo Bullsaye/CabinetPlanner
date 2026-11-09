@@ -34,6 +34,23 @@ export interface HardwareUse {
   item: string;
   qty: number;
   unit: string;
+  /** Cut lengths for items cut to size (wardrobe rails), mm. */
+  lengths?: number[];
+}
+
+/**
+ * Fittings shown in 3D (cabinet coordinates): a rail from (x, y, z) along +X
+ * with `length`, or a leg standing under (x, y, z) with height `h`.
+ */
+export interface Fitting {
+  kind: "rail" | "leg";
+  item: string;
+  x: number;
+  y: number;
+  z: number;
+  d: number;
+  length?: number;
+  h?: number;
 }
 
 /**
@@ -46,7 +63,7 @@ export function machineBox(
   library: Library,
   parts: Part[],
   layout: BoxLayout,
-): { diagnostics: Diagnostic[]; hardware: HardwareUse[]; handles: HandlePlacement[] } {
+): { diagnostics: Diagnostic[]; hardware: HardwareUse[]; handles: HandlePlacement[]; fittings: Fitting[] } {
   const diagnostics: Diagnostic[] = [];
   const cab = rc.cabinet.id;
   const at = { cabinet: cab };
@@ -55,12 +72,24 @@ export function machineBox(
   const byCode = new Map(parts.map((p) => [p.code, p]));
   const usage = new Map<string, HardwareUse>();
   const handles: HandlePlacement[] = [];
-  const use = (item: HardwareItem, qty: number): void => {
+  const fittings: Fitting[] = [];
+  const use = (item: HardwareItem, qty: number, length?: number): void => {
     if (qty <= 0) return;
-    const u = usage.get(item.id);
+    let u = usage.get(item.id);
     if (u) u.qty += qty * item.bom.perPlacement;
-    else usage.set(item.id, { item: item.id, qty: qty * item.bom.perPlacement, unit: item.bom.unit });
+    else usage.set(item.id, (u = { item: item.id, qty: qty * item.bom.perPlacement, unit: item.bom.unit }));
+    if (length !== undefined) (u.lengths ??= []).push(roundMm(length));
   };
+  // Vertical panels (sides, middle panels) whose face lies in the plane x.
+  const verticalAt = (x: number): { part: Part; dir: Direction } | undefined => {
+    for (const p of parts) {
+      if (p.role !== "side_left" && p.role !== "side_right" && p.role !== "partition") continue;
+      if (Math.abs(p.box.x + p.box.dx - x) < 0.01) return { part: p, dir: "-x" };
+      if (Math.abs(p.box.x - x) < 0.01) return { part: p, dir: "+x" };
+    }
+    return undefined;
+  };
+  const fixedShelves = parts.filter((p) => p.role === "fixed_shelf");
 
   const W = num("W");
   const D = num("D");
@@ -158,7 +187,17 @@ export function machineBox(
       if (!side) continue;
       for (const z of rows) {
         if (z < side.box.z || z > side.box.z + side.box.dz) continue;
-        for (const y of ys) addBore(side, { x, y, z }, dir, num("sys_hole_d"), num("sys_hole_depth"), source);
+        const r = num("sys_hole_d") / 2 + num("bore_min_wall");
+        for (const y of ys) {
+          // No holes behind the end of a fixed shelf: it would cover them and meet its dowels.
+          const covered = fixedShelves.some(
+            (fs) =>
+              [side.box.x, side.box.x + side.box.dx].some((fx) => Math.abs(fs.box.x - fx) < 0.01 || Math.abs(fs.box.x + fs.box.dx - fx) < 0.01) &&
+              y > fs.box.y - r &&
+              y < fs.box.y + fs.box.dy + r,
+          );
+          if (!covered) addBore(side, { x, y, z }, dir, num("sys_hole_d"), num("sys_hole_depth"), source);
+        }
       }
     }
   }
@@ -202,7 +241,7 @@ export function machineBox(
     const wall = rc.cabinet.kind === "wall";
     const edgeOff = num("handle_edge_offset");
     const endOff = num("handle_end_offset");
-    for (const d of layout.doors) {
+    for (const d of [...layout.doors, ...layout.applianceFronts]) {
       const p = byCode.get(d.code)!;
       const b = p.box;
       // Opening edge is opposite the hinges; wall units get the handle low, others high.
@@ -285,6 +324,76 @@ export function machineBox(
     }
   }
 
+  // --- Wardrobe rails: cut to the clear width, end supports screwed to the section's panels ---
+  if (layout.rails.length) {
+    const item = library.hardware.get(opt<string>("hardware.rail"))!;
+    const source: OpSource = { kind: "hardware", ref: item.id };
+    for (const r of layout.rails) {
+      const ctx = new Map(rc.values);
+      ctx.set("LS", r.x1 - r.x0);
+      const params = evaluateItemParams(item, ctx, at);
+      diagnostics.push(...params.diagnostics);
+      const length = params.values.get("length") ?? r.x1 - r.x0;
+      const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
+      diagnostics.push(...dd);
+      for (const x of [r.x0, r.x1]) {
+        const v = verticalAt(x);
+        if (!v) continue;
+        for (const dr of drills) {
+          if (dr.mount !== "end") {
+            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
+            continue;
+          }
+          addBore(v.part, { x, y: r.y + dr.b, z: r.z + dr.a }, v.dir, dr.d, dr.depth, source);
+        }
+      }
+      use(item, 1, length);
+      fittings.push({ kind: "rail", item: item.id, x: roundMm((r.x0 + r.x1 - length) / 2), y: r.y, z: r.z, d: params.values.get("d") ?? 25, length: roundMm(length) });
+    }
+  }
+
+  // --- Adjustable legs under floor units with a plinth -------------------------------------
+  const legId = opt<string | null>("hardware.leg");
+  const bottom = byCode.get("BO");
+  if (legId !== null && rc.cabinet.kind !== "wall" && num("plinth_h") > 0 && bottom) {
+    const item = library.hardware.get(legId)!;
+    const params = evaluateItemParams(item, rc.values, at);
+    diagnostics.push(...params.diagnostics);
+    diagnostics.push(...checkLimits(item, params.values, at));
+    const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
+    diagnostics.push(...dd);
+    const spread = (a: number, b: number): number[] => {
+      const n = Math.max(2, Math.ceil((b - a) / num("leg_max_spacing") - 1e-9) + 1);
+      return Array.from({ length: n }, (_, i) => roundMm(a + ((b - a) * i) / (n - 1)));
+    };
+    const xs = spread(num("leg_inset_side"), W - num("leg_inset_side"));
+    const zs = spread(layout.backFrontZ + num("leg_inset_rear"), D - num("leg_inset_front"));
+    const source: OpSource = { kind: "hardware", ref: item.id };
+    const minWall = num("bore_min_wall");
+    const fits = (x: number, z: number): boolean =>
+      drills.every((dr) => dr.mount !== "bottom" || !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall));
+    for (const x0 of xs) {
+      for (const z of zs) {
+        // A leg that meets other machining (middle panel dowels) moves sideways in pitch steps.
+        let x = x0;
+        for (let k = 1; k <= 4 && !fits(x, z); k++) {
+          const step = k * num("sys_pitch");
+          x = fits(x0 - step, z) ? x0 - step : x0 + step;
+        }
+        if (!fits(x, z)) x = x0;
+        for (const dr of drills) {
+          if (dr.mount !== "bottom") {
+            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
+            continue;
+          }
+          addBore(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, source);
+        }
+        fittings.push({ kind: "leg", item: item.id, x, y: 0, z, d: params.values.get("d") ?? 40, h: num("plinth_h") });
+      }
+    }
+    use(item, xs.length * zs.length);
+  }
+
   // --- Shelf supports ----------------------------------------------------------------
   const supportId = opt<string | null>("hardware.shelf_support");
   const shelves = parts.filter((p) => p.role === "shelf").length;
@@ -304,7 +413,7 @@ export function machineBox(
   for (const p of parts) resolveOpposing(p, opposite, num("through_overlap"), minWall);
   for (const p of parts) diagnostics.push(...checkOperations(p, minWall));
 
-  return { diagnostics, hardware: [...usage.values()].sort((a, b) => a.item.localeCompare(b.item)), handles };
+  return { diagnostics, hardware: [...usage.values()].sort((a, b) => a.item.localeCompare(b.item)), handles, fittings };
 }
 
 // ---------------------------------------------------------------------------
@@ -356,6 +465,22 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
           across: { axis: "x", value: side.box.x + side.box.dx / 2 },
         });
       }
+    }
+  }
+  // Fixed shelves sit between sides and middle panels whatever the carcase joint.
+  for (const fs of parts.filter((p) => p.role === "fixed_shelf")) {
+    for (const v of parts.filter((p) => p.role === "side_left" || p.role === "side_right" || p.role === "partition")) {
+      const leftEnd = Math.abs(v.box.x + v.box.dx - fs.box.x) < 0.01;
+      const rightEnd = Math.abs(v.box.x - (fs.box.x + fs.box.dx)) < 0.01;
+      if (!leftEnd && !rightEnd) continue;
+      joints.push({
+        ref: `${v.code}-${fs.code}`,
+        facePart: v,
+        edgePart: fs,
+        plane: { axis: "x", value: leftEnd ? fs.box.x : fs.box.x + fs.box.dx },
+        intoFace: leftEnd ? "-x" : "+x",
+        across: { axis: "y", value: fs.box.y + fs.box.dy / 2 },
+      });
     }
   }
   // Middle panels always stand between bottom and top/rails.

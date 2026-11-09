@@ -121,6 +121,10 @@ B01-BO   Bore       w2    762    523    9.5  8   25                    joint:SR-
 B01-BO   Bore       w2    762    363    9.5  8   25                    joint:SR-BO
 B01-BO   Bore       w2    762    203    9.5  8   25                    joint:SR-BO
 B01-BO   Bore       w2    762    43     9.5  8   25                    joint:SR-BO
+B01-BO   Bore       t0    31     68     0    10  12                    hardware:generic-leg-100
+B01-BO   Bore       t0    31     460    0    10  12                    hardware:generic-leg-100
+B01-BO   Bore       t0    731    68     0    10  12                    hardware:generic-leg-100
+B01-BO   Bore       t0    731    460    0    10  12                    hardware:generic-leg-100
 B01-RF   Bore       w1    0      63     9.5  8   25                    joint:SL-RF
 B01-RF   Bore       w1    0      31     9.5  8   25                    joint:SL-RF
 B01-RF   Bore       w2    762    63     9.5  8   25                    joint:SR-RF
@@ -145,4 +149,5 @@ B01-DF3  Bore       t0    758    103.5  0    10  12                    hardware:
 ## Hardware
 Item                                                                      Qty
 dowel-8x35               Dowel Ø8 × 35                                    16 pcs
+generic-leg-100          Adjustable leg 100 (generic)                     4 pcs
 grass-nova-pro-scala-40  Grass Nova Pro Scala, double-wall drawer, 40 kg  3 sets

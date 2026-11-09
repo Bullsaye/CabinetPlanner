@@ -1,6 +1,14 @@
 <script lang="ts">
-  import { addCabinet, duplicateCabinet, moveCabinet, removeCabinet, store } from "../lib/store.svelte.ts";
-  import { formatNumber } from "@cabinet-planner/engine";
+  import { addCabinet, addFromTemplate, duplicateCabinet, moveCabinet, removeCabinet, store } from "../lib/store.svelte.ts";
+  import { FACTORY_TEMPLATES, formatNumber, localName } from "@cabinet-planner/engine";
+
+  const groups = ["kitchen", "storage", "wardrobe", "bath"] as const;
+  function pick(e: Event): void {
+    const sel = e.target as HTMLSelectElement;
+    const tpl = FACTORY_TEMPLATES.find((x) => x.id === sel.value);
+    if (tpl) addFromTemplate(tpl);
+    sel.value = "";
+  }
 
   const t = $derived(store.tr.t);
   const cabinets = $derived((store.project.cabinets ?? []) as Record<string, any>[]);
@@ -22,6 +30,16 @@
     <button onclick={() => addCabinet("base")}>+ {t("ui.kind.base")}</button>
     <button onclick={() => addCabinet("wall")}>+ {t("ui.kind.wall")}</button>
     <button onclick={() => addCabinet("tall")}>+ {t("ui.kind.tall")}</button>
+    <select id="add-template" aria-label={t("ui.add_from_template")} onchange={pick}>
+      <option value="">{t("ui.add_from_template")}</option>
+      {#each groups as g}
+        <optgroup label={t(`ui.template_group.${g}`)}>
+          {#each FACTORY_TEMPLATES.filter((x) => x.group === g) as tpl}
+            <option value={tpl.id}>{localName(tpl.name, store.ui.lang)}</option>
+          {/each}
+        </optgroup>
+      {/each}
+    </select>
   </div>
   <ul>
     {#each cabinets as c (c.id)}
@@ -60,6 +78,7 @@
   .list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
   .add { display: flex; flex-wrap: wrap; gap: 6px; }
   .add button { flex: 1 1 auto; padding: 4px 8px; }
+  .add select { flex: 1 1 100%; }
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .item { width: 100%; display: grid; grid-template-columns: 34px 1fr auto; gap: 6px; text-align: left; align-items: baseline; }
   .id { font-size: 12px; }

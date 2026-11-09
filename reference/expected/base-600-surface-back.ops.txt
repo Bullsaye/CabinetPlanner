@@ -100,6 +100,10 @@ B01-BO   Bore       w2    562    515   9.5  8   25           joint:SR-BO
 B01-BO   Bore       w2    562    355   9.5  8   25           joint:SR-BO
 B01-BO   Bore       w2    562    195   9.5  8   25           joint:SR-BO
 B01-BO   Bore       w2    562    35    9.5  8   25           joint:SR-BO
+B01-BO   Bore       t0    31     50    0    10  12           hardware:generic-leg-100
+B01-BO   Bore       t0    31     452   0    10  12           hardware:generic-leg-100
+B01-BO   Bore       t0    531    50    0    10  12           hardware:generic-leg-100
+B01-BO   Bore       t0    531    452   0    10  12           hardware:generic-leg-100
 B01-RF   Bore       w1    0      63    9.5  8   25           joint:SL-RF
 B01-RF   Bore       w1    0      31    9.5  8   25           joint:SL-RF
 B01-RF   Bore       w2    562    63    9.5  8   25           joint:SR-RF
@@ -112,7 +116,8 @@ B01-DO1  Bore       t0    89.5   21.5  0    35  13           hardware:generic-hi
 B01-DO1  Bore       t0    633.5  21.5  0    35  13           hardware:generic-hinge-110
 
 ## Hardware
-Item                                         Qty
-dowel-8x35         Dowel Ø8 × 35             16 pcs
-generic-hinge-110  Cup hinge 110° (generic)  2 pcs
-shelf-pin-5        Shelf support pin Ø5      4 pcs
+Item                                             Qty
+dowel-8x35         Dowel Ø8 × 35                 16 pcs
+generic-hinge-110  Cup hinge 110° (generic)      2 pcs
+generic-leg-100    Adjustable leg 100 (generic)  4 pcs
+shelf-pin-5        Shelf support pin Ø5          4 pcs
