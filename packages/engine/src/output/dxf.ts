@@ -64,7 +64,9 @@ export interface DxfMeta {
 }
 
 const fmtFactory = (decimals: number) => (x: number): string => {
-  const s = (Math.round(x * 10 ** decimals) / 10 ** decimals).toFixed(decimals).replace(/\.?0+$/, "");
+  const fixed = (Math.round(x * 10 ** decimals) / 10 ** decimals).toFixed(decimals);
+  // Only trailing zeros of the fraction go: with 0 decimals "720" must stay "720".
+  const s = fixed.includes(".") ? fixed.replace(/\.?0+$/, "") : fixed;
   return s === "-0" ? "0" : s;
 };
 
