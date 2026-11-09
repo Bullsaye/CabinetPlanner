@@ -1,9 +1,9 @@
 import type { OpSource } from "../ops.ts";
 import type { Part, PartEdges } from "../part.ts";
 import { formatNumber } from "../output/format.ts";
-import { extractFeatures, groupFeatures, type DFeature, type FeatureGroup } from "./features.ts";
+import { extractFeatures, groupFeatures, tagName, type DFeature, type FeatureGroup } from "./features.ts";
 import type { ResolvedStyle } from "./style.ts";
-import { faceDir, innerFace, partView, type Dir, type PartView, type Side } from "./view.ts";
+import { faceDir, innerFace, machinedFaces, otherFace, partView, type Dir, type PartView, type Side } from "./view.ts";
 
 /**
  * Part drawing on a paper sheet (SVG, mm units, to scale). Layout:
@@ -34,6 +34,8 @@ export interface DrawingInput {
   text: DrawingText;
   /** Embed the default stylesheet (off when a host page styles the classes). */
   css?: boolean;
+  /** For two-sided parts: which side this sheet shows. Set by drawPartSheets. */
+  side?: { face: "t0" | "t1"; index: number; of: number };
 }
 
 /** Default look; a host page can restyle the same classes (light/dark). */
@@ -151,6 +153,23 @@ export interface PartDrawing {
   view: PartView;
   groups: FeatureGroup[];
   scale: number;
+  /** Sheet size in mm. */
+  page: { w: number; h: number };
+}
+
+/** Several sheets in one SVG, stacked top to bottom with a gap. */
+export function stackSheets(sheets: readonly PartDrawing[], gap = 10): string {
+  if (sheets.length === 1) return sheets[0]!.svg;
+  const w = Math.max(...sheets.map((s) => s.page.w));
+  const h = sheets.reduce((a, s) => a + s.page.h, 0) + gap * (sheets.length - 1);
+  let y = 0;
+  const inner = sheets.map((s) => {
+    const body = s.svg.replace(/^<svg [^>]*>/, "").replace(/<\/svg>\s*$/, "");
+    const part = `<svg x="0" y="${r3(y)}" width="${r3(s.page.w)}" height="${r3(s.page.h)}" viewBox="0 0 ${r3(s.page.w)} ${r3(s.page.h)}" class="pd">${body}</svg>`;
+    y += s.page.h + gap;
+    return part;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r3(w)} ${r3(h)}" width="${r3(w)}mm" height="${r3(h)}mm" class="pd">${inner.join("")}</svg>\n`;
 }
 
 export function drawPart(input: DrawingInput): PartDrawing {
@@ -161,9 +180,21 @@ export function drawPart(input: DrawingInput): PartDrawing {
   const num = (x: number): string => (text.number ? text.number(x, dec) : formatNumber(x, dec));
 
   const spec = style.view.roles[part.role] ?? style.view.default;
-  const view = partView(part, spec, cabinet);
+  const view = partView(part, spec, cabinet, input.side?.face);
   const features = extractFeatures(view);
   const groups = groupFeatures(features, part, style);
+  if (input.side && input.side.of > 1) {
+    // The other side has its own sheet: show its machining dashed for
+    // orientation, without dimensions or tags.
+    for (const g of groups) {
+      if (g.where === "far") {
+        g.rules = { ...g.rules, positions: "none", tag: false, table: false };
+        g.tag = "";
+      }
+    }
+    let letter = 0;
+    for (const g of groups) if (g.tag) g.tag = tagName(letter++);
+  }
 
   // Scale: largest standard scale (smallest denominator) that fits the sheet.
   const [pw0, ph0] = PAPER[style.paper.size];
@@ -315,7 +346,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
     y1: Math.max(a.y1, c.y1),
   }));
 
-  const header = headerLines(part, view, style, den, text, cabinet);
+  const header = headerLines(part, view, style, den, text, cabinet, input.side);
   const headerH = 6 + header.length * h * 1.7;
   const legend = style.show.legend ? legendRows(visible, view, text, num) : [];
   const table = style.show.table ? tableRows(visible, num, (k) => t(k)) : [];
@@ -391,7 +422,23 @@ export function drawPart(input: DrawingInput): PartDrawing {
   }
 
   out.push(`</svg>\n`);
-  return { svg: out.join(""), view, groups, scale: den };
+  return { svg: out.join(""), view, groups, scale: den, page: { w: r3(pageW), h: r3(pageH) } };
+}
+
+/**
+ * All sheets of a part: one, or one per machined side when both thickness
+ * faces have machining (style setting show.bothSides). Both sheets keep the
+ * same edge on the reference, so side 2 is the part turned over.
+ */
+export function drawPartSheets(input: DrawingInput): PartDrawing[] {
+  const { part, style, cabinet } = input;
+  const spec = style.view.roles[part.role] ?? style.view.default;
+  const first = partView(part, spec, cabinet).face;
+  const machined = machinedFaces(part);
+  if (!style.show.bothSides || !(machined.has("t0") && machined.has("t1"))) {
+    return [drawPart({ ...input, side: { face: first, index: 1, of: 1 } })];
+  }
+  return [first, otherFace(first)].map((face, i) => drawPart({ ...input, side: { face, index: i + 1, of: 2 } }));
 }
 
 // ---------------------------------------------------------------------------
@@ -638,6 +685,7 @@ function headerLines(
   den: number,
   text: DrawingText,
   cabinet: { W: number; H: number; D: number },
+  side?: { index: number; of: number },
 ): string[] {
   const t = text.t;
   const f = (x: number): string => formatNumber(x);
@@ -647,7 +695,7 @@ function headerLines(
   return [
     `${part.id} · ${role}`,
     `${mat} · ${t("drawing.finished")} ${f(part.length)} × ${f(part.width)} × ${f(part.thickness)} · ${t("drawing.cut")} ${f(part.cutLength)} × ${f(part.cutWidth)}${part.grain ? ` · ${t("drawing.grain")}` : ""}`,
-    `${text.styleName ?? style.id} · ${t(inner ? "drawing.face.inner" : "drawing.face.outer")} · ${t("drawing.origin", {
+    `${text.styleName ?? style.id} · ${side && side.of > 1 ? `${t("drawing.side", { n: side.index, of: side.of })} · ` : ""}${t(inner ? "drawing.face.inner" : "drawing.face.outer")} · ${t("drawing.origin", {
       a: t(`drawing.dir.${view.sides.bottom}`),
       b: t(`drawing.dir.${view.sides.left}`),
     })} · ${t("drawing.scale", { n: den })} · mm`,

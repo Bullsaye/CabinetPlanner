@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  addBore,
   ASSEMBLY_VIEW_FLAT,
   drawAssembly,
+  drawPartSheets,
+  stackSheets,
   ASSEMBLY_VIEW_UPRIGHT,
   drawPart,
   findPatterns,
@@ -11,6 +14,7 @@ import {
   rulesFor,
   sceneOf,
   type DFeature,
+  type Part,
   type DrawingText,
 } from "../src/index.ts";
 import { spread, spreadVar } from "../src/drawing/render.ts";
@@ -162,6 +166,43 @@ describe("part sheet styles agree on flat parts", () => {
     expect(drawPart({ part: sr, cabinet: cab, style: resolveStyle("machine"), text }).svg).not.toContain(`class="pd-arrow"`);
     const arrows = resolveStyle("a", [{ id: "a", name: "A", extends: "machine", dims: { terminator: "arrow" }, rules: [] }]);
     expect(drawPart({ part: sr, cabinet: cab, style: arrows, text }).svg).toContain(`class="pd-arrow"`);
+  });
+});
+
+describe("machined faces and two-sided parts (D22)", () => {
+  const src = { kind: "joint" as const, ref: "test" };
+
+  it("shows the outer face when only the outer face has machining", () => {
+    const sr = JSON.parse(JSON.stringify(partsByCode(buildOne()).SR!)) as Part;
+    sr.operations = [];
+    addBore(sr, { x: 600, y: 300, z: 300 }, "-x", 8, 12, src); // outer face of the right side
+    expect(partView(sr, MACHINE_VIEW, cab).face).toBe("t1");
+    expect(partView(sr, MACHINE_VIEW, cab).sides.bottom).toBe("front"); // still front on the reference
+    sr.operations = [];
+    addBore(sr, { x: 581, y: 300, z: 300 }, "+x", 8, 12, src); // inner face
+    expect(partView(sr, MACHINE_VIEW, cab).face).toBe("t0");
+  });
+
+  it("gives a part machined on both faces one sheet per side, front edge on the reference on both", () => {
+    const sh = JSON.parse(JSON.stringify(partsByCode(buildOne()).SH1!)) as Part;
+    const top = sh.box.y + sh.box.dy;
+    addBore(sh, { x: 100, y: top, z: 300 }, "-y", 5, 10, src);
+    addBore(sh, { x: 200, y: sh.box.y, z: 300 }, "+y", 8, 10, src);
+    const sheets = drawPartSheets({ part: sh, cabinet: cab, style: resolveStyle("machine"), text });
+    expect(sheets.map((x) => x.view.face)).toEqual(["t1", "t0"]);
+    expect(sheets.map((x) => x.view.sides.bottom)).toEqual(["front", "front"]);
+    // Each sheet dimensions and tags only its own side.
+    for (const x of sheets) expect(x.groups.filter((g) => g.tag).map((g) => g.where)).toEqual(["face"]);
+    expect(sheets[0]!.svg).toContain("drawing.side");
+    const both = stackSheets(sheets);
+    expect((both.match(/<svg /g) ?? []).length).toBe(3);
+    // Turned off by style: one sheet.
+    const one = resolveStyle("o", [{ id: "o", name: "O", extends: "machine", show: { bothSides: false }, rules: [] }]);
+    expect(drawPartSheets({ part: sh, cabinet: cab, style: one, text })).toHaveLength(1);
+  });
+
+  it("keeps one-sided parts on one sheet", () => {
+    expect(drawPartSheets({ part: partsByCode(buildOne()).SL!, cabinet: cab, style: resolveStyle("machine"), text })).toHaveLength(1);
   });
 });
 

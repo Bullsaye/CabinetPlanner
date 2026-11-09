@@ -260,6 +260,7 @@ export const de: Record<MessageKey, string> = {
   "drawing.face.outer": "Außenseite sichtbar",
   "drawing.origin": "Nullpunkt: Kante {a} × Kante {b}",
   "drawing.scale": "Maßstab 1:{n}",
+  "drawing.side": "Seite {n} von {of}",
   "drawing.legend": "Bearbeitungen",
   "drawing.table.hole": "Bohrung",
   "drawing.table.depth": "Tiefe",

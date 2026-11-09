@@ -84,7 +84,8 @@ export function innerFace(part: Part, cabinet: { W: number; H: number; D: number
  * Views are never mirrored: what you see is the real face.
  */
 export interface ViewSpec {
-  face: "inner" | "outer" | "t0" | "t1";
+  /** machined: the inner face, unless only the outer face has machining. */
+  face: "machined" | "inner" | "outer" | "t0" | "t1";
   anchors: { edge: Dir; side: Side }[];
 }
 
@@ -106,10 +107,35 @@ export interface PartView {
   projectLocal(l: { u: number; v: number; w: number }): { X: number; Y: number };
 }
 
-export function partView(part: Part, spec: ViewSpec, cabinet: { W: number; H: number; D: number }): PartView {
+/** Thickness faces that have machining entering through them. */
+export function machinedFaces(part: Part): Set<"t0" | "t1"> {
+  const out = new Set<"t0" | "t1">();
+  for (const o of part.operations) if (o.face === "t0" || o.face === "t1") out.add(o.face);
+  return out;
+}
+
+export const otherFace = (f: "t0" | "t1"): "t0" | "t1" => (f === "t0" ? "t1" : "t0");
+
+export function partView(
+  part: Part,
+  spec: ViewSpec,
+  cabinet: { W: number; H: number; D: number },
+  /** Force the viewed face (second side of a two-sided part). */
+  forceFace?: "t0" | "t1",
+): PartView {
   const inner = innerFace(part, cabinet);
+  const machined = machinedFaces(part);
   const face: "t0" | "t1" =
-    spec.face === "inner" ? inner : spec.face === "outer" ? (inner === "t0" ? "t1" : "t0") : spec.face;
+    forceFace ??
+    (spec.face === "inner"
+      ? inner
+      : spec.face === "outer"
+        ? otherFace(inner)
+        : spec.face === "machined"
+          ? machined.has(inner) || !machined.has(otherFace(inner))
+            ? inner
+            : otherFace(inner)
+          : spec.face);
   const n = faceNormal(part, face);
 
   let r: Vec | undefined;
@@ -164,8 +190,9 @@ export function partView(part: Part, spec: ViewSpec, cabinet: { W: number; H: nu
 
 /** Factory view specs. */
 export const MACHINE_VIEW: ViewSpec = {
-  // Inner face up, front edge on the reference (drawing bottom = machine Y 0).
-  face: "inner",
+  // Inner face up (or the machined face if only that one has work), front
+  // edge on the reference (drawing bottom = machine Y 0).
+  face: "machined",
   anchors: [
     { edge: "front", side: "bottom" },
     { edge: "bottom", side: "bottom" },
@@ -175,7 +202,7 @@ export const MACHINE_VIEW: ViewSpec = {
 
 export const ASSEMBLY_VIEW_UPRIGHT: ViewSpec = {
   // Upright parts seen from inside the cabinet, as if folded outwards.
-  face: "inner",
+  face: "machined",
   anchors: [
     { edge: "bottom", side: "bottom" },
     { edge: "left", side: "left" },

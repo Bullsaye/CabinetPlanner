@@ -112,6 +112,10 @@ describe("cli drawing", () => {
     const asm = fakeIo();
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "upright"], asm)).toBe(0);
     expect(asm.out).toContain("sides upright");
+    const s1 = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--sheet", "1"], s1)).toBe(0);
+    const s2 = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--sheet", "2"], s2)).toBe(2);
     const badStyle = fakeIo();
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "nope"], badStyle)).toBe(2);
     const bad = fakeIo();

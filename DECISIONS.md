@@ -217,3 +217,15 @@ Supersedes the face-view convention of the first part drawing.
   alternative to arrowheads); arrows or dots per style.
 
 Supersedes the "assembly" part style of D19/D20 (renamed `upright`).
+
+### D22 · 2026-11-09 · Which face a part sheet shows; two-sided parts
+
+- Default face is `machined`: the inner face, unless only the outer face
+  has machining; then the part is turned over so the machined face is up.
+  The front edge stays on the reference either way (flat parts are flipped
+  down, banding towards the origin).
+- A part with machining on both thickness faces gets one sheet per side
+  (style setting `show.bothSides`, on by default). Side 2 is the part turned
+  over about the reference edge. Each sheet dimensions and tags only its
+  own face; the other face's machining is drawn dashed for orientation.
+- The same split will apply to CNC exports: one program per machined side.

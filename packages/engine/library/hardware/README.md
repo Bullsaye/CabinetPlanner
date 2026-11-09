@@ -24,3 +24,4 @@ Rules (DECISIONS.md D15, D18):
 | hettich-duplo-5 | Hettich | Shelf support 46642 |
 | blum-cliptop-110-inserta | Blum | 71B3590 + 173L6100; count rule generic |
 | grass-tiomos-110-screw | Grass | F028138519 + plate F058139757 (H2, Euro screws) |
+| grass-tiomos-110-k3-screw | Grass | F028138520 (cranking 3) + plate F058139756 (H0, Euro screws) |

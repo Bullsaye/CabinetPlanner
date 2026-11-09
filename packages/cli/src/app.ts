@@ -6,7 +6,8 @@ import {
   FileFormatError,
   formatNumber,
   drawAssembly,
-  drawPart,
+  drawPartSheets,
+  stackSheets,
   FACTORY_STYLES,
   localName,
   resolveStyle,
@@ -58,6 +59,8 @@ Options:
   --part <id>            drawing: the part to draw
   --style <id>           drawing: machine (default), machine-iso, machine-chain, upright,
                          or a style from the shop/project library
+  --sheet <n>            drawing: only sheet n of a part machined on both sides
+                         (default: all sheets, stacked)
   -h, --help             Show this help
 `;
 
@@ -77,6 +80,7 @@ export function run(argv: readonly string[], io: Io): number {
         cabinet: { type: "string" },
         part: { type: "string" },
         style: { type: "string" },
+        sheet: { type: "string" },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -262,14 +266,23 @@ export function run(argv: readonly string[], io: Io): number {
       const styleInput = [...FACTORY_STYLES, ...styles].reverse().find((x) => x.id === style.id)!;
       const cab = result.cabinets.find((c) => c.resolved.cabinet.id === part.cabinet)!;
       const v = (n: string): number => cab.resolved.values.get(n)!;
-      emit(
-        drawPart({
-          part,
-          cabinet: { W: v("W"), H: v("H"), D: v("D") },
-          style,
-          text: drawingText(tr, result.library, localName(styleInput.name, tr.locale)),
-        }).svg,
-      );
+      const sheets = drawPartSheets({
+        part,
+        cabinet: { W: v("W"), H: v("H"), D: v("D") },
+        style,
+        text: drawingText(tr, result.library, localName(styleInput.name, tr.locale)),
+      });
+      if (opts.sheet !== undefined) {
+        const n = Number(opts.sheet);
+        const one = sheets[n - 1];
+        if (!one) {
+          io.stderr(`--sheet must be 1${sheets.length > 1 ? `–${sheets.length}` : ""}\n`);
+          return 2;
+        }
+        emit(one.svg);
+      } else {
+        emit(stackSheets(sheets));
+      }
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
     }

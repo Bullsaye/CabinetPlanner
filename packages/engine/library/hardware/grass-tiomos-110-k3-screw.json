@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "grass-tiomos-110-k3-screw",
+  "name": {
+    "en": "Grass Tiomos 110°, cranking 3, screw-on, cross plate H0 (Euro screws)",
+    "de": "Grass Tiomos 110°, Kröpfung 3, zum Anschrauben, Kreuzmontageplatte H0 (Euroschrauben)"
+  },
+  "category": "hinge",
+  "manufacturer": "Grass",
+  "series": "Tiomos 110, cranking 3",
+  "articles": [
+    {
+      "code": "F028138520",
+      "note": "hinge, overlay (cranking 3), damper, Click-on, screw-on"
+    },
+    {
+      "code": "F058139756",
+      "note": "cross mounting plate 37/32, 4-point, height 0, Euro screws 6.3"
+    }
+  ],
+  "trust": "untested",
+  "source": "Grass Movement Systems catalogue 2026/27: mediacenter.grass.eu/Katalog/EN/508, 509 (overlay tables: cranking 3 A = 12 + TA − H), 594–596 (cup Ø35 × min. 12.6, TA 3–7 to the cup edge, hinges per door height), 580–582 (plates 37/32, heights 0/2/3). Alternative to the cranking-0 hinge on an H2 plate for a 1.5 mm side gap: here TA = A − 12 + 0. The 4-point plate's two small extra fixings (20/52 from the front edge) are not drilled; their Ø is not dimensioned in the catalogue.",
+  "params": {
+    "count": "if(door_h <= 900, 2, if(door_h <= 1600, 3, if(door_h <= 2000, 4, 5)))",
+    "grid_offset": 16,
+    "plate_height": 0,
+    "cup_d": 35,
+    "cup_depth": 12.6,
+    "cup_distance": "hinge_overlay - 12 + plate_height",
+    "plate_row": 37,
+    "plate_hole_d": "sys_hole_d",
+    "plate_hole_depth": "sys_hole_depth",
+    "plate_hole_spacing": 32
+  },
+  "drilling": [
+    {
+      "mount": "door",
+      "d": "cup_d",
+      "depth": "cup_depth",
+      "a": 0,
+      "b": "cup_distance + cup_d / 2"
+    },
+    {
+      "mount": "side",
+      "d": "plate_hole_d",
+      "depth": "plate_hole_depth",
+      "a": "-plate_hole_spacing / 2",
+      "b": "plate_row"
+    },
+    {
+      "mount": "side",
+      "d": "plate_hole_d",
+      "depth": "plate_hole_depth",
+      "a": "plate_hole_spacing / 2",
+      "b": "plate_row"
+    }
+  ],
+  "limits": [
+    {
+      "name": "cup_distance",
+      "value": "cup_distance",
+      "min": 3,
+      "max": 7
+    },
+    {
+      "name": "door_t",
+      "value": "door_t",
+      "max": 24
+    },
+    {
+      "name": "door_h",
+      "value": "door_h",
+      "max": 2500
+    }
+  ],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "pcs"
+  }
+}

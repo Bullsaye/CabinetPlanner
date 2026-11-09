@@ -12,7 +12,7 @@ import { ASSEMBLY_VIEW_UPRIGHT, MACHINE_VIEW, type ViewSpec } from "./view.ts";
 const Dir = z.enum(["left", "right", "bottom", "top", "rear", "front"]);
 const Side = z.enum(["bottom", "top", "left", "right"]);
 const ViewSpecSchema = z.object({
-  face: z.enum(["inner", "outer", "t0", "t1"]),
+  face: z.enum(["machined", "inner", "outer", "t0", "t1"]),
   anchors: z.array(z.object({ edge: Dir, side: Side })).min(1),
 });
 
@@ -101,6 +101,8 @@ export const DrawingStyleSchema = z.object({
       table: z.boolean().optional(),
       edgeNames: z.boolean().optional(),
       centreMarks: z.boolean().optional(),
+      /** One sheet per machined side when both faces have machining. */
+      bothSides: z.boolean().optional(),
     })
     .optional(),
   paper: z
@@ -129,7 +131,7 @@ export interface ResolvedStyle {
     patternMin: number;
     terminator: "tick" | "arrow" | "dot";
   };
-  show: { tags: boolean; legend: boolean; table: boolean; edgeNames: boolean; centreMarks: boolean };
+  show: { tags: boolean; legend: boolean; table: boolean; edgeNames: boolean; centreMarks: boolean; bothSides: boolean };
   paper: { size: "A4" | "A3"; orientation: "auto" | "landscape" | "portrait"; scale: "auto" | number };
   rules: Rule[];
 }
@@ -153,7 +155,7 @@ export const FACTORY_STYLES: readonly DrawingStyleInput[] = [
     name: { en: "Machine sheet", de: "Maschinenblatt" },
     view: { default: MACHINE_VIEW, roles: {} },
     dims: { mode: "running", text: "horizontal", overall: true, decimals: 2, textHeight: 2.5, patternMin: 3, terminator: "tick" },
-    show: { tags: true, legend: true, table: false, edgeNames: true, centreMarks: true },
+    show: { tags: true, legend: true, table: false, edgeNames: true, centreMarks: true, bothSides: true },
     paper: { size: "A4", orientation: "auto", scale: "auto" },
     rules: BASE_RULES,
   },
@@ -208,7 +210,7 @@ export function resolveStyle(id: string, styles: readonly DrawingStyleInput[] = 
     id,
     view: { default: MACHINE_VIEW, roles: {} },
     dims: { mode: "running", text: "horizontal", overall: true, decimals: 2, textHeight: 2.5, patternMin: 3, terminator: "tick" },
-    show: { tags: true, legend: true, table: false, edgeNames: true, centreMarks: true },
+    show: { tags: true, legend: true, table: false, edgeNames: true, centreMarks: true, bothSides: true },
     paper: { size: "A4", orientation: "auto", scale: "auto" },
     rules: [],
   };

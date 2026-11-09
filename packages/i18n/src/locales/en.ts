@@ -280,6 +280,7 @@ export const en = {
   "drawing.face.outer": "outer face shown",
   "drawing.origin": "origin: {a} edge × {b} edge",
   "drawing.scale": "scale 1:{n}",
+  "drawing.side": "side {n} of {of}",
   "drawing.legend": "Machining",
   "drawing.table.hole": "Hole",
   "drawing.table.depth": "Depth",

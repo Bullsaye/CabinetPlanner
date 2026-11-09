@@ -4,7 +4,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import {
   buildProject,
   drawAssembly,
-  drawPart,
+  drawPartSheets,
+  stackSheets,
   formatNumber,
   loadProject,
   loadShop,
@@ -61,13 +62,15 @@ for (const file of projects) {
           materialName: localName(mat.name, "en"),
           size: `${formatNumber(part.length)} × ${formatNumber(part.width)} × ${formatNumber(part.thickness)}`,
           ops: part.operations.length,
-          sheet: drawPart({
-            part,
-            cabinet: { W: scene.size.W, H: scene.size.H, D: scene.size.D },
-            style: resolveStyle("machine"),
-            text: drawingText(tr, result.library, "Part sheet"),
-            css: false,
-          }).svg,
+          sheet: stackSheets(
+            drawPartSheets({
+              part,
+              cabinet: { W: scene.size.W, H: scene.size.H, D: scene.size.D },
+              style: resolveStyle("machine"),
+              text: drawingText(tr, result.library, "Part sheet"),
+              css: false,
+            }),
+          ),
         };
       }),
     });

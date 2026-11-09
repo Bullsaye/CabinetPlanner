@@ -288,6 +288,12 @@ describe("brand hinges (values from manufacturer sources, see item files)", () =
     expect(bores(partsByCode(r).DO1!).map((b) => b.v)).toEqual([22, 22]);
   });
 
+  it("Grass Tiomos cranking 3 on H0: TA = A − 12", () => {
+    const r = buildOne({ options: { "hardware.hinge": "grass-tiomos-110-k3-screw" } });
+    expect(r.diagnostics).toEqual([]);
+    expect(bores(partsByCode(r).DO1!).map((b) => b.v)).toEqual([23, 23]); // TA 5.5 + 17.5
+  });
+
   it("rejects a door the hinge cannot reach", () => {
     const r = buildOne({ vars: { front_gap: 14 }, options: { "hardware.hinge": "blum-cliptop-110-inserta" } });
     expect(r.diagnostics).toContainEqual(

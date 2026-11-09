@@ -18,6 +18,19 @@ must be right and easy to read. This page describes the conventions
 | `machine` (default) | Inner face up, **front edge on the reference** (bottom of the sheet = machine Y 0), origin at the bottom-left corner. A right side has its origin at the lower front corner; a left side at the upper front corner (true mirror, same face up). |
 | `upright` | Sides standing, seen from inside, folded outwards (front edge and banding on the left for a left side, on the right for a right side). All flat parts exactly as in `machine`, so the same part never appears turned around on two sheets. |
 
+### Which face, and parts machined on both sides
+
+The sheet shows the inner face, unless only the outer face has machining;
+then the part is turned over so the machined face is up. The front edge
+stays on the reference in both cases.
+
+A part with machining on both faces (e.g. a middle panel) gets two sheets,
+"side 1 of 2" and "side 2 of 2", both with the front edge on the reference.
+Each sheet dimensions only its own side and shows the other side dashed.
+`--sheet 1` or `--sheet 2` writes one of them; without it both are stacked
+in one file. Style setting `show.bothSides: false` keeps everything on one
+sheet.
+
 ## Assembly drawing
 
 Exploded axonometric view seen from front-right-above: sides moved out,
