@@ -9,6 +9,8 @@
   const t = $derived(store.tr.t);
   const c = $derived(store.cabinetDoc);
   const kind = $derived((c?.kind ?? "base") as "base" | "wall" | "tall");
+  /** Parameters in effect: from presets of every layer and the cabinet's own (D45). */
+  const params = $derived(store.cabinet?.resolved.params ?? c?.params ?? []);
   /** Height as a formula under the (sloped) ceiling: the lowest point over the carcase minus base and gap. */
   function fitToCeiling(): void {
     if (!c) return;
@@ -45,10 +47,10 @@
       <button class="quiet link" onclick={fitToCeiling} title={t("ui.fit_to_ceiling_hint")}>{t("ui.fit_to_ceiling")}</button>
     </section>
 
-    {#if c.params?.length}
+    {#if params.length}
       <section>
         <h3 class="label">{t("ui.params")}</h3>
-        {#each c.params as p (p.name)}<ParamRow param={p} />{/each}
+        {#each params as p (p.name)}<ParamRow param={p} />{/each}
       </section>
     {/if}
 

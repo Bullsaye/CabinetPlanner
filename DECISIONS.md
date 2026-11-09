@@ -698,8 +698,29 @@ step, with everything still a formula:
   They pass the same checks as every operation (D17).
 - `construction.hardware`: extra items for the hardware list, quantity as
   a formula.
+- A parameter has a function name (`name`, used in formulas, never
+  translated), a display name (`label`) and a `description`; both texts
+  may be changed or translated by whoever installs a shared pack without
+  touching a formula. Presets carry `params` too: a preset can introduce
+  its own variable (default under the preset's values) and use it in its
+  values, e.g. `fixed_shelf_setback: board_inset`. `ResolvedCabinet.params`
+  lists the parameters in effect (presets of every layer, then the
+  cabinet's own; later ones replace earlier ones by name); the simple
+  editor shows them.
+- Formulas of free parts also see layout facts that follow the back and
+  joint rules: `back_front_z`, `carcase_z0`, `inner_x0`, `inner_x1`,
+  `inner_y0`, `inner_y1` (a variable of the same name wins).
+- Bores and fittings name one part or several (`["SL", "SR"]`: the same
+  local position on each, which on the two sides is a mirrored pair), and
+  the faces `inner` / `outer` (towards / away from the cabinet centre).
+- `construction.fittings`: a hardware item placed on a part at (u, v). Its
+  drilling with mount `part` is drilled around that point, `a` along the
+  part length and `b` along the width; `mirror` measures v from the
+  opposite edge and flips `b` (the copy for the other hand). The item
+  counts once per placement in the hardware list. Swapping the item swaps
+  the holes.
 - Not yet: free grooves/pockets and contours, system hole rows and
-  hinges on free parts, angled parts.
+  hinges on free parts, angled parts, rotated fitting patterns.
 
 ### D46 · 2026-11-09 · DXF and part sheets: contour direction, through pockets
 

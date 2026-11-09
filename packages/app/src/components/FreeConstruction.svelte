@@ -20,6 +20,7 @@
     k.omit ??= [];
     k.bores ??= [];
     k.hardware ??= [];
+    k.fittings ??= [];
     return k;
   }
   /** Writes a number, a formula, or removes the key when the field is empty. */
@@ -104,14 +105,26 @@
   // --- Free bores -------------------------------------------------------------------
   const partCodes = $derived((cab?.parts ?? []).map((p) => p.code));
   /** Names of the two wide faces by where they face in the cabinet. */
-  function faceLabel(code: string, face: string): string {
+  function faceLabel(ref: string | string[], face: string): string {
+    const code = Array.isArray(ref) ? ref[0] : ref;
     const p = cab?.parts.find((x) => x.code === code);
     if (face !== "t0" && face !== "t1") return t(`ui.face.${face}`);
     const axis = p ? (["x", "y", "z"] as const).find((a) => a !== p.lengthAxis && a !== p.widthAxis)! : "x";
     return t(`ui.face.${axis}.${face}`);
   }
   function addBore(): void {
-    cons().bores.push({ part: partCodes[0] ?? "SL", face: "t1", u: 100, v: 100, d: 5, depth: 13 });
+    cons().bores.push({ part: partCodes[0] ?? "SL", face: "inner", u: 100, v: 100, d: 5, depth: 13 });
+  }
+  /** "SL, SR" → one code or a list. */
+  const partText = (ref: string | string[]): string => (Array.isArray(ref) ? ref.join(", ") : ref);
+  function setParts(target: Doc, text: string): void {
+    const list = text.split(/[\s,;]+/).map((x) => x.trim().toUpperCase()).filter(Boolean);
+    if (list.length) target.part = list.length === 1 ? list[0] : list;
+  }
+  const firstPart = (ref: string | string[]): string => (Array.isArray(ref) ? (ref[0] ?? "") : ref);
+  const placeable = $derived(hardware.filter((h) => h.drilling.some((d) => d.mount === "part")));
+  function addFitting(): void {
+    cons().fittings.push({ item: placeable[0]?.id ?? "", part: partCodes[0] ?? "SL", face: "inner", u: 100, v: 100 });
   }
 </script>
 
@@ -131,12 +144,13 @@
           <label class="f"><span>{t("ui.min")}</span><input class="mono" type="text" value={p.min ?? ""} onchange={(e) => setLimit(p, "min", val(e))} /></label>
           <label class="f"><span>{t("ui.max")}</span><input class="mono" type="text" value={p.max ?? ""} onchange={(e) => setLimit(p, "max", val(e))} /></label>
           <label class="f"><span>{t("ui.unit")}</span>
-            <select value={p.unit ?? "mm"} onchange={(e) => { p.unit = val(e); p.integer = val(e) === "count" ? true : undefined; }}>
+            <select aria-label={t("ui.unit")} value={p.unit ?? "mm"} onchange={(e) => { p.unit = val(e); p.integer = val(e) === "count" ? true : undefined; }}>
               <option value="mm">mm</option>
               <option value="count">{t("ui.unit_count")}</option>
             </select>
           </label>
         </div>
+        <label class="f"><span>{t("ui.description")}</span><input type="text" value={typeof p.description === "string" ? p.description : p.description ? localName(p.description, store.ui.lang) : ""} onchange={(e) => { if (val(e).trim()) p.description = val(e).trim(); else delete p.description; }} /></label>
       </div>
     {/each}
     <button onclick={addParam}>{t("ui.add_param")}</button>
@@ -222,16 +236,12 @@
     <h3 class="label">{t("ui.free_bores")}</h3>
     <p class="muted small">{t("ui.free_bores_hint")}</p>
     {#each c.construction?.bores ?? [] as b, k}
-      <div class="card" role="group" aria-label={`${t("ui.free_bore")} ${k + 1}`} onfocusin={() => (store.ui.part = cab?.parts.find((x) => x.code === b.part)?.id ?? null)}>
+      <div class="card" role="group" aria-label={`${t("ui.free_bore")} ${k + 1}`} onfocusin={() => (store.ui.part = cab?.parts.find((x) => x.code === firstPart(b.part))?.id ?? null)}>
         <div class="line">
-          <label class="f"><span>{t("ui.part")}</span>
-            <select value={b.part} onchange={(e) => (b.part = val(e))}>
-              {#each [...new Set([b.part, ...partCodes])] as code}<option value={code}>{code}</option>{/each}
-            </select>
-          </label>
+          <label class="f w2"><span>{t("ui.parts")}</span><input class="mono" type="text" list="fc-parts" value={partText(b.part)} onchange={(e) => setParts(b, val(e))} /></label>
           <label class="f w3"><span>{t("ui.face")}</span>
-            <select value={b.face ?? "t1"} onchange={(e) => (b.face = val(e))}>
-              {#each ["t0", "t1", "l1", "l2", "w1", "w2"] as f}<option value={f}>{faceLabel(b.part, f)}</option>{/each}
+            <select value={b.face ?? "inner"} onchange={(e) => (b.face = val(e))}>
+              {#each ["inner", "outer", "t0", "t1", "l1", "l2", "w1", "w2"] as f}<option value={f}>{faceLabel(b.part, f)}</option>{/each}
             </select>
           </label>
           <button class="quiet x" aria-label={t("ui.delete")} onclick={() => cons().bores.splice(k, 1)}>×</button>
@@ -246,6 +256,46 @@
       </div>
     {/each}
     <button onclick={addBore}>{t("ui.add_bore")}</button>
+  </section>
+
+  <datalist id="fc-parts">
+    <option value="SL, SR"></option>
+    {#each partCodes as code}<option value={code}></option>{/each}
+  </datalist>
+
+  <section>
+    <h3 class="label">{t("ui.fittings_placed")}</h3>
+    <p class="muted small">{t("ui.fittings_placed_hint")}</p>
+    {#each c.construction?.fittings ?? [] as f, k}
+      <div class="card" role="group" aria-label={`${t("ui.fitting")} ${k + 1}`} onfocusin={() => (store.ui.part = cab?.parts.find((x) => x.code === firstPart(f.part))?.id ?? null)}>
+        <div class="line">
+          <label class="f w3"><span>{t("ui.fitting")}</span>
+            <select value={f.item} onchange={(e) => (f.item = val(e))}>
+              {#each [...new Set([f.item, ...placeable.map((h) => h.id)])] as id}
+                <option value={id}>{lib?.hardware.get(id) ? localName(lib.hardware.get(id)!.name, store.ui.lang) : id}</option>
+              {/each}
+            </select>
+          </label>
+          <button class="quiet x" aria-label={t("ui.delete")} onclick={() => cons().fittings.splice(k, 1)}>×</button>
+        </div>
+        <div class="line">
+          <label class="f w2"><span>{t("ui.parts")}</span><input class="mono" type="text" list="fc-parts" value={partText(f.part)} onchange={(e) => setParts(f, val(e))} /></label>
+          <label class="f w2"><span>{t("ui.face")}</span>
+            <select value={f.face ?? "inner"} onchange={(e) => (f.face = val(e))}>
+              {#each ["inner", "outer", "t0", "t1"] as fc}<option value={fc}>{faceLabel(f.part, fc)}</option>{/each}
+            </select>
+          </label>
+        </div>
+        <div class="line">
+          <label class="f"><span>{t("ui.bore_u")}</span><input class="mono" type="text" value={f.u} onchange={(e) => setVal(f, "u", val(e) || "0")} /></label>
+          <label class="f"><span>{t("ui.bore_v")}</span><input class="mono" type="text" value={f.v} onchange={(e) => setVal(f, "v", val(e) || "0")} /></label>
+          <label class="f"><span>{t("ui.repeat")}</span><input class="mono" type="text" value={f.repeat ?? ""} placeholder="1" onchange={(e) => setVal(f, "repeat", val(e))} /></label>
+          <label class="check" title={t("ui.mirror_hint")}><input type="checkbox" checked={!!f.mirror} onchange={(e) => { if ((e.target as HTMLInputElement).checked) f.mirror = true; else delete f.mirror; }} /> {t("ui.mirror")}</label>
+        </div>
+      </div>
+    {/each}
+    <button onclick={addFitting} disabled={!placeable.length}>{t("ui.add_fitting")}</button>
+    {#if !placeable.length}<p class="muted small">{t("ui.no_placeable")}</p>{/if}
   </section>
 
   <section>

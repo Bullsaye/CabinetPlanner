@@ -12,6 +12,7 @@
   const own = $derived(doc?.vars?.[name] === undefined ? "" : String(doc.vars[name]));
   const step = $derived((param.step ?? def?.step ?? (param.unit === "count" ? 1 : 10)) as number);
   const label = $derived(param.label ? localName(param.label, store.ui.lang) : def ? t(`var.${name}`) : name);
+  const description = $derived(param.description ? localName(param.description, store.ui.lang) : "");
   const show = (x: number | undefined): string => (x === undefined ? "?" : formatNumber(x));
   function stepBy(by: number): void {
     let next = (rv?.value ?? 0) + by;
@@ -24,7 +25,7 @@
 </script>
 
 <div class="var">
-  <label for={`p-${name}`} title={name}>{label}</label>
+  <label for={`p-${name}`} title={description ? `${description} (${name})` : name}>{label}</label>
   <span class="field">
     <button class="step" tabindex="-1" aria-label={`${label} −`} onclick={() => stepBy(-step)}>−</button>
     <input
@@ -42,6 +43,7 @@
   {#if own !== ""}
     <button class="quiet reset" title={t("ui.reset")} aria-label={t("ui.reset")} onclick={() => setVar("cabinet", name, undefined)}>↺</button>
   {:else}<span></span>{/if}
+  {#if description}<p class="desc muted">{description}</p>{/if}
 </div>
 
 <style>
@@ -52,4 +54,5 @@
   .step { padding: 0 8px; }
   .val { text-align: right; font-size: 12px; }
   .reset { padding: 0 4px; }
+  .desc { grid-column: 1 / -1; font-size: 11px; margin: -2px 0 2px; }
 </style>
