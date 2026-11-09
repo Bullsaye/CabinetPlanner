@@ -279,6 +279,7 @@ export const de: Record<MessageKey, string> = {
   "diag.expr_division_by_zero": "{name}: Division durch null.",
   "diag.expr_not_finite": "{name}: das Ergebnis ist keine endliche Zahl.",
   "diag.expr_empty": "{name}: der Ausdruck ist leer.",
+  "diag.expr_too_complex": "{name}: der Ausdruck ist zu lang oder zu tief verschachtelt.",
 
   "diag.option_unknown": "Unbekannte Option {key} in der Ebene {layer}.",
   "diag.option_invalid_value": "{key} darf nicht „{value}“ sein. Erlaubt: {allowed}.",

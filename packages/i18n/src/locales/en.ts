@@ -296,6 +296,7 @@ export const en = {
   "diag.expr_division_by_zero": "{name}: division by zero.",
   "diag.expr_not_finite": "{name}: the result is not a finite number.",
   "diag.expr_empty": "{name}: the expression is empty.",
+  "diag.expr_too_complex": "{name}: the expression is too long or nested too deeply.",
 
   // Diagnostics: options and presets
   "diag.option_unknown": "Unknown option {key} in the {layer} layer.",
