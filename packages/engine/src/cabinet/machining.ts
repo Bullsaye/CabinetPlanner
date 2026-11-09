@@ -8,6 +8,7 @@ import {
   addThroughBore,
   boreWouldCollide,
   checkOperations,
+  pocketWouldCollide,
   resolveOpposing,
   type Direction,
   type OpSource,
@@ -210,6 +211,21 @@ export function machineBox(
     const fastener = method === "connector" || method === "connector_dowel" ? library.hardware.get(opt<string>("hardware.fastener"))! : undefined;
     const seenLimits = new Set<string>();
     const screw = opt<string>("joint_screws") === "between_dowels" ? library.hardware.get(opt<string>("hardware.joint_screw")) : undefined;
+    /** Findings about item data repeat on every joint: report each once. */
+    const once = (d: Diagnostic): void => {
+      const k = d.code + JSON.stringify(d.params);
+      if (!seenLimits.has(k)) diagnostics.push(d), seenLimits.add(k);
+    };
+    /** The drilling a joint can take. A hole into a panel's end cannot go through the panel (item data). */
+    const jointDrills = (item: HardwareItem, drills: EvaluatedDrill[]): EvaluatedDrill[] =>
+      drills.filter((dr, i) => {
+        if (dr.mount !== "face" && dr.mount !== "edge" && dr.mount !== "edge_face") return false;
+        if (dr.through && dr.mount === "edge") {
+          once({ severity: "error", code: "hardware_drill_invalid", params: { item: item.id, index: i + 1, field: "through", detail: "edge" }, ...at });
+          return false;
+        }
+        return true;
+      });
     /** The screw's drilling for one joint (thicknesses differ per joint). */
     const screwPlan = (j: Joint): ConnectorPlan | undefined => {
       if (!screw) return undefined;
@@ -217,8 +233,9 @@ export function machineBox(
       scope.set("t_edge", j.edgePart.thickness);
       scope.set("t_face", j.facePart.thickness);
       const params = evaluateItemParams(screw, scope, at);
-      const { drills } = evaluateDrilling(screw, params.values, at);
-      return { item: screw, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: 0, spacingMax: Infinity };
+      const { drills, diagnostics: dd } = evaluateDrilling(screw, params.values, at);
+      [...params.diagnostics, ...dd].forEach(once);
+      return { item: screw, drills: jointDrills(screw, drills), endMin: 0, spacingMax: Infinity };
     };
 
     for (const j of carcaseJoints(parts, opt<string>("carcase_joint"))) {
@@ -265,7 +282,7 @@ export function machineBox(
             diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: fastener.id, mount: dr.mount, category: fastener.category }, ...at });
           }
         }
-        conn = { item: fastener, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+        conn = { item: fastener, drills: jointDrills(fastener, drills), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
       }
       const geo: JointGeometry = { j, W, H, D, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
 
@@ -287,7 +304,12 @@ export function machineBox(
           minCount: 2,
         };
         delete (o as { sequence?: unknown }).sequence;
-        const zs = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
+        // Connectors keep at least their own length along the joint apart (the grid alone allows one pitch).
+        const span = Math.max(0, ...c.drills.map((dr) => (dr.op === "groove" ? dr.len : dr.d))) + minWall;
+        const zs: number[] = [];
+        for (const z of dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)))) {
+          if (zs.length === 0 || zs[zs.length - 1]! - z >= span - 1e-9) zs.push(z);
+        }
         for (const z of zs) placeConnector(geo, c, m(z));
         placed = zs.length;
         use(c.item, zs.length);
@@ -902,10 +924,26 @@ function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part
   return dr.mount === "face" ? { part: j.facePart, entry: p, dir: j.intoFace } : { part: j.edgePart, entry: p, dir: intoEdge };
 }
 
+/** Slot of width d and length len (D36), `depth` into the part from the entry plane. */
+function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Direction): { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number } {
+  const lo = { ...entry };
+  const hi = { ...entry };
+  const ax = dir[1] as Axis;
+  const across = g.j.across.axis;
+  if (sign(dir) > 0) hi[ax] += dr.depth;
+  else lo[ax] -= dr.depth;
+  lo[across] -= dr.d / 2;
+  hi[across] += dr.d / 2;
+  lo[g.j.line] -= dr.len / 2;
+  hi[g.j.line] += dr.len / 2;
+  return { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z };
+}
+
 function connectorFits(g: JointGeometry, c: ConnectorPlan, z: number): boolean {
   return c.drills.every((dr) => {
-    if (dr.op === "groove") return true;
     const { part, entry, dir } = connectorDrill(g, dr, z);
+    // A slot must stay a pocket of its part (not through it, not off it) and clear of bores.
+    if (dr.op === "groove") return !pocketWouldCollide(part, grooveBox(g, dr, entry, dir), g.minWall);
     const depth = dr.through ? part.thickness : dr.depth;
     // A bore that would leave the part (e.g. too close to the end) does not fit either.
     try {
@@ -922,18 +960,7 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
   for (const dr of c.drills) {
     const { part, entry, dir } = connectorDrill(g, dr, z);
     if (dr.op === "groove") {
-      // Slot of width d and length len, depth into the part from the joint plane.
-      const lo = { ...entry };
-      const hi = { ...entry };
-      const ax = dir[1] as Axis;
-      const across = g.j.across.axis;
-      if (sign(dir) > 0) hi[ax] += dr.depth;
-      else lo[ax] -= dr.depth;
-      lo[across] -= dr.d / 2;
-      hi[across] += dr.d / 2;
-      lo[g.j.line] -= dr.len / 2;
-      hi[g.j.line] += dr.len / 2;
-      addPocketFromBox(part, { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z }, source);
+      addPocketFromBox(part, grooveBox(g, dr, entry, dir), source);
     } else if (dr.through) {
       addThroughBore(part, entry, dir, dr.d, g.mode, g.overlap, source);
     } else {

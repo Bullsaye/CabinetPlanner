@@ -271,6 +271,34 @@ export function boreWouldCollide(
   return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
 }
 
+/**
+ * True when a pocket over `box` (cabinet coordinates) cannot be milled into
+ * the part: it misses the part, is not open to any face, would cut through
+ * the thickness, or comes closer than `margin` to an existing bore. Pockets
+ * may meet other pockets (D17).
+ */
+export function pocketWouldCollide(
+  part: Part,
+  box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number },
+  margin: number,
+): boolean {
+  const lo: Point3 = { x: Math.max(box.x0, part.box.x), y: Math.max(box.y0, part.box.y), z: Math.max(box.z0, part.box.z) };
+  const hi: Point3 = {
+    x: Math.min(box.x1, part.box.x + part.box.dx),
+    y: Math.min(box.y1, part.box.y + part.box.dy),
+    z: Math.min(box.z1, part.box.z + part.box.dz),
+  };
+  if (hi.x - lo.x <= EPS || hi.y - lo.y <= EPS || hi.z - lo.z <= EPS) return true;
+  const a = toLocal(part, lo);
+  const b = toLocal(part, hi);
+  const t0 = a.w <= EPS;
+  const t1 = b.w >= part.thickness - EPS;
+  if (t0 && t1) return true;
+  if (!t0 && !t1 && a.v > EPS && b.v < part.width - EPS && a.u > EPS && b.u < part.length - EPS) return true;
+  const grown: Aabb = { u0: a.u - margin, u1: b.u + margin, v0: a.v - margin, v1: b.v + margin, w0: a.w - margin, w1: b.w + margin };
+  return part.operations.some((o) => o.kind === "bore" && overlaps(grown, opBounds(part, o)));
+}
+
 const isSplitPair = (a: Operation, b: Operation): boolean =>
   a.kind === "bore" &&
   b.kind === "bore" &&

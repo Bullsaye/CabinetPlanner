@@ -186,6 +186,49 @@ describe("dowel sequence pattern (D35)", () => {
   });
 });
 
+describe("connector slots (Clamex)", () => {
+  it("keeps slots of one joint apart at every depth", () => {
+    // The grid leaves the rearmost position one pitch (D 430) or two (D 460) behind the one before: 69.6 mm slots overlap.
+    for (const D of [430, 460, 560]) {
+      const r = buildOne({ vars: { W: 600, D }, options: { joint_method: "connector", "hardware.fastener": "lamello-clamex-p14", system_holes: "none", "hardware.shelf_support": null } });
+      expect(r.diagnostics, `D ${D}`).toEqual([]);
+      const slots = partsByCode(r)
+        .SL!.operations.filter((o) => o.kind === "pocket" && o.sources.some((s) => s.group?.startsWith("SL-BO@")))
+        .map((o) => (o.kind === "pocket" ? [o.v0, o.v1] : [0, 0]))
+        .sort((a, b) => a[0]! - b[0]!);
+      expect(slots.length, `D ${D}`).toBeGreaterThanOrEqual(2);
+      for (let i = 1; i < slots.length; i++) expect(slots[i]![0]!, `D ${D}`).toBeGreaterThanOrEqual(slots[i - 1]![1]! + 2);
+    }
+  });
+});
+
+describe("hardware items with data that cannot be machined", () => {
+  const withItem = (drilling: Record<string, unknown>[], options: Record<string, unknown> = { joint_method: "connector", "hardware.fastener": "x" }) =>
+    buildOne({ options }, { library: { hardware: [{ id: "x", name: { en: "x" }, category: "connector", drilling }] } });
+
+  it("reports a through hole into a panel end instead of crashing", () => {
+    const r = withItem([{ mount: "edge", d: 5, depth: 0, a: 0, b: 0, through: true }]);
+    expect(r.diagnostics.filter((d) => d.code === "hardware_drill_invalid").map((d) => d.params)).toEqual([{ item: "x", index: 1, field: "through", detail: "edge" }]);
+    const screws = withItem([{ mount: "edge", d: 3, depth: 0, a: 0, b: 0, through: true }], { joint_screws: "between_dowels", "hardware.joint_screw": "x" });
+    expect(errors(screws)).toEqual(["hardware_drill_invalid"]);
+  });
+
+  it("does not mill a slot through the panel it is cut into", () => {
+    const r = withItem([{ mount: "face", op: "groove", d: 7, depth: 30, len: 60, a: 0, b: 0 }]);
+    expect(errors(r)).toContain("joint_no_dowels");
+    expect(r.parts.every((p) => p.operations.every((o) => o.kind !== "pocket" || o.sources[0]!.kind !== "hardware"))).toBe(true);
+  });
+
+  it("reports diameters, depths and slot lengths that are not positive", () => {
+    const fields = (drilling: Record<string, unknown>[]): unknown[] => [...new Set(withItem(drilling).diagnostics.filter((d) => d.code === "hardware_drill_invalid").map((d) => d.params["field"]))];
+    expect(fields([{ mount: "face", d: -5, depth: 10, a: 0, b: 0 }])).toEqual(["d"]);
+    expect(fields([{ mount: "face", d: 5, depth: -3, a: 0, b: 0 }])).toEqual(["depth"]);
+    expect(fields([{ mount: "face", op: "groove", d: 7, depth: 10, a: 0, b: 0 }])).toEqual(["len"]);
+    // Through holes carry no depth.
+    expect(fields([{ mount: "face", d: 5, depth: 0, a: 0, b: 0, through: true }])).toEqual([]);
+  });
+});
+
 describe("upright rails and the interior", () => {
   const upright = { top: "rails", "rail.front": "upright", "rail.rear": "upright" };
 

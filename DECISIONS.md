@@ -675,3 +675,10 @@ the earlier entries stay as written.
   A blocked position that cannot move forward moves to the rear in pitch
   steps (up to three, like forward); a rearmost position that cannot keep
   `dowel_offset_rear` without that is dropped.
+- Connectors (D36): consecutive connectors of a joint keep at least their
+  own length along the joint (slot length or largest Ø) plus
+  `bore_min_wall` apart; positions closer than that are left out. A slot
+  is only placed where it stays a pocket of its part and clear of bores.
+- Item data that cannot be machined is `hardware_drill_invalid`: a
+  diameter, blind depth or slot length that is not positive
+  (`not_positive`), `through` on a connector's `edge` mount (`edge`).
