@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "shop",
+  "name": "My shop",
+  "library": {
+    "materials": [
+      { "id": "mel-anthracite-19", "name": "Melamine anthracite 19", "thickness": 19, "grain": false }
+    ],
+    "presets": [
+      {
+        "id": "dowel-32-sides-over",
+        "name": { "en": "Dowel 32 · sides over", "de": "Dübel 32 · Seiten über" },
+        "group": "construction",
+        "vars": { "back_groove_offset": 10, "back_groove_depth": 8 },
+        "options": { "carcase_joint": "sides_over", "back_mount": "groove" }
+      }
+    ]
+  },
+  "defaults": {
+    "presets": ["dowel-32-sides-over"],
+    "vars": { "front_gap": 3, "plinth_h": 100 },
+    "options": {}
+  }
+}

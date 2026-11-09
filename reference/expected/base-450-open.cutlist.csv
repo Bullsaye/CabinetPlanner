@@ -1,0 +1,7 @@
+Part,Cabinet,Name,Material,L,W,T,Cut L,Cut W,Qty,Grain,Edge L1,Edge L2,Edge W1,Edge W2,Note
+B01-SL,B01,Side L,Melamine white 19,720,560,19,720,559,1,,,W1,,,
+B01-SR,B01,Side R,Melamine white 19,720,560,19,720,559,1,,,W1,,,
+B01-BO,B01,Bottom,Melamine white 19,412,560,19,412,559,1,,,W1,,,
+B01-RF,B01,Front rail,Melamine white 19,412,100,19,412,99,1,,,W1,,,
+B01-RR,B01,Rear rail,Melamine white 19,412,100,19,412,100,1,,,,,,
+B01-BK,B01,Back,HDF white 8,707,426,8,707,426,1,,,,,,

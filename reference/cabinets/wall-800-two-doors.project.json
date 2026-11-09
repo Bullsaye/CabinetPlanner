@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Wall 800, two doors, full top",
+  "cabinets": [
+    { "id": "W01", "type": "box", "vars": { "W": 800, "H": 720, "D": 320, "door_count": 2, "shelf_count": 2 }, "options": { "top": "full" } }
+  ]
+}

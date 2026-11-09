@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 600, back in rebate",
+  "cabinets": [
+    { "id": "B01", "type": "box", "options": { "back_mount": "rebate" } }
+  ]
+}

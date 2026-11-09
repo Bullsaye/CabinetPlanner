@@ -1,0 +1,122 @@
+import type { VarInput } from "./graph.ts";
+
+/**
+ * Catalogue of the variables and options the engine understands. Factory
+ * defaults live here; every other layer (shop, project, cabinet) only
+ * overrides. Labels are not stored here: the UI looks them up via i18n as
+ * `var.<name>`, `var.<name>.hint`, `option.<key>` and `option.<key>.<value>`.
+ */
+
+export type VarGroup = "dimensions" | "board" | "construction" | "back" | "shelves" | "fronts";
+export type VarUnit = "mm" | "count";
+
+export interface VarDef {
+  name: string;
+  group: VarGroup;
+  unit: VarUnit;
+  /** Factory value or expression. */
+  factory: VarInput;
+  min?: number;
+  max?: number;
+  /** Suggested increment for steppers in the UI. */
+  step?: number;
+  integer?: boolean;
+  /** Shown in the quick panel / tablet steppers. */
+  quick?: boolean;
+}
+
+const v = (d: VarDef): VarDef => d;
+
+/** In UI order. */
+export const VARIABLES: readonly VarDef[] = [
+  // Dimensions. H is the carcase height without plinth; D is the carcase depth without fronts.
+  v({ name: "W", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 2800, step: 50, quick: true }),
+  v({ name: "H", group: "dimensions", unit: "mm", factory: "base_h", min: 100, max: 2800, step: 10, quick: true }),
+  v({ name: "D", group: "dimensions", unit: "mm", factory: "worktop_d - 40", min: 100, max: 1200, step: 10, quick: true }),
+  v({ name: "base_h", group: "dimensions", unit: "mm", factory: 720, min: 100, max: 2800, step: 10 }),
+  v({ name: "worktop_d", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 1200, step: 10 }),
+  v({ name: "plinth_h", group: "dimensions", unit: "mm", factory: 100, min: 0, max: 300, step: 10, quick: true }),
+
+  // Board thicknesses follow the chosen materials unless overridden.
+  v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),
+  v({ name: "t_back", group: "board", unit: "mm", factory: "mat_back_t", min: 2, max: 40 }),
+  v({ name: "t_shelf", group: "board", unit: "mm", factory: "mat_shelf_t", min: 3, max: 60 }),
+  v({ name: "t_front", group: "board", unit: "mm", factory: "mat_front_t", min: 3, max: 60 }),
+
+  // Construction.
+  v({ name: "rail_w", group: "construction", unit: "mm", factory: 100, min: 30, max: 300, step: 10 }),
+
+  // Back panel.
+  v({ name: "back_groove_offset", group: "back", unit: "mm", factory: 10, min: 0, max: 100 }),
+  v({ name: "back_groove_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
+  v({ name: "back_rebate_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
+  v({ name: "back_play", group: "back", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
+
+  // Shelves.
+  v({ name: "shelf_count", group: "shelves", unit: "count", factory: 1, min: 0, max: 20, integer: true, step: 1, quick: true }),
+  v({ name: "shelf_gap", group: "shelves", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
+  v({ name: "shelf_front_setback", group: "shelves", unit: "mm", factory: 10, min: 0, max: 200 }),
+  v({ name: "shelf_back_gap", group: "shelves", unit: "mm", factory: 2, min: 0, max: 50 }),
+
+  // Fronts (full overlay in phase 0).
+  v({ name: "door_count", group: "fronts", unit: "count", factory: 1, min: 0, max: 2, integer: true, step: 1, quick: true }),
+  v({ name: "front_gap", group: "fronts", unit: "mm", factory: 3, min: 0, max: 20, step: 0.5, quick: true }),
+  v({ name: "front_gap_top", group: "fronts", unit: "mm", factory: "front_gap", min: 0, max: 100 }),
+  v({ name: "front_gap_bottom", group: "fronts", unit: "mm", factory: 0, min: -50, max: 100 }),
+  v({ name: "front_gap_side", group: "fronts", unit: "mm", factory: "front_gap / 2", min: 0, max: 50 }),
+];
+
+export const VARIABLE_BY_NAME: ReadonlyMap<string, VarDef> = new Map(VARIABLES.map((d) => [d.name, d]));
+
+/** Read-only inputs injected from the chosen materials; expressions may use them. */
+export const MATERIAL_CONSTANTS = {
+  mat_carcase_t: "material.carcase",
+  mat_back_t: "material.back",
+  mat_shelf_t: "material.shelf",
+  mat_front_t: "material.front",
+} as const;
+
+// ---------------------------------------------------------------------------
+// Options: non-numeric choices (construction variants, library references).
+
+export type OptionKind =
+  | { type: "enum"; values: readonly string[] }
+  | { type: "material" }
+  | { type: "edgeband" } // edgeband id, or null for "no banding"
+  | { type: "boolean" };
+
+export interface OptionDef {
+  key: string;
+  group: VarGroup | "materials" | "edges";
+  kind: OptionKind;
+  factory: string | boolean | null;
+}
+
+export const OPTIONS: readonly OptionDef[] = [
+  {
+    key: "carcase_joint",
+    group: "construction",
+    kind: { type: "enum", values: ["sides_over", "sides_between"] },
+    factory: "sides_over",
+  },
+  { key: "top", group: "construction", kind: { type: "enum", values: ["full", "rails"] }, factory: "rails" },
+  {
+    key: "back_mount",
+    group: "back",
+    kind: { type: "enum", values: ["groove", "rebate", "surface"] },
+    factory: "groove",
+  },
+  { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
+  { key: "material.back", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
+  { key: "material.shelf", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
+  { key: "material.front", group: "materials", kind: { type: "material" }, factory: "mdf-lacquer-19" },
+  { key: "edge.carcase", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
+  { key: "edge.shelf", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
+  { key: "edge.front", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
+  /** Subtract edgeband thickness from finished size to get the cut size. */
+  { key: "edge.deduct", group: "edges", kind: { type: "boolean" }, factory: true },
+];
+
+export const OPTION_BY_KEY: ReadonlyMap<string, OptionDef> = new Map(OPTIONS.map((d) => [d.key, d]));
+
+export type OptionValue = string | boolean | null;

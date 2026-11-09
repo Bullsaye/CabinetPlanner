@@ -1,0 +1,10 @@
+Part,Cabinet,Name,Material,L,W,T,Cut L,Cut W,Qty,Grain,Edge L1,Edge L2,Edge W1,Edge W2,Note
+W01-SL,W01,Side L,Melamine white 19,720,320,19,720,319,1,,,W1,,,
+W01-SR,W01,Side R,Melamine white 19,720,320,19,720,319,1,,,W1,,,
+W01-BO,W01,Bottom,Melamine white 19,762,320,19,762,319,1,,,W1,,,
+W01-TO,W01,Top,Melamine white 19,762,320,19,762,319,1,,,W1,,,
+W01-BK,W01,Back,HDF white 8,696,776,8,696,776,1,,,,,,
+W01-SH1,W01,Shelf,Melamine white 19,760,290,19,760,289,1,,,W1,,,
+W01-SH2,W01,Shelf,Melamine white 19,760,290,19,760,289,1,,,W1,,,
+W01-DO1,W01,Door,Lacquer MDF 19,717,397,19,715,395,1,,W1,W1,W1,W1,
+W01-DO2,W01,Door,Lacquer MDF 19,717,397,19,715,395,1,,W1,W1,W1,W1,

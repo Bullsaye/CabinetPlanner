@@ -1,0 +1,24 @@
+# Reference cabinets
+
+Each `cabinets/<name>.project.json` must produce exactly
+`expected/<name>.cutlist.csv` (byte for byte). The test is
+`packages/cli/test/reference.test.ts`.
+
+**Status: unverified.** The expected values are derived from the rules in
+`DECISIONS.md` and checked by hand for the base 600 (see
+`packages/engine/test/box.test.ts`), not measured on a built cabinet. Replace
+or confirm them with real shop cabinets as they become available, and mark
+each confirmed file in the table below.
+
+| Cabinet | Covers | Verified |
+| --- | --- | --- |
+| base-600-door | Factory defaults: rails, back in groove, 1 shelf, 1 door | – |
+| base-450-open | No door, no shelf | – |
+| base-500-oak | Grain material, 0.5 mm veneer edge | – |
+| base-600-rebate-back | Back in rebate | – |
+| base-600-surface-back | Surface back, no edge deduction | – |
+| tall-600-sides-between | Sides between, full top, 4 shelves | – |
+| wall-800-two-doors | Full top, 2 doors, shallow depth | – |
+
+After an intended rule change: `pnpm test -u`, then review `git diff
+reference/expected` line by line before committing.

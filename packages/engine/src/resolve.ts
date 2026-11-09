@@ -1,0 +1,243 @@
+import {
+  MATERIAL_CONSTANTS,
+  OPTION_BY_KEY,
+  OPTIONS,
+  VARIABLE_BY_NAME,
+  VARIABLES,
+  type OptionValue,
+} from "./catalog.ts";
+import type { Diagnostic } from "./diagnostics.ts";
+import { evaluateGraph, type VarInput } from "./graph.ts";
+import type { Library } from "./library.ts";
+import type { CabinetInput, Layer, Preset, Project, Shop } from "./schema.ts";
+
+/** Layers in resolution order; the last one that sets a value wins. */
+export const LAYERS = ["factory", "shop", "project", "cabinet"] as const;
+export type LayerName = (typeof LAYERS)[number];
+
+/** Where a value came from: a layer, and optionally the preset within it. */
+export interface Source {
+  layer: LayerName;
+  preset?: string;
+}
+
+export interface ResolvedVar {
+  name: string;
+  input: VarInput;
+  value: number | undefined;
+  source: Source;
+  /** Values this variable would have without the winning layer, for "reset to inherited". */
+  inherited?: { input: VarInput; source: Source };
+  /** False for user-defined variables that are not in the catalogue. */
+  known: boolean;
+}
+
+export interface ResolvedOption {
+  key: string;
+  value: OptionValue;
+  source: Source;
+  inherited?: { value: OptionValue; source: Source };
+}
+
+export interface ResolvedCabinet {
+  cabinet: CabinetInput;
+  vars: Map<string, ResolvedVar>;
+  options: Map<string, ResolvedOption>;
+  /** Evaluated numbers by variable name, including material constants. */
+  values: Map<string, number>;
+  diagnostics: Diagnostic[];
+}
+
+export interface ResolveContext {
+  library: Library;
+  presets: ReadonlyMap<string, Preset>;
+  shop: Layer | undefined;
+}
+
+/** Builds the preset registry: shop presets, then project presets (later ids win). */
+export function presetRegistry(shop: Shop | undefined, project: Project): Map<string, Preset> {
+  const reg = new Map<string, Preset>();
+  shop?.library.presets.forEach((p) => reg.set(p.id, p));
+  project.library.presets.forEach((p) => reg.set(p.id, p));
+  return reg;
+}
+
+interface Entry<T> {
+  value: T;
+  source: Source;
+}
+
+/**
+ * Resolves all variables and options of one cabinet through the layers and
+ * evaluates the variable graph. Never throws on bad user data: problems are
+ * returned as diagnostics so the UI can show them next to the field.
+ */
+export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: ResolveContext): ResolvedCabinet {
+  const diagnostics: Diagnostic[] = [];
+  const at = { cabinet: cabinet.id };
+
+  // Stack of entries per name; the last element is the winner.
+  const varStack = new Map<string, Entry<VarInput>[]>();
+  const optStack = new Map<string, Entry<OptionValue>[]>();
+  const push = <T>(m: Map<string, Entry<T>[]>, k: string, e: Entry<T>): void => {
+    const list = m.get(k);
+    if (list) list.push(e);
+    else m.set(k, [e]);
+  };
+
+  for (const d of VARIABLES) push(varStack, d.name, { value: d.factory, source: { layer: "factory" } });
+  for (const o of OPTIONS) push(optStack, o.key, { value: o.factory, source: { layer: "factory" } });
+
+  const applyValues = (
+    vars: Record<string, VarInput>,
+    options: Record<string, OptionValue>,
+    source: Source,
+  ): void => {
+    for (const [k, val] of Object.entries(vars)) {
+      if (Object.hasOwn(MATERIAL_CONSTANTS, k)) {
+        diagnostics.push({ severity: "error", code: "var_shadows_constant", params: { name: k }, variable: k, ...at });
+        continue;
+      }
+      push(varStack, k, { value: val, source });
+    }
+    for (const [k, val] of Object.entries(options)) {
+      if (!OPTION_BY_KEY.has(k)) {
+        diagnostics.push({ severity: "error", code: "option_unknown", params: { key: k, layer: source.layer }, ...at });
+        continue;
+      }
+      push(optStack, k, { value: val, source });
+    }
+  };
+
+  const applyLayer = (layer: Layer | undefined, name: LayerName): void => {
+    if (!layer) return;
+    for (const id of layer.presets) {
+      const preset = ctx.presets.get(id);
+      if (!preset) {
+        diagnostics.push({ severity: "error", code: "preset_unknown", params: { id, layer: name }, ...at });
+        continue;
+      }
+      applyValues(preset.vars, preset.options, { layer: name, preset: id });
+    }
+    applyValues(layer.vars, layer.options, { layer: name });
+  };
+
+  applyLayer(ctx.shop, "shop");
+  applyLayer(project, "project");
+  applyLayer(cabinet, "cabinet");
+
+  // Options: validate the winners.
+  const options = new Map<string, ResolvedOption>();
+  for (const [key, stack] of optStack) {
+    const win = stack[stack.length - 1]!;
+    const prev = stack[stack.length - 2];
+    options.set(key, {
+      key,
+      value: win.value,
+      source: win.source,
+      ...(prev ? { inherited: { value: prev.value, source: prev.source } } : {}),
+    });
+    validateOption(key, win.value, ctx.library, diagnostics, at);
+  }
+
+  // Material constants.
+  const constants = new Map<string, number>();
+  for (const [name, optKey] of Object.entries(MATERIAL_CONSTANTS)) {
+    const id = options.get(optKey)?.value;
+    const mat = typeof id === "string" ? ctx.library.materials.get(id) : undefined;
+    if (mat) constants.set(name, mat.thickness);
+  }
+
+  // Variables.
+  const defs = new Map<string, VarInput>();
+  for (const [name, stack] of varStack) defs.set(name, stack[stack.length - 1]!.value);
+  const graph = evaluateGraph(defs, constants);
+  for (const d of graph.diagnostics) {
+    // A missing material constant is already reported as material_unknown.
+    if (d.code === "var_unknown_reference" && Object.hasOwn(MATERIAL_CONSTANTS, d.params["ref"] as string)) continue;
+    diagnostics.push({ ...d, ...at });
+  }
+
+  const vars = new Map<string, ResolvedVar>();
+  for (const [name, stack] of varStack) {
+    const win = stack[stack.length - 1]!;
+    const prev = stack[stack.length - 2];
+    vars.set(name, {
+      name,
+      input: win.value,
+      value: graph.values.get(name),
+      source: win.source,
+      ...(prev ? { inherited: { input: prev.value, source: prev.source } } : {}),
+      known: VARIABLE_BY_NAME.has(name),
+    });
+  }
+
+  // Range checks on catalogued variables.
+  for (const def of VARIABLES) {
+    const value = graph.values.get(def.name);
+    if (value === undefined) continue;
+    const base = { variable: def.name, ...at };
+    if (def.integer && !Number.isInteger(value)) {
+      diagnostics.push({ severity: "error", code: "var_not_integer", params: { name: def.name, value }, ...base });
+    }
+    if (def.min !== undefined && value < def.min) {
+      diagnostics.push({ severity: "error", code: "var_below_min", params: { name: def.name, value, min: def.min }, ...base });
+    }
+    if (def.max !== undefined && value > def.max) {
+      diagnostics.push({ severity: "error", code: "var_above_max", params: { name: def.name, value, max: def.max }, ...base });
+    }
+  }
+
+  // Thickness overridden away from the material: allowed, but worth a warning.
+  const thicknessPairs: [string, keyof typeof MATERIAL_CONSTANTS][] = [
+    ["t_carcase", "mat_carcase_t"],
+    ["t_back", "mat_back_t"],
+    ["t_shelf", "mat_shelf_t"],
+    ["t_front", "mat_front_t"],
+  ];
+  for (const [tVar, cName] of thicknessPairs) {
+    const t = graph.values.get(tVar);
+    const m = constants.get(cName);
+    if (t !== undefined && m !== undefined && t !== m) {
+      diagnostics.push({
+        severity: "warning",
+        code: "thickness_differs_from_material",
+        params: { name: tVar, value: t, material: m },
+        variable: tVar,
+        ...at,
+      });
+    }
+  }
+
+  const values = new Map<string, number>([...constants, ...graph.values]);
+  return { cabinet, vars, options, values, diagnostics };
+}
+
+function validateOption(
+  key: string,
+  value: OptionValue,
+  library: Library,
+  diagnostics: Diagnostic[],
+  at: { cabinet: string },
+): void {
+  const def = OPTION_BY_KEY.get(key)!;
+  const bad = (code: string, params: Record<string, string | number> = {}): void => {
+    diagnostics.push({ severity: "error", code, params: { key, value: String(value), ...params }, ...at });
+  };
+  switch (def.kind.type) {
+    case "enum":
+      if (typeof value !== "string" || !def.kind.values.includes(value)) {
+        bad("option_invalid_value", { allowed: def.kind.values.join(", ") });
+      }
+      return;
+    case "boolean":
+      if (typeof value !== "boolean") bad("option_invalid_value", { allowed: "true, false" });
+      return;
+    case "material":
+      if (typeof value !== "string" || !library.materials.has(value)) bad("material_unknown");
+      return;
+    case "edgeband":
+      if (value !== null && (typeof value !== "string" || !library.edgebands.has(value))) bad("edgeband_unknown");
+      return;
+  }
+}

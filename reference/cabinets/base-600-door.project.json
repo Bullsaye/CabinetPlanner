@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 600, one door, one shelf (factory defaults)",
+  "cabinets": [
+    { "id": "B01", "type": "box" }
+  ]
+}

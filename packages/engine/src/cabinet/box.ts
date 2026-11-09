@@ -1,0 +1,254 @@
+import type { Diagnostic } from "../diagnostics.ts";
+import type { Library } from "../library.ts";
+import {
+  ROLE_CODES,
+  boxSize,
+  roundMm,
+  thicknessAxis,
+  type Axis,
+  type Box,
+  type Part,
+  type PartEdges,
+  type PartRole,
+} from "../part.ts";
+import type { ResolvedCabinet } from "../resolve.ts";
+
+/**
+ * Rule for the parametric box cabinet: two sides, bottom, top (full panel or
+ * two rails), back, adjustable shelves and 0–2 full-overlay doors.
+ *
+ * All geometry is derived from resolved variables; nothing here is a
+ * hard-coded size. Coordinates: origin rear-left-bottom of the carcase,
+ * X right, Y up, Z towards the front.
+ */
+export function buildBox(rc: ResolvedCabinet, library: Library): { parts: Part[]; diagnostics: Diagnostic[] } {
+  const diagnostics: Diagnostic[] = [];
+  const cab = rc.cabinet.id;
+  const num = (name: string): number => {
+    const v = rc.values.get(name);
+    if (v === undefined) throw new Error(`variable ${name} unresolved`); // caller checks for errors first
+    return v;
+  };
+  const opt = <T extends string | boolean | null>(key: string): T => rc.options.get(key)!.value as T;
+
+  const W = num("W");
+  const H = num("H");
+  const D = num("D");
+  const t = num("t_carcase");
+  const tBack = num("t_back");
+  const tShelf = num("t_shelf");
+  const tFront = num("t_front");
+
+  const joint = opt<"sides_over" | "sides_between">("carcase_joint");
+  const top = opt<"full" | "rails">("top");
+  const backMount = opt<"groove" | "rebate" | "surface">("back_mount");
+  const deduct = opt<boolean>("edge.deduct");
+
+  const edgeCarcase = opt<string | null>("edge.carcase");
+  const edgeShelf = opt<string | null>("edge.shelf");
+  const edgeFront = opt<string | null>("edge.front");
+
+  // Back mount determines where the carcase starts and where the back's front face is.
+  const play = num("back_play");
+  const carcaseZ0 = backMount === "surface" ? tBack : 0; // carcase parts start in front of a surface back
+  const Dc = D - carcaseZ0;
+  let backFrontZ: number;
+  if (backMount === "groove") {
+    const gd = num("back_groove_depth");
+    if (gd >= t) {
+      diagnostics.push({ severity: "error", code: "back_groove_too_deep", params: { depth: gd, thickness: t }, cabinet: cab });
+    }
+    backFrontZ = num("back_groove_offset") + tBack;
+  } else {
+    if (backMount === "rebate") {
+      const rd = num("back_rebate_depth");
+      if (rd >= t) {
+        diagnostics.push({ severity: "error", code: "back_rebate_too_deep", params: { depth: rd, thickness: t }, cabinet: cab });
+      }
+    }
+    backFrontZ = tBack;
+  }
+
+  const parts: Part[] = [];
+  const add = (
+    role: PartRole,
+    index: number | undefined,
+    box: Box,
+    lengthAxis: Axis,
+    widthAxis: Axis,
+    materialKey: string,
+    edges: PartEdges,
+  ): void => {
+    const code = ROLE_CODES[role] + (index ?? "");
+    const override = rc.cabinet.parts[code];
+    const material = override?.material ?? (rc.options.get(materialKey)!.value as string);
+    const finalEdges: PartEdges = { ...edges };
+    if (override?.edges) {
+      for (const k of ["l1", "l2", "w1", "w2"] as const) {
+        const e = override.edges[k];
+        if (e !== undefined) finalEdges[k] = e;
+      }
+    }
+    const rounded: Box = {
+      x: roundMm(box.x),
+      y: roundMm(box.y),
+      z: roundMm(box.z),
+      dx: roundMm(box.dx),
+      dy: roundMm(box.dy),
+      dz: roundMm(box.dz),
+    };
+    const length = boxSize(rounded, lengthAxis);
+    const width = boxSize(rounded, widthAxis);
+    const thickness = boxSize(rounded, thicknessAxis(lengthAxis, widthAxis));
+    const id = `${cab}-${code}`;
+
+    const mat = library.materials.get(material);
+    if (!mat) {
+      diagnostics.push({ severity: "error", code: "material_unknown", params: { key: code, value: material }, cabinet: cab, part: id });
+    } else if (mat.thickness !== thickness) {
+      diagnostics.push({
+        severity: "warning",
+        code: "part_thickness_differs_from_material",
+        params: { part: id, thickness, material: mat.thickness },
+        cabinet: cab,
+        part: id,
+      });
+    }
+
+    const bandT = (e: string | null): number => {
+      if (e === null) return 0;
+      const band = library.edgebands.get(e);
+      if (!band) {
+        diagnostics.push({ severity: "error", code: "edgeband_unknown", params: { key: code, value: e }, cabinet: cab, part: id });
+        return 0;
+      }
+      return band.thickness;
+    };
+    const tl1 = bandT(finalEdges.l1);
+    const tl2 = bandT(finalEdges.l2);
+    const tw1 = bandT(finalEdges.w1);
+    const tw2 = bandT(finalEdges.w2);
+
+    const part: Part = {
+      id,
+      code,
+      cabinet: cab,
+      role,
+      ...(index !== undefined ? { index } : {}),
+      material,
+      length,
+      width,
+      thickness,
+      cutLength: deduct ? roundMm(length - tw1 - tw2) : length,
+      cutWidth: deduct ? roundMm(width - tl1 - tl2) : width,
+      lengthAxis,
+      widthAxis,
+      grain: mat?.grain ?? false,
+      edges: finalEdges,
+      box: rounded,
+      ...(override?.note ? { note: override.note } : {}),
+    };
+    if (part.length <= 0 || part.width <= 0 || part.thickness <= 0 || part.cutLength <= 0 || part.cutWidth <= 0) {
+      diagnostics.push({
+        severity: "error",
+        code: "part_nonpositive",
+        params: { part: id, length: part.length, width: part.width, thickness: part.thickness },
+        cabinet: cab,
+        part: id,
+      });
+    }
+    parts.push(part);
+  };
+
+  const front = (e: string | null): PartEdges => ({ l1: null, l2: e, w1: null, w2: null });
+  const none: PartEdges = { l1: null, l2: null, w1: null, w2: null };
+
+  // --- Sides, bottom and top --------------------------------------------
+  // sides_over: sides run full height, bottom/top sit between them.
+  // sides_between: bottom/top run full width, sides sit between them.
+  const sideY = joint === "sides_over" ? 0 : t;
+  const sideH = joint === "sides_over" ? H : H - 2 * t;
+  const hzX = joint === "sides_over" ? t : 0; // horizontal panels
+  const hzW = joint === "sides_over" ? W - 2 * t : W;
+
+  add("side_left", undefined, { x: 0, y: sideY, z: carcaseZ0, dx: t, dy: sideH, dz: Dc }, "y", "z", "material.carcase", front(edgeCarcase));
+  add("side_right", undefined, { x: W - t, y: sideY, z: carcaseZ0, dx: t, dy: sideH, dz: Dc }, "y", "z", "material.carcase", front(edgeCarcase));
+  add("bottom", undefined, { x: hzX, y: 0, z: carcaseZ0, dx: hzW, dy: t, dz: Dc }, "x", "z", "material.carcase", front(edgeCarcase));
+
+  if (top === "full") {
+    add("top", undefined, { x: hzX, y: H - t, z: carcaseZ0, dx: hzW, dy: t, dz: Dc }, "x", "z", "material.carcase", front(edgeCarcase));
+  } else {
+    const railW = num("rail_w");
+    add("rail_front", undefined, { x: hzX, y: H - t, z: D - railW, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", front(edgeCarcase));
+    add("rail_rear", undefined, { x: hzX, y: H - t, z: backFrontZ, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", none);
+    if (backFrontZ + railW > D - railW) {
+      diagnostics.push({ severity: "error", code: "rails_overlap", params: { rail_w: railW, depth: D }, cabinet: cab });
+    }
+  }
+
+  // --- Back ----------------------------------------------------------------
+  // Inner opening between the carcase panels; the back reaches `engage` mm
+  // into the surrounding panels (groove or rebate depth minus play).
+  {
+    let box: Box;
+    if (backMount === "surface") {
+      box = { x: 0, y: 0, z: 0, dx: W, dy: H, dz: tBack };
+    } else {
+      const engage = (backMount === "groove" ? num("back_groove_depth") : num("back_rebate_depth")) - play;
+      const z = backMount === "groove" ? num("back_groove_offset") : 0;
+      const y0 = t - engage; // into the bottom
+      const y1 = top === "full" ? H - t + engage : H - play; // into the top, or up to the top edge behind the rails
+      box = { x: t - engage, y: y0, z, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
+    }
+    add("back", undefined, box, "y", "x", "material.back", none);
+  }
+
+  // --- Adjustable shelves ----------------------------------------------------
+  const shelfCount = num("shelf_count");
+  if (shelfCount > 0) {
+    const gap = num("shelf_gap");
+    const zStart = backFrontZ + num("shelf_back_gap");
+    const zEnd = D - num("shelf_front_setback");
+    const innerBottom = t;
+    const innerTop = H - t;
+    const pitch = (innerTop - innerBottom) / (shelfCount + 1);
+    for (let i = 1; i <= shelfCount; i++) {
+      // Even spacing for the view only; adjustable shelves do not change the cutlist with height.
+      const y = innerBottom + i * pitch - tShelf / 2;
+      add(
+        "shelf",
+        i,
+        { x: t + gap, y, z: zStart, dx: W - 2 * t - 2 * gap, dy: tShelf, dz: zEnd - zStart },
+        "x",
+        "z",
+        "material.shelf",
+        front(edgeShelf),
+      );
+    }
+  }
+
+  // --- Doors (full overlay) --------------------------------------------------
+  const doorCount = num("door_count");
+  if (doorCount > 0) {
+    const gs = num("front_gap_side");
+    const gt = num("front_gap_top");
+    const gb = num("front_gap_bottom");
+    const gap = num("front_gap");
+    const doorW = (W - 2 * gs - (doorCount - 1) * gap) / doorCount;
+    const all: PartEdges = { l1: edgeFront, l2: edgeFront, w1: edgeFront, w2: edgeFront };
+    for (let i = 1; i <= doorCount; i++) {
+      const x = gs + (i - 1) * (doorW + gap);
+      add("door", i, { x, y: gb, z: D, dx: doorW, dy: H - gt - gb, dz: tFront }, "y", "x", "material.front", all);
+    }
+  }
+
+  // Part overrides that point at parts this cabinet does not have.
+  const codes = new Set(parts.map((p) => p.code));
+  for (const code of Object.keys(rc.cabinet.parts)) {
+    if (!codes.has(code)) {
+      diagnostics.push({ severity: "warning", code: "part_override_unused", params: { code }, cabinet: cab });
+    }
+  }
+
+  return { parts, diagnostics };
+}

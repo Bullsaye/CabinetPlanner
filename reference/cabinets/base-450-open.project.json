@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 450, open, no shelf",
+  "cabinets": [
+    { "id": "B01", "type": "box", "vars": { "W": 450, "door_count": 0, "shelf_count": 0 } }
+  ]
+}

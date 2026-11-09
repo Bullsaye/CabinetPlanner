@@ -1,0 +1,13 @@
+{
+  "name": "@cabinet-planner/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "cabinet-planner": "./src/main.ts"
+  },
+  "dependencies": {
+    "@cabinet-planner/engine": "workspace:*",
+    "@cabinet-planner/i18n": "workspace:*"
+  }
+}

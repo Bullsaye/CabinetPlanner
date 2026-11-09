@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 500, oak veneer fronts with grain",
+  "cabinets": [
+    { "id": "B01", "type": "box", "vars": { "W": 500 }, "options": { "material.front": "oak-veneer-19", "edge.front": "oak-veneer-05" } }
+  ]
+}

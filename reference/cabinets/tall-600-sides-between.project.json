@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Tall 600, sides between, four shelves",
+  "cabinets": [
+    { "id": "T01", "type": "box", "vars": { "H": 2000, "shelf_count": 4 }, "options": { "carcase_joint": "sides_between", "top": "full" } }
+  ]
+}
