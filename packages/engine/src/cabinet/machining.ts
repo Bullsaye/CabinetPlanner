@@ -138,6 +138,14 @@ export function machineBox(
     }
   }
 
+  // --- Middle panels are notched around upright rails (they join flat horizontals only, D41) ---
+  for (const mp of parts.filter((p) => p.role === "partition")) {
+    for (const r of parts.filter((p) => ["rail_front", "rail_rear", "rail_bottom"].includes(p.role) && thicknessAxis(p.lengthAxis, p.widthAxis) === "z")) {
+      const b = r.box;
+      addPocketFromBox(mp, { x0: mp.box.x, x1: mp.box.x + mp.box.dx, y0: b.y, y1: b.y + b.dy, z0: b.z, z1: b.z + b.dz }, { kind: "joint", ref: r.code }, { through: true });
+    }
+  }
+
   // --- Cabinet hangers (D39): rail notch in hidden sides, before the joints so dowels keep clear ---
   const hangerId = opt<string | null>("hardware.hanger");
   const hanger = hangerId !== null && rc.cabinet.kind === "wall" ? library.hardware.get(hangerId) : undefined;

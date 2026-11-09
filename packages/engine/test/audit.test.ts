@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { Part } from "../src/index.ts";
 import { buildOne, partsByCode } from "./helpers.ts";
 
 /** Regression tests for bugs found in the logic audit of the cabinet rules and machining. */
+
+/** True when the two parts' boxes share volume (more than rounding). */
+const intersect = (a: Part, b: Part): boolean =>
+  (["x", "y", "z"] as const).every((k) => Math.min(a.box[k] + a.box[`d${k}`], b.box[k] + b.box[`d${k}`]) - Math.max(a.box[k], b.box[k]) > 0.02);
 
 const errors = (r: ReturnType<typeof buildOne>): string[] => r.diagnostics.filter((d) => d.severity === "error").map((d) => d.code);
 
@@ -100,5 +105,55 @@ describe("rear rail at the bottom with a back panel", () => {
   it("asks for the bottom to clear an upright rail that stands in front of the back", () => {
     const r = buildOne({ vars: { W: 800, bottom_setback_rear: 19 }, options: { "rail.bottom": "upright" } });
     expect(r.diagnostics.find((d) => d.code === "bottom_rail_overlap")?.params).toEqual({ need: 37, setback: 19 });
+  });
+});
+
+describe("upright rails and the interior", () => {
+  const upright = { top: "rails", "rail.front": "upright", "rail.rear": "upright" };
+
+  it("notches middle panels around upright rails", () => {
+    const r = buildOne({
+      vars: { W: 1200, partition_count: 1, bottom_setback_rear: 120 },
+      options: { ...upright, "rail.bottom": "upright" },
+    });
+    expect(errors(r)).toEqual([]);
+    const p = partsByCode(r);
+    const mp = p.MP1!;
+    const notches = mp.operations.filter((o) => o.kind === "pocket" && o.w0 === 0 && o.w1 === mp.thickness);
+    expect(notches.length).toBe(3);
+    for (const code of ["RF", "RR", "RB"]) {
+      const b = p[code]!.box;
+      // Part-local: u up from the panel's lower end, v forward from its rear edge.
+      const want = { u0: Math.max(0, b.y - mp.box.y), u1: Math.min(mp.length, b.y + b.dy - mp.box.y), v0: b.z - mp.box.z, v1: b.z + b.dz - mp.box.z };
+      expect(notches.some((o) => o.kind === "pocket" && o.u0 === want.u0 && o.u1 === want.u1 && o.v0 === want.v0 && o.v1 === want.v1), code).toBe(true);
+    }
+  });
+
+  it("keeps the top drawer below an upright front rail", () => {
+    const r = buildOne({ vars: { W: 600 }, options: upright, fronts: [{ type: "drawer", h: 250 }, { type: "door" }] });
+    expect(errors(r)).toEqual([]);
+    const p = partsByCode(r);
+    for (const code of ["DL1", "DR1", "DI1", "DB1"]) {
+      expect(intersect(p[code]!, p.RF!), code).toBe(false);
+      expect(intersect(p[code]!, p.RR!), code).toBe(false);
+    }
+    expect(p.DL1!.box.y + p.DL1!.box.dy).toBeLessThanOrEqual(p.RF!.box.y - 3);
+  });
+
+  it("keeps shelves out of the height of upright rails", () => {
+    const r = buildOne({
+      vars: { W: 600, H: 400, shelf_count: 4, door_count: 0, bottom_setback_rear: 120, rail_w: 120 },
+      options: { ...upright, "rail.bottom": "upright", system_holes: "none" },
+    });
+    expect(errors(r)).toEqual([]);
+    const p = partsByCode(r);
+    for (const sh of r.parts.filter((x) => x.role === "shelf")) {
+      for (const rail of ["RF", "RR", "RB"]) expect(intersect(sh, p[rail]!), sh.code + "/" + rail).toBe(false);
+    }
+  });
+
+  it("refuses a fixed shelf in the height of an upright rail", () => {
+    const r = buildOne({ vars: { W: 600 }, options: upright, fronts: [{ type: "open", h: 60 }, { type: "door" }] });
+    expect(errors(r)).toContain("fixed_shelf_outside");
   });
 });

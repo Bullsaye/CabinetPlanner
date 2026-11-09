@@ -663,3 +663,11 @@ the earlier entries stay as written.
   (at the back's front face, like the upright rear rail at the top), so
   the bottom must be shortened by the back's offset plus the rail
   thickness.
+- Upright rails and the interior (D41): the clear interior ends at the
+  lower edge of an upright top rail (`H − rail_w`) and starts at the upper
+  edge of an upright bottom rail. Shelf zones, drawers and automatic or
+  extra fixed shelves keep to it (`fixed_shelf_outside`,
+  `construction_panel_outside` otherwise); a drawer whose floor lies below
+  an upright bottom rail ends in front of the rail. Middle panels keep
+  their size and get a through notch (pocket, source `joint:<rail>`) for
+  every upright rail they cross.
