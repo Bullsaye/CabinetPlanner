@@ -108,6 +108,27 @@ describe("rear rail at the bottom with a back panel", () => {
   });
 });
 
+describe("legs that meet other machining", () => {
+  it("move sideways only where the bottom is, never off its end", () => {
+    // The leg at leg_inset_side meets the connector at the rear; one pitch outwards is under the side panel.
+    for (const cab of [
+      { vars: { W: 600, leg_inset_side: 40 }, options: { joint_method: "connector" } },
+      { vars: { W: 600, t_carcase: 25 }, options: { joint_method: "connector" } },
+    ]) {
+      const r = buildOne(cab);
+      expect(errors(r)).toEqual([]);
+      const bo = partsByCode(r).BO!;
+      const legs = bo.operations.filter((o) => o.sources.some((s) => s.ref === "generic-leg-100"));
+      expect(legs.length).toBe(4);
+      for (const o of legs) {
+        if (o.kind !== "bore") continue;
+        expect(o.u - o.d / 2).toBeGreaterThanOrEqual(2);
+        expect(o.u + o.d / 2).toBeLessThanOrEqual(bo.length - 2);
+      }
+    }
+  });
+});
+
 describe("upright rails and the interior", () => {
   const upright = { top: "rails", "rail.front": "upright", "rail.rear": "upright" };
 

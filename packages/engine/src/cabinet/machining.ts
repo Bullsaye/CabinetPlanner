@@ -619,8 +619,14 @@ export function machineBox(
     const zs = spread(Math.max(layout.backFrontZ, bottom.box.z) + num("leg_inset_rear"), Math.min(D, bottom.box.z + bottom.box.dz) - num("leg_inset_front"));
     const source: OpSource = { kind: "hardware", ref: item.id };
     const minWall = num("bore_min_wall");
+    // Free of other machining, and still on the bottom (a leg must not move off its end, under a side).
+    const onBottom = (x: number, d: number): boolean => x - d / 2 - minWall >= bottom.box.x - 1e-6 && x + d / 2 + minWall <= bottom.box.x + bottom.box.dx + 1e-6;
     const fits = (x: number, z: number): boolean =>
-      drills.every((dr) => dr.mount !== "bottom" || !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall));
+      drills.every(
+        (dr) =>
+          dr.mount !== "bottom" ||
+          (onBottom(x + dr.a, dr.d) && !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall)),
+      );
     for (const x0 of xs) {
       for (const z of zs) {
         // A leg that meets other machining (middle panel dowels) moves sideways in pitch steps.
