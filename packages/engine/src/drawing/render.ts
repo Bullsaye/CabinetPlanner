@@ -406,6 +406,8 @@ export function drawPart(input: DrawingInput): PartDrawing {
   // Legend.
   if (legend.length) {
     out.push(`<text class="pd-head" x="${MARGIN}" y="${r3(legendTop)}" font-size="${r3(h)}">${esc(t("drawing.legend"))}</text>`);
+    // The description column starts right of the widest size text (at least at the usual place).
+    const descrX = Math.max(46, ...legend.map((row) => textW(row.spec, h) + 3));
     legend.forEach((row, i) => {
       const y = legendTop + (i + 1) * h * 1.75;
       if (row.tag) {
@@ -413,7 +415,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
         out.push(`<text class="pd-tagtext" x="${r3(MARGIN + h * 0.75)}" y="${r3(y)}" font-size="${r3(h * 0.9)}" text-anchor="middle">${esc(row.tag)}</text>`);
       }
       out.push(`<text class="pd-mono" x="${r3(MARGIN + h * 2.4)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.spec)}</text>`);
-      out.push(`<text class="pd-sub" x="${r3(MARGIN + h * 2.4 + 46)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.text)}</text>`);
+      out.push(`<text class="pd-sub" x="${r3(MARGIN + h * 2.4 + descrX)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.text)}</text>`);
     });
   }
 

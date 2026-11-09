@@ -148,6 +148,21 @@ describe("part drawing", () => {
     expect(d.svg).not.toContain(">drawing.where.edge<");
   });
 
+  it("moves the legend's description column right of the longest size text", () => {
+    // e.g. German "124× Ø5 × 10 (von beiden Seiten)" is wider than the default column.
+    const long: DrawingText = { t: (k) => (k === "drawing.pocket" ? "Pocket with a rather long name" : k) };
+    const d = drawPart({ part: p.SR!, cabinet: cab, style: resolveStyle("machine"), text: long });
+    const spec = /<text class="pd-mono" x="([\d.]+)"[^>]*>(Pocket with a rather long name[^<]*)</.exec(d.svg)!;
+    const descr = [...d.svg.matchAll(/<text class="pd-sub" x="([\d.]+)"[^>]*>[^<]*drawing\.where\.face/g)].map((m) => Number(m[1]));
+    const end = Number(spec[1]) + spec[2]!.length * 2.5 * 0.6;
+    expect(descr.length).toBeGreaterThan(1);
+    expect(new Set(descr).size).toBe(1); // one column
+    expect(descr[0]).toBeGreaterThan(end);
+    // Short texts keep the usual column.
+    const short = drawPart({ part: p.SR!, cabinet: cab, style: resolveStyle("machine"), text });
+    expect(short.svg).toMatch(/<text class="pd-sub" x="62"[^>]*>[^<]*drawing\.where\.face/);
+  });
+
   it("hides groups a rule hides", () => {
     const style = resolveStyle("x", [{ id: "x", name: "X", extends: "machine", rules: [{ match: { source: ["system"] }, hide: true }] }]);
     const d = drawPart({ part: p.SR!, cabinet: cab, style, text });
