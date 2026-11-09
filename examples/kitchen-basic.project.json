@@ -69,6 +69,20 @@
         "door_count": 2
       },
       "kind": "wall"
+    },
+    {
+      "id": "T01",
+      "type": "box",
+      "kind": "tall",
+      "name": "Tall 1000, middle panel",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 1000,
+        "partition_count": 1,
+        "door_count": 2
+      }
     }
   ]
 }

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-bar-160",
+  "name": {
+    "en": "Bar handle 160 mm (generic)",
+    "de": "Stangengriff 160 mm (generisch)"
+  },
+  "category": "handle",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic handle: M4 screws through the front; hole spacing (cc) as named. Replace with the handle you use.",
+  "params": {
+    "cc": 160,
+    "hole_d": 5
+  },
+  "drilling": [],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "pcs"
+  }
+}

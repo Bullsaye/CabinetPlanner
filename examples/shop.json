@@ -74,7 +74,8 @@
     },
     "options": {
       "hardware.hinge": "grass-tiomos-110-screw",
-      "hardware.slide": "grass-dynapro-40"
+      "hardware.slide": "grass-dynapro-40",
+      "hardware.handle": "generic-bar-160"
     }
   }
 }

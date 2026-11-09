@@ -284,6 +284,33 @@ export function buildBox(
     }
   }
 
+  // --- Middle panels -----------------------------------------------------------
+  // Vertical panels between bottom and top, in front of the back, dividing
+  // the interior into equal sections (each gets its own shelves).
+  let nPart = num("partition_count");
+  if (nPart > 0 && rc.cabinet.fronts?.some((f) => f.type === "drawer")) {
+    diagnostics.push({ severity: "warning", code: "partitions_with_drawers", params: { count: nPart }, cabinet: cab });
+    nPart = 0;
+  }
+  const LW = W - 2 * t;
+  const sw = (LW - nPart * t) / (nPart + 1);
+  const sections: [number, number][] = [];
+  for (let k = 0; k <= nPart; k++) sections.push([t + k * (sw + t), t + k * (sw + t) + sw]);
+  if (nPart > 0) {
+    const z0 = backFrontZ;
+    for (let i = 1; i <= nPart; i++) {
+      add(
+        "partition",
+        i,
+        { x: t + i * sw + (i - 1) * t, y: t, z: z0, dx: t, dy: H - 2 * t, dz: D - num("partition_setback") - z0 },
+        "y",
+        "z",
+        "material.carcase",
+        front(edgeCarcase),
+      );
+    }
+  }
+
   // --- Back ----------------------------------------------------------------
   // Inner opening between the carcase panels; the back reaches `engage` mm
   // into the surrounding panels (groove or rebate depth minus play).
@@ -339,22 +366,25 @@ export function buildBox(
       opt<string>("system_holes") === "full"
         ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
         : [];
-    for (let i = 1; i <= shelfCount; i++) {
-      const target = innerBottom + i * pitch - tShelf / 2;
-      const rest = num("shelf_pin_rest");
-      const nearest = holes.length
-        ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
-        : undefined;
-      const y = nearest !== undefined ? nearest + rest : target;
-      add(
-        "shelf",
-        i,
-        { x: t + gap, y, z: zStart, dx: W - 2 * t - 2 * gap, dy: tShelf, dz: zEnd - zStart },
-        "x",
-        "z",
-        "material.shelf",
-        front(edgeShelf),
-      );
+    let shelfNo = 0;
+    for (const [sx0, sx1] of sections) {
+      for (let i = 1; i <= shelfCount; i++) {
+        const target = innerBottom + i * pitch - tShelf / 2;
+        const rest = num("shelf_pin_rest");
+        const nearest = holes.length
+          ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
+          : undefined;
+        const y = nearest !== undefined ? nearest + rest : target;
+        add(
+          "shelf",
+          ++shelfNo,
+          { x: sx0 + gap, y, z: zStart, dx: sx1 - sx0 - 2 * gap, dy: tShelf, dz: zEnd - zStart },
+          "x",
+          "z",
+          "material.shelf",
+          front(edgeShelf),
+        );
+      }
     }
   }
 

@@ -2,6 +2,10 @@ import blumClipTop from "../../library/hardware/blum-cliptop-110-inserta.json" w
 import genericSlide from "../../library/hardware/generic-undermount.json" with { type: "json" };
 import grassDynapro from "../../library/hardware/grass-dynapro-40.json" with { type: "json" };
 import grassNovaPro from "../../library/hardware/grass-nova-pro-scala-40.json" with { type: "json" };
+import bar128 from "../../library/hardware/generic-bar-128.json" with { type: "json" };
+import bar160 from "../../library/hardware/generic-bar-160.json" with { type: "json" };
+import bar192 from "../../library/hardware/generic-bar-192.json" with { type: "json" };
+import knob from "../../library/hardware/generic-knob.json" with { type: "json" };
 import dowel from "../../library/hardware/dowel-8x35.json" with { type: "json" };
 import hinge from "../../library/hardware/generic-hinge-110.json" with { type: "json" };
 import grassTiomosK3 from "../../library/hardware/grass-tiomos-110-k3-screw.json" with { type: "json" };
@@ -31,6 +35,10 @@ const RAW: readonly unknown[] = [
   genericSlide,
   grassDynapro,
   grassNovaPro,
+  bar128,
+  bar160,
+  bar192,
+  knob,
 ];
 
 export const FACTORY_HARDWARE: readonly HardwareItem[] = RAW.map((raw) => HardwareItem.parse(raw));

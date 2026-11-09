@@ -133,13 +133,18 @@ export function machineBox(
       layout.innerTopY - num("sys_margin"),
     );
     const source: OpSource = { kind: "system", ref: "rows" };
-    for (const [code, x, dir] of [
-      ["SL", t, "-x"],
-      ["SR", W - t, "+x"],
-    ] as const) {
-      const side = byCode.get(code);
+    const faces: [Part | undefined, number, Direction][] = [
+      [byCode.get("SL"), t, "-x"],
+      [byCode.get("SR"), W - t, "+x"],
+    ];
+    // Middle panels carry rows on both faces (opposing holes resolved below).
+    for (const mp of parts.filter((p) => p.role === "partition")) {
+      faces.push([mp, mp.box.x, "+x"], [mp, mp.box.x + mp.box.dx, "-x"]);
+    }
+    for (const [side, x, dir] of faces) {
       if (!side) continue;
       for (const z of rows) {
+        if (z < side.box.z || z > side.box.z + side.box.dz) continue;
         for (const y of ys) addBore(side, { x, y, z }, dir, num("sys_hole_d"), num("sys_hole_depth"), source);
       }
     }
@@ -152,6 +157,46 @@ export function machineBox(
       const part = byCode.get(door.code)!;
       const placed = placeHinges(rc, hinge, part, door.hinge, byCode, diagnostics);
       use(hinge, placed);
+    }
+  }
+
+  // --- Handles and knobs ------------------------------------------------------------
+  const handleId = opt<string | null>("hardware.handle");
+  if (handleId !== null) {
+    const item = library.hardware.get(handleId)!;
+    const params = evaluateItemParams(item, rc.values, at);
+    diagnostics.push(...params.diagnostics);
+    const cc = params.values.get("cc") ?? 0;
+    const hd = params.values.get("hole_d") ?? 5;
+    const mode = opt<ThroughMode>("bore.through");
+    const overlap = num("through_overlap");
+    const source: OpSource = { kind: "hardware", ref: item.id };
+    const drill = (part: Part, pts: { x: number; y: number }[]): void => {
+      for (const p of pts) addThroughBore(part, { x: p.x, y: p.y, z: part.box.z + part.box.dz }, "-z", hd, mode, overlap, source);
+      use(item, 1);
+    };
+    const wall = rc.cabinet.kind === "wall";
+    const edgeOff = num("handle_edge_offset");
+    const endOff = num("handle_end_offset");
+    for (const d of layout.doors) {
+      const p = byCode.get(d.code)!;
+      const b = p.box;
+      // Opening edge is opposite the hinges; wall units get the handle low, others high.
+      const xOpen = d.hinge === "left" ? b.x + b.dx - edgeOff : b.x + edgeOff;
+      const yEnd = wall ? b.y + endOff : b.y + b.dy - endOff;
+      if (cc === 0) drill(p, [{ x: xOpen, y: yEnd }]);
+      else if (opt<string>("handle.door") === "vertical") {
+        drill(p, wall ? [{ x: xOpen, y: yEnd }, { x: xOpen, y: yEnd + cc }] : [{ x: xOpen, y: yEnd - cc }, { x: xOpen, y: yEnd }]);
+      } else {
+        const inward = d.hinge === "left" ? -1 : 1;
+        drill(p, [{ x: xOpen, y: yEnd }, { x: xOpen + inward * cc, y: yEnd }]);
+      }
+    }
+    for (const p of parts.filter((x) => x.role === "drawer_front")) {
+      const b = p.box;
+      const y = opt<string>("handle.drawer") === "top" ? b.y + b.dy - num("handle_drawer_top") : b.y + b.dy / 2;
+      const xc = b.x + b.dx / 2;
+      drill(p, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
     }
   }
 
@@ -262,6 +307,20 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
           across: { axis: "x", value: side.box.x + side.box.dx / 2 },
         });
       }
+    }
+  }
+  // Middle panels always stand between bottom and top/rails.
+  for (const mp of parts.filter((p) => p.role === "partition")) {
+    for (const h of horizontals) {
+      const below = h.box.y + h.box.dy <= mp.box.y + 1e-6;
+      joints.push({
+        ref: `${h.code}-${mp.code}`,
+        facePart: h,
+        edgePart: mp,
+        plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
+        intoFace: below ? "-y" : "+y",
+        across: { axis: "x", value: mp.box.x + mp.box.dx / 2 },
+      });
     }
   }
   return joints;

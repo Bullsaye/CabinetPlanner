@@ -271,3 +271,19 @@ Two shop settings, because they are used for different things:
   and back only, side height = the largest the slide offers that fits.
 - Not yet: drawer front fixing drilling (front hooks/holders), back notches
   and rear hook holes — the catalogue data is incomplete for them.
+
+### D25 · 2026-11-09 · Middle panels and handles
+
+- `partition_count` vertical middle panels divide the interior into equal
+  sections; they stand between bottom and top/rails, in front of the back,
+  `partition_setback` behind the front edge, doweled like sides between.
+  Shelves are made per section. System-hole rows go on both faces; where
+  they meet, `bore.opposite` decides (default: from both faces, D23).
+  Middle panels are left out (with a warning) when the cabinet has drawers.
+- Handles are hardware items (category `handle`, params `cc` and
+  `hole_d`; `cc` 0 = knob). Holes go through the front from the visible
+  face (`bore.through`). Placement preferences are variables and options:
+  doors at the opening edge (`handle_edge_offset`), nearest hole
+  `handle_end_offset` from the top (wall units: from the bottom),
+  vertical or horizontal (`handle.door`); drawer fronts centred or
+  `handle_drawer_top` below the top (`handle.drawer`). Default: no handle.

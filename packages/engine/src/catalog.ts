@@ -59,6 +59,8 @@ export const VARIABLES: readonly VarDef[] = [
 
   // Construction.
   v({ name: "rail_w", group: "construction", unit: "mm", factory: 100, min: 30, max: 300, step: 10 }),
+  v({ name: "partition_count", group: "construction", unit: "count", factory: 0, min: 0, max: 5, integer: true, step: 1, quick: true }),
+  v({ name: "partition_setback", group: "construction", unit: "mm", factory: 0, min: 0, max: 200 }),
   v({ name: "dowel_offset_front", group: "construction", unit: "mm", factory: "sys_row_front", min: 5, max: 200 }),
   v({ name: "dowel_offset_rear", group: "construction", unit: "mm", factory: 20, min: 5, max: 200 }),
   v({ name: "dowel_max_spacing", group: "construction", unit: "mm", factory: 160, min: 32, max: 1000 }),
@@ -97,6 +99,9 @@ export const VARIABLES: readonly VarDef[] = [
   // Hardware placement preferences (product data stays in the hardware items).
   v({ name: "hinge_end_offset", group: "hardware", unit: "mm", factory: 80, min: 20, max: 500, step: 5, quick: true }),
   v({ name: "hinge_count", group: "hardware", unit: "count", factory: 0, min: 0, max: 8, integer: true, step: 1 }),
+  v({ name: "handle_edge_offset", group: "hardware", unit: "mm", factory: 40, min: 10, max: 400, step: 5 }),
+  v({ name: "handle_end_offset", group: "hardware", unit: "mm", factory: 60, min: 10, max: 800, step: 5 }),
+  v({ name: "handle_drawer_top", group: "hardware", unit: "mm", factory: 40, min: 10, max: 300, step: 5 }),
 
   // Drawers (shop preferences; product data comes from the slide item).
   v({ name: "drawer_side_t", group: "drawers", unit: "mm", factory: "mat_drawer_t", min: 8, max: 25 }),
@@ -127,7 +132,7 @@ export const MATERIAL_CONSTANTS = {
 // ---------------------------------------------------------------------------
 // Options: non-numeric choices (construction variants, library references).
 
-export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "leg" | "other";
+export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "handle" | "leg" | "other";
 
 export type OptionKind =
   | { type: "enum"; values: readonly string[] }
@@ -181,6 +186,9 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["both_sides", "through", "error"] },
     factory: "both_sides",
   },
+  { key: "hardware.handle", group: "hardware", kind: { type: "hardware", category: "handle", nullable: true }, factory: null },
+  { key: "handle.door", group: "hardware", kind: { type: "enum", values: ["vertical", "horizontal"] }, factory: "vertical" },
+  { key: "handle.drawer", group: "hardware", kind: { type: "enum", values: ["center", "top"] }, factory: "center" },
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },

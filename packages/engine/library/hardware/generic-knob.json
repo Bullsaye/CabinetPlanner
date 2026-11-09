@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-knob",
+  "name": {
+    "en": "Knob (generic)",
+    "de": "Knopf (generisch)"
+  },
+  "category": "handle",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic handle: M4 screws through the front; hole spacing (cc) as named. Replace with the handle you use.",
+  "params": {
+    "cc": 0,
+    "hole_d": 5
+  },
+  "drilling": [],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "pcs"
+  }
+}

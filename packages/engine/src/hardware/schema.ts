@@ -54,7 +54,7 @@ export const HardwareItem = z.object({
   schemaVersion: z.literal(1).default(1),
   id: z.string().min(1),
   name: LocalizedText,
-  category: z.enum(["hinge", "connector", "shelf_support", "slide", "leg", "other"]),
+  category: z.enum(["hinge", "connector", "shelf_support", "slide", "handle", "leg", "other"]),
   manufacturer: z.string().optional(),
   series: z.string().optional(),
   articles: z.array(z.object({ code: z.string().min(1), note: z.string().optional() })).default([]),
