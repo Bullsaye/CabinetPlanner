@@ -136,3 +136,16 @@ describe("cli dxf", () => {
     expect(run(["dxf", "examples/kitchen-basic.project.json", "--zip", "k.zip", "--profile", "nope"], bad)).toBe(2);
   });
 });
+
+describe("cli room", () => {
+  it("writes the floor plan and a wall elevation", () => {
+    const io = fakeIo();
+    expect(run(["room", "examples/kitchen-basic.project.json", "--lang", "de"], io)).toBe(0);
+    expect(io.out).toContain("Grundriss");
+    const el = fakeIo();
+    expect(run(["room", "examples/kitchen-basic.project.json", "--wall", "A"], el)).toBe(0);
+    expect(el.out).toContain("Elevation");
+    const bad = fakeIo();
+    expect(run(["room", "examples/kitchen-basic.project.json", "--wall", "Z"], bad)).toBe(1);
+  });
+});

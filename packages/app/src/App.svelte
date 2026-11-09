@@ -8,9 +8,10 @@
   import HardwareView from "./components/HardwareView.svelte";
   import Diagnostics from "./components/Diagnostics.svelte";
   import FileMenu from "./components/FileMenu.svelte";
+  import RoomView from "./components/RoomView.svelte";
 
   const t = $derived(store.tr.t);
-  const tabs: Tab[] = ["view", "cutlist", "drawings", "hardware"];
+  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware"];
 
   // Save on every change.
   $effect(() => {
@@ -79,6 +80,8 @@
       <div class="work">
         {#if store.ui.tab === "view"}
           <Viewer3D />
+        {:else if store.ui.tab === "room"}
+          <RoomView />
         {:else if store.ui.tab === "cutlist"}
           <CutlistView />
         {:else if store.ui.tab === "drawings"}

@@ -23,4 +23,6 @@ export * from "./output/cutlist.ts";
 export * from "./output/scene.ts";
 export * from "./output/dxf.ts";
 export * from "./output/zip.ts";
+export * from "./room/room.ts";
+export * from "./room/room-svg.ts";
 export * from "./drawing/index.ts";

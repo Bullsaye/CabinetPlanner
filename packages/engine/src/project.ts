@@ -5,7 +5,8 @@ import { hasErrors, type Diagnostic } from "./diagnostics.ts";
 import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
 import { presetRegistry, resolveCabinet, type ResolvedCabinet } from "./resolve.ts";
-import { ProjectSchema, SCHEMA_VERSION, ShopSchema, type Project, type Shop } from "./schema.ts";
+import { layoutRoom, type RoomLayout } from "./room/room.ts";
+import { CabinetSchema, ProjectSchema, SCHEMA_VERSION, ShopSchema, type Project, type Shop } from "./schema.ts";
 
 export class FileFormatError extends Error {
   readonly issues: { path: string; message: string }[];
@@ -78,7 +79,9 @@ export interface ProjectResult {
   /** All parts of all cabinets, in project order then role order. */
   parts: Part[];
   diagnostics: Diagnostic[];
+  /** Cabinets without errors: parts, cutlists and CNC files can be made. Room findings do not count. */
   ok: boolean;
+  room?: RoomLayout;
 }
 
 /**
@@ -113,13 +116,27 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     cabinets.push({ resolved, parts, hardware, handles, diagnostics });
   }
   const diagnostics = cabinets.flatMap((c) => c.diagnostics);
+  const ok = !hasErrors(diagnostics);
+  let room: RoomLayout | undefined;
+  if (project.room) {
+    // Project-level values (room height, …) through the same layers, without a cabinet's own values.
+    const probe = resolveCabinet(project, CabinetSchema.parse({ id: "ROOM", type: "box" }), { library, presets, shop: shopLayer });
+    room = layoutRoom(
+      project.room,
+      cabinets.filter((c) => c.parts.length > 0),
+      new Map(project.cabinets.map((c) => [c.id, c.place])),
+      probe.values,
+    );
+    diagnostics.push(...room.diagnostics);
+  }
   return {
     project,
     library,
     cabinets,
     parts: cabinets.flatMap((c) => c.parts),
     diagnostics,
-    ok: !hasErrors(diagnostics),
+    ok,
+    ...(room ? { room } : {}),
   };
 }
 

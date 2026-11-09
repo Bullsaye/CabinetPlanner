@@ -38,7 +38,7 @@ export function write(key: string, value: unknown): void {
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
-export type Tab = "view" | "cutlist" | "drawings" | "hardware";
+export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware";
 export type Layer = "cabinet" | "project" | "shop";
 
 export interface BuildState {

@@ -6,6 +6,8 @@ import {
   FileFormatError,
   formatNumber,
   drawAssembly,
+  elevationSvg,
+  floorPlanSvg,
   DxfProfileSchema,
   FACTORY_DXF_PROFILES,
   partDxf,
@@ -51,6 +53,7 @@ Commands:
   ops       Show machining operations and hardware per part (part-local mm)
   drawing   Write an SVG drawing of one part (--part <id>, e.g. B01-SL)
   assembly  Write the assembly drawing of one cabinet: exploded view + part list (--cabinet <id>)
+  room      Write the floor plan (or with --wall <id> that wall's elevation) as SVG
   dxf       Write CNC DXF files, one per machined part side (--out <dir> or --zip <file>;
             --cabinet / --part to limit; --profile <id> for the layer names)
 
@@ -88,6 +91,7 @@ export function run(argv: readonly string[], io: Io): number {
         style: { type: "string" },
         sheet: { type: "string" },
         zip: { type: "string" },
+        wall: { type: "string" },
         profile: { type: "string" },
         timestamp: { type: "string" },
         help: { type: "boolean", short: "h", default: false },
@@ -103,7 +107,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
-  if (!["cutlist", "resolve", "check", "ops", "drawing", "assembly", "dxf"].includes(command) || !file) {
+  if (!["cutlist", "resolve", "check", "ops", "drawing", "assembly", "dxf", "room"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
   }
@@ -141,7 +145,7 @@ export function run(argv: readonly string[], io: Io): number {
     case "check": {
       printDiagnostics(result.diagnostics, tr, io);
       if (result.project.cabinets.length === 0) io.stderr(tr.t("cli.no_cabinets") + "\n");
-      return result.ok ? 0 : 1;
+      return result.diagnostics.some((d) => d.severity === "error") ? 1 : 0;
     }
     case "resolve": {
       const cabinets = result.cabinets.filter((c) => !opts.cabinet || c.resolved.cabinet.id === opts.cabinet);
@@ -230,6 +234,25 @@ export function run(argv: readonly string[], io: Io): number {
       emit(out.join("\n"));
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
+    }
+    case "room": {
+      const room = result.room;
+      if (!room) {
+        io.stderr(tr.t("cli.no_room") + "\n");
+        return 1;
+      }
+      const text = drawingText(tr, result.library);
+      if (opts.wall) {
+        if (!room.walls.some((w) => w.id === opts.wall)) {
+          io.stderr(tr.t("diag.room_unknown_wall", { wall: opts.wall }) + "\n");
+          return 1;
+        }
+        emit(elevationSvg(room, opts.wall, result.cabinets, result.project.name, text));
+      } else {
+        emit(floorPlanSvg(room, result.project.name, text));
+      }
+      printDiagnostics(result.diagnostics, tr, io);
+      return 0;
     }
     case "dxf": {
       if (!result.ok) {

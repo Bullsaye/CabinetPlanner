@@ -17,7 +17,10 @@
       "kind": "base",
       "presets": [
         "base-unit"
-      ]
+      ],
+      "place": {
+        "wall": "A"
+      }
     },
     {
       "id": "B02",
@@ -30,7 +33,10 @@
       "kind": "base",
       "presets": [
         "base-unit"
-      ]
+      ],
+      "place": {
+        "wall": "A"
+      }
     },
     {
       "id": "B03",
@@ -55,7 +61,10 @@
         {
           "type": "drawer"
         }
-      ]
+      ],
+      "place": {
+        "wall": "A"
+      }
     },
     {
       "id": "W01",
@@ -68,7 +77,10 @@
         "W": "1600 / 2",
         "door_count": 2
       },
-      "kind": "wall"
+      "kind": "wall",
+      "place": {
+        "wall": "A"
+      }
     },
     {
       "id": "T01",
@@ -82,7 +94,49 @@
         "W": 1000,
         "partition_count": 1,
         "door_count": 2
+      },
+      "place": {
+        "wall": "B",
+        "x": 1400
       }
     }
-  ]
+  ],
+  "room": {
+    "walls": [
+      {
+        "id": "A",
+        "length": 3600
+      },
+      {
+        "id": "B",
+        "length": 2400
+      },
+      {
+        "id": "C",
+        "length": 3600
+      },
+      {
+        "id": "D",
+        "length": 2400
+      }
+    ],
+    "openings": [
+      {
+        "wall": "A",
+        "kind": "window",
+        "x": 2200,
+        "width": 1000,
+        "sill": 1000,
+        "height": 1250
+      },
+      {
+        "wall": "C",
+        "kind": "door",
+        "x": 2400,
+        "width": 900,
+        "height": 2100,
+        "hinge": "right"
+      }
+    ]
+  }
 }

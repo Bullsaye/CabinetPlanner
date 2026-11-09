@@ -3,6 +3,8 @@
     drawAssembly,
     drawingText,
     drawPartSheets,
+    elevationSvg,
+    floorPlanSvg,
     DxfProfileSchema,
     FACTORY_DXF_PROFILES,
     FACTORY_STYLES,
@@ -17,7 +19,8 @@
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
 
   const t = $derived(store.tr.t);
-  let kind = $state<"part" | "assembly">("part");
+  let kind = $state<"part" | "assembly" | "plan" | "elevation">("part");
+  let wallId = $state("A");
   let note = $state("");
 
   const cab = $derived(store.cabinet);
@@ -27,6 +30,12 @@
 
   function make(css: boolean): string {
     const r = store.result;
+    if (r?.room && (kind === "plan" || kind === "elevation")) {
+      const text = drawingText(store.tr, r.library);
+      return kind === "plan"
+        ? floorPlanSvg(r.room, r.project.name, text, css)
+        : elevationSvg(r.room, r.room.walls.some((w) => w.id === wallId) ? wallId : r.room.walls[0]!.id, r.cabinets, r.project.name, text, css);
+    }
     if (!r || !cab || !cab.parts.length) return "";
     const v = (n: string): number => cab.resolved.values.get(n)!;
     const size = { W: v("W"), H: v("H"), D: v("D") };
@@ -80,7 +89,9 @@
     const name = `${base}-dxf.zip`;
     note = downloadNote(await download(name, zip(files.map((f) => ({ name: f.name, data: f.content }))), "application/zip"), `${name} (${files.length} DXF)`, t);
   }
-  const fileName = $derived(kind === "assembly" ? `${cab?.resolved.cabinet.id}-assembly.svg` : `${partId}.svg`);
+  const fileName = $derived(
+    kind === "assembly" ? `${cab?.resolved.cabinet.id}-assembly.svg` : kind === "plan" ? "floor-plan.svg" : kind === "elevation" ? `elevation-${wallId}.svg` : `${partId}.svg`,
+  );
 </script>
 
 <section class="panel dv">
@@ -88,7 +99,16 @@
     <div role="group" aria-label={t("ui.sheet")}>
       <button aria-pressed={kind === "part"} onclick={() => (kind = "part")}>{t("ui.part_sheet")}</button>
       <button aria-pressed={kind === "assembly"} onclick={() => (kind = "assembly")}>{t("ui.assembly_drawing")}</button>
+      {#if store.result?.room}
+        <button aria-pressed={kind === "plan"} onclick={() => (kind = "plan")}>{t("room.plan")}</button>
+        <button aria-pressed={kind === "elevation"} onclick={() => (kind = "elevation")}>{t("room.elevation")}</button>
+      {/if}
     </div>
+    {#if kind === "elevation" && store.result?.room}
+      <select id="draw-wall" aria-label={t("ui.wall")} bind:value={wallId}>
+        {#each store.result.room.walls as w}<option value={w.id}>{t("room.wall")} {w.id}</option>{/each}
+      </select>
+    {/if}
     {#if kind === "part"}
       <select id="draw-part" aria-label={t("ui.part")} value={partId} onchange={(e) => (store.ui.part = (e.target as HTMLSelectElement).value)}>
         {#each parts as p}<option value={p.id}>{p.id} · {t(`role.${p.role}`)}</option>{/each}
@@ -111,7 +131,9 @@
     <button onclick={() => exportDxf("project")}>{t("ui.dxf_project")}</button>
   </div>
   {#if note}<p class="note muted">{note}</p>{/if}
-  {#if !cab}
+  {#if kind === "plan" || kind === "elevation"}
+    <div class="sheet scroll-x">{@html svg}</div>
+  {:else if !cab}
     <p class="muted pad">{t("ui.select_cabinet")}</p>
   {:else if !cab.parts.length}
     <p class="muted pad">{t("ui.fix_errors_first")}</p>

@@ -18,19 +18,35 @@
   const css = (n: string): string => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 
-  /** Run layout: floor units side by side, wall units side by side above. */
-  function layout(cabs: CabinetResult[]): Map<string, THREE.Vector3> {
-    const pos = new Map<string, THREE.Vector3>();
+  /**
+   * Cabinet placement as a matrix from cabinet coordinates to the scene.
+   * With a room: on its wall (plan X → scene X, plan Y north → scene −Z).
+   * Without: a simple run, floor units and wall units side by side.
+   */
+  function layout(cabs: CabinetResult[]): Map<string, THREE.Matrix4> {
+    const room = store.result?.room;
+    if (room) {
+      const out = new Map<string, THREE.Matrix4>();
+      for (const q of room.placements) {
+        const d = new THREE.Vector3(q.d[0], 0, -q.d[1]);
+        const n = new THREE.Vector3(q.n[0], 0, -q.n[1]);
+        const m = new THREE.Matrix4().makeBasis(d, new THREE.Vector3(0, 1, 0), n);
+        m.setPosition(q.origin[0], q.baseY, -q.origin[1]);
+        out.set(q.cabinet, m);
+      }
+      return out;
+    }
+    const pos = new Map<string, THREE.Matrix4>();
     let xf = 0;
     let xw = 0;
     for (const c of cabs) {
       const v = (n: string): number => c.resolved.values.get(n) ?? 0;
       const kind = c.resolved.cabinet.kind;
       if (kind === "wall") {
-        pos.set(c.resolved.cabinet.id, new THREE.Vector3(xw, v("wall_bottom"), 0));
+        pos.set(c.resolved.cabinet.id, new THREE.Matrix4().makeTranslation(xw, v("wall_bottom"), 0));
         xw += v("W");
       } else {
-        pos.set(c.resolved.cabinet.id, new THREE.Vector3(xf, v("plinth_h"), 0));
+        pos.set(c.resolved.cabinet.id, new THREE.Matrix4().makeTranslation(xf, v("plinth_h"), 0));
         xf += v("W");
       }
     }
@@ -56,12 +72,16 @@
     (grid.material as THREE.Material).opacity = 0.18;
     (grid.material as THREE.Material).transparent = true;
     root.add(grid);
+    addRoom(root);
 
     for (const c of cabs) {
       const sc = sceneOf(c);
       const id = c.resolved.cabinet.id;
       const g = new THREE.Group();
-      g.position.copy(pos.get(id)!);
+      const m = pos.get(id);
+      if (!m) continue;
+      g.matrixAutoUpdate = false;
+      g.matrix.copy(m);
       const selected = store.ui.selected === id;
       const centre = new THREE.Vector3(sc.size.W / 2, sc.size.H / 2, sc.size.D / 2);
       for (const p of sc.parts) {
@@ -112,6 +132,49 @@
     }
     scene.add(root);
     if (!framed) frame();
+  }
+
+  /** Walls as see-through boxes around their openings, plus the floor. */
+  function addRoom(parent: THREE.Group): void {
+    const room = store.result?.room;
+    if (!room) return;
+    const wallMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--shade-side")), transparent: true, opacity: 0.35, depthWrite: false });
+    const edge = new THREE.LineBasicMaterial({ color: new THREE.Color(css("--part-edge")), transparent: true, opacity: 0.6 });
+    for (const w of room.walls) {
+      const ops = room.openings.filter((o) => o.wall === w.id).sort((a, b) => a.x - b.x);
+      // Rectangles (along, up) of solid wall around the openings.
+      const pieces: [number, number, number, number][] = [];
+      let x = 0;
+      for (const o of ops) {
+        if (o.x > x) pieces.push([x, 0, o.x, w.height]);
+        if (o.sill > 0) pieces.push([o.x, 0, o.x + o.width, o.sill]);
+        if (o.sill + o.height < w.height) pieces.push([o.x, o.sill + o.height, o.x + o.width, w.height]);
+        x = Math.max(x, o.x + o.width);
+      }
+      if (x < w.length) pieces.push([x, 0, w.length, w.height]);
+      const d = new THREE.Vector3(w.d[0], 0, -w.d[1]);
+      const n = new THREE.Vector3(w.n[0], 0, -w.n[1]);
+      const basis = new THREE.Matrix4().makeBasis(d, new THREE.Vector3(0, 1, 0), n);
+      basis.setPosition(w.start[0], 0, -w.start[1]);
+      for (const [a0, y0, a1, y1] of pieces) {
+        const geo = new THREE.BoxGeometry(a1 - a0, y1 - y0, w.thickness);
+        const mesh = new THREE.Mesh(geo, wallMat);
+        mesh.position.set((a0 + a1) / 2, (y0 + y1) / 2, -w.thickness / 2);
+        mesh.applyMatrix4(basis);
+        parent.add(mesh);
+        const lines = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge);
+        lines.position.copy(mesh.position);
+        lines.quaternion.copy(mesh.quaternion);
+        parent.add(lines);
+      }
+    }
+    if (room.closed) {
+      const shape = new THREE.Shape(room.walls.map((w) => new THREE.Vector2(w.start[0], w.start[1])));
+      const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--surface-2")), side: THREE.DoubleSide }));
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -0.5;
+      parent.add(floor);
+    }
   }
 
   const metal = (): THREE.Material =>

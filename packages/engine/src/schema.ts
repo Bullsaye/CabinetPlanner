@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DrawingStyleSchema } from "./drawing/style.ts";
 import { DxfProfileSchema } from "./output/dxf.ts";
+import { PlacementSchema, RoomSchema } from "./room/room.ts";
 import { HardwareItem } from "./hardware/schema.ts";
 import { Edgeband, Material } from "./library.ts";
 import { LocalizedText } from "./text.ts";
@@ -68,6 +69,8 @@ export const CabinetSchema = z.object({
   kind: z.enum(["base", "wall", "tall"]).default("base"),
   name: z.string().optional(),
   ...layerFields,
+  /** Where the cabinet stands in the room (wall and position along it). */
+  place: PlacementSchema.optional(),
   /** Front stack, top to bottom. Without it the cabinet has one door zone (door_count doors). */
   fronts: z.array(FrontZone).max(12).optional(),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
@@ -102,6 +105,8 @@ export const ProjectSchema = z
      */
     shop: Layer.optional(),
     ...layerFields,
+    /** The room: walls, windows, doors. Without it cabinets stand in a simple run. */
+    room: RoomSchema.optional(),
     cabinets: z.array(CabinetSchema).default([]),
   })
   .superRefine((p, ctx) => {

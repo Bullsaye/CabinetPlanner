@@ -322,3 +322,28 @@ Two shop settings, because they are used for different things:
 - No post-processing: native CNC formats (e.g. Maestro .xcs) stay for later.
 - Header comment (999) names project, revision, part, side, size; a
   timestamp only when asked (CLI --timestamp), so files are reproducible.
+
+### D28 · 2026-11-09 · Room planning
+
+- Plan coordinates: X east, Y north, mm; origin at the start of the first
+  wall's inner face. Walls are listed in order, clockwise, so the room is
+  on the right of each wall; lengths along the inner face; each wall
+  turns right (default) or left into the next. Wall height defaults to
+  `room_height`; thickness extends outwards.
+- Openings (window, door, opening) on a wall: `x` from the wall's start
+  to the left edge as seen from inside, width, sill, height; doors swing
+  into the room with a hinge side.
+- A cabinet stands with its back on its wall (`place.wall`): its X along
+  the wall from `place.x`, its front into the room; without `x`, floor
+  units and wall units each continue the run on that wall in project
+  order. Cabinets without a place go on the first wall. Floor units stand
+  on the plinth, wall units at `wall_bottom`.
+- Room checks (warnings unless noted): cabinet past the wall's ends,
+  cabinets overlapping in plan at overlapping heights (error), cabinets in
+  front of an opening. Room findings never block parts, cutlists or CNC
+  files; `check` fails on them.
+- Drawings on A3, to scale (1:10 … 1:100): floor plan (walls, openings with
+  door swing, floor units solid, wall units dashed, per wall the unit
+  chain, inner length and opening positions, wall names outside) and an
+  elevation per wall seen from inside (fronts, handles, plinth, openings,
+  width chains below/above, height chain on the left).
