@@ -301,14 +301,17 @@ function placeHinges(
   context.set("door_t", door.thickness);
   const params = evaluateItemParams(item, context, at);
   diagnostics.push(...params.diagnostics);
-  const count = params.values.get("count");
-  const endOffset = params.values.get("end_offset");
-  if (count === undefined || endOffset === undefined) {
+  // Placement preferences are cabinet variables; the item only supplies its
+  // recommended count, used when hinge_count is 0 (auto).
+  const fixedCount = rc.values.get("hinge_count")!;
+  const count = fixedCount > 0 ? fixedCount : params.values.get("count");
+  const endOffset = rc.values.get("hinge_end_offset")!;
+  if (count === undefined) {
     if (!params.diagnostics.length) {
       diagnostics.push({
         severity: "error",
         code: "hardware_param_missing",
-        params: { item: item.id, params: ["count", "end_offset"].filter((n) => !params.values.has(n)).join(", ") },
+        params: { item: item.id, params: "count" },
         ...at,
       });
     }

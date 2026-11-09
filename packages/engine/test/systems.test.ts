@@ -80,12 +80,13 @@ describe("base 600 machining", () => {
 
   it("hangs the door on two hinges whose plates use the system holes", () => {
     const cups = bores(p.DO1!, "generic-hinge-110");
+    // 80 mm from the door ends, snapped so the plate holes (±16) hit the grid.
     expect(cups.map((b) => [b.u, b.v, b.d])).toEqual([
       [89.5, 21.5, 35],
-      [601.5, 21.5, 35],
+      [633.5, 21.5, 35],
     ]);
     const plates = bores(p.SL!, "generic-hinge-110");
-    expect(plates.map((b) => b.u)).toEqual([73.5, 105.5, 585.5, 617.5]);
+    expect(plates.map((b) => b.u)).toEqual([73.5, 105.5, 617.5, 649.5]);
     expect(plates.every((b) => b.sources.some((s) => s.kind === "system"))).toBe(true);
     expect(bores(p.SR!, "generic-hinge-110")).toEqual([]);
   });
@@ -111,6 +112,11 @@ describe("variants", () => {
     expect(bores(p.SL!, "generic-hinge-110")).toHaveLength(4);
     expect(bores(p.SR!, "generic-hinge-110")).toHaveLength(4);
     expect(r.cabinets[0]!.hardware.find((h) => h.item === "generic-hinge-110")!.qty).toBe(4);
+  });
+
+  it("takes hinge distance and count from cabinet variables", () => {
+    const p = partsByCode(buildOne({ vars: { hinge_end_offset: 120, hinge_count: 3 }, options: { system_holes: "none" } }));
+    expect(bores(p.DO1!).map((b) => b.u)).toEqual([120, 358.5, 597]);
   });
 
   it("uses more hinges on tall doors", () => {
@@ -148,7 +154,7 @@ describe("variants", () => {
     const r = buildOne({ options: { system_holes: "none" } });
     expect(r.diagnostics.map((d) => d.code)).toEqual(["shelf_supports_without_holes"]);
     const p = partsByCode(r);
-    expect(bores(p.DO1!).map((b) => b.u)).toEqual([100, 617]);
+    expect(bores(p.DO1!).map((b) => b.u)).toEqual([80, 637]);
   });
 
   it("moves dowels off a groove that sits where a dowel would go", () => {
@@ -172,7 +178,7 @@ describe("hardware library", () => {
     id: "my-hinge",
     name: "My hinge",
     category: "hinge",
-    params: { count: 2, end_offset: 90, cup_d: 35, cup_depth: 12 },
+    params: { count: 2, cup_d: 35, cup_depth: 12 },
     drilling: [{ mount: "door", d: "cup_d", depth: "cup_depth", a: 0, b: 22.5 }],
     ...over,
   });
@@ -182,8 +188,8 @@ describe("hardware library", () => {
     expect(r.diagnostics).toEqual([]);
     const cups = bores(partsByCode(r).DO1!, "my-hinge");
     expect(cups.map((b) => [b.u, b.v, b.depth])).toEqual([
-      [90, 22.5, 12],
-      [627, 22.5, 12],
+      [80, 22.5, 12],
+      [637, 22.5, 12],
     ]);
   });
 
@@ -200,7 +206,7 @@ describe("hardware library", () => {
         library: {
           hardware: [
             custom({
-              params: { count: 2, end_offset: 90, W: 3 },
+              params: { count: 2, W: 3 },
               drilling: [
                 { mount: "door", d: "nope", depth: 12, a: 0, b: 20 },
                 { mount: "shelf", d: 5, depth: 12, a: 0, b: 20 },

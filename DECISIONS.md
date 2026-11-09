@@ -158,3 +158,12 @@ through; operations may not overlap except identical bores, which are
 merged with all their sources (e.g. a hinge plate screw in a system hole).
 Pockets may meet each other. Violations are errors and block output.
 Overlap tests use axis-aligned bounds, so they are conservative.
+
+### D18 · 2026-11-09 · Preferences are variables, product data lives in items
+
+How a shop wants hardware placed is a cabinet variable, set once in the
+shop preset and overridable per project or cabinet: e.g. `hinge_end_offset`
+(factory 80 mm), `hinge_count` (0 = the manufacturer's recommendation for
+the door height). Hardware items carry only product data: dimensions,
+drilling patterns, nominal lengths and the manufacturer's selection rules.
+Supersedes the `end_offset` item param from D15.

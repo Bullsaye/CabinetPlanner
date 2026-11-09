@@ -24,9 +24,9 @@ B01-SL   Bore       t1    457.5  515   19   5   13           system:rows
 B01-SL   Bore       t1    489.5  515   19   5   13           system:rows
 B01-SL   Bore       t1    521.5  515   19   5   13           system:rows
 B01-SL   Bore       t1    553.5  515   19   5   13           system:rows
-B01-SL   Bore       t1    585.5  515   19   5   13           system:rows + hardware:generic-hinge-110
+B01-SL   Bore       t1    585.5  515   19   5   13           system:rows
 B01-SL   Bore       t1    617.5  515   19   5   13           system:rows + hardware:generic-hinge-110
-B01-SL   Bore       t1    649.5  515   19   5   13           system:rows
+B01-SL   Bore       t1    649.5  515   19   5   13           system:rows + hardware:generic-hinge-110
 B01-SL   Bore       t1    73.5   67    19   5   13           system:rows
 B01-SL   Bore       t1    105.5  67    19   5   13           system:rows
 B01-SL   Bore       t1    137.5  67    19   5   13           system:rows
@@ -109,7 +109,7 @@ B01-RR   Bore       w1    0      31    9.5  8   25           joint:SL-RR
 B01-RR   Bore       w2    562    63    9.5  8   25           joint:SR-RR
 B01-RR   Bore       w2    562    31    9.5  8   25           joint:SR-RR
 B01-DO1  Bore       t0    89.5   21.5  0    35  13           hardware:generic-hinge-110
-B01-DO1  Bore       t0    601.5  21.5  0    35  13           hardware:generic-hinge-110
+B01-DO1  Bore       t0    633.5  21.5  0    35  13           hardware:generic-hinge-110
 
 ## Hardware
 Item                                         Qty

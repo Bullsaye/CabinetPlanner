@@ -1,7 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "generic-hinge-110",
-  "name": { "en": "Cup hinge 110° (generic)", "de": "Topfband 110° (generisch)" },
+  "name": {
+    "en": "Cup hinge 110° (generic)",
+    "de": "Topfband 110° (generisch)"
+  },
   "category": "hinge",
   "manufacturer": "Generic",
   "series": "Cup hinge 35 mm",
@@ -10,7 +13,6 @@
   "source": "Typical values for a 35 mm full-overlay cup hinge with an euro-screw mounting plate. Replace with the datasheet of the hinge you use before machining.",
   "params": {
     "count": "if(door_h <= 900, 2, if(door_h <= 1600, 3, if(door_h <= 2000, 4, 5)))",
-    "end_offset": 100,
     "grid_offset": 16,
     "cup_d": 35,
     "cup_depth": 13,
@@ -21,9 +23,30 @@
     "plate_hole_spacing": 32
   },
   "drilling": [
-    { "mount": "door", "d": "cup_d", "depth": "cup_depth", "a": 0, "b": "cup_boring_distance + cup_d / 2" },
-    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "-plate_hole_spacing / 2", "b": "plate_row" },
-    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "plate_hole_spacing / 2", "b": "plate_row" }
+    {
+      "mount": "door",
+      "d": "cup_d",
+      "depth": "cup_depth",
+      "a": 0,
+      "b": "cup_boring_distance + cup_d / 2"
+    },
+    {
+      "mount": "side",
+      "d": "plate_hole_d",
+      "depth": "plate_hole_depth",
+      "a": "-plate_hole_spacing / 2",
+      "b": "plate_row"
+    },
+    {
+      "mount": "side",
+      "d": "plate_hole_d",
+      "depth": "plate_hole_depth",
+      "a": "plate_hole_spacing / 2",
+      "b": "plate_row"
+    }
   ],
-  "bom": { "perPlacement": 1, "unit": "pcs" }
+  "bom": {
+    "perPlacement": 1,
+    "unit": "pcs"
+  }
 }
