@@ -30,6 +30,7 @@ const Role = z.enum([
   "door",
   "blind_panel",
   "appliance_front",
+  "flap",
   "worktop",
   "plinth",
   "drawer_front",

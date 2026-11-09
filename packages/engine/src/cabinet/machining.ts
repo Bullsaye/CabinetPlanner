@@ -37,6 +37,8 @@ export interface HardwareUse {
   unit: string;
   /** Cut lengths for items cut to size (wardrobe rails), mm. */
   lengths?: number[];
+  /** Article chosen from the item's variants (e.g. by power factor). */
+  article?: string;
 }
 
 /** What the room knows about a cabinet (D37): which carcase sides can be seen. */
@@ -80,11 +82,12 @@ export function machineBox(
   const usage = new Map<string, HardwareUse>();
   const handles: HandlePlacement[] = [];
   const fittings: Fitting[] = [];
-  const use = (item: HardwareItem, qty: number, length?: number): void => {
+  const use = (item: HardwareItem, qty: number, length?: number, article?: string): void => {
     if (qty <= 0) return;
-    let u = usage.get(item.id);
+    const key = article ? `${item.id}|${article}` : item.id;
+    let u = usage.get(key);
     if (u) u.qty += qty * item.bom.perPlacement;
-    else usage.set(item.id, (u = { item: item.id, qty: qty * item.bom.perPlacement, unit: item.bom.unit }));
+    else usage.set(key, (u = { item: item.id, qty: qty * item.bom.perPlacement, unit: item.bom.unit, ...(article ? { article } : {}) }));
     if (length !== undefined) (u.lengths ??= []).push(roundMm(length));
   };
   // Vertical panels (sides, middle panels) whose face lies in the plane x.
@@ -125,6 +128,37 @@ export function machineBox(
         const hi = ax === "x" ? region.x1 : ax === "y" ? region.y1 : region.z1;
         if (lo <= p.box[ax] + 1e-6 && hi >= p.box[ax] + boxSize(p.box, ax) - 1e-6) continue;
         addPocketFromBox(p, region, source);
+      }
+    }
+  }
+
+  // --- Cabinet hangers (D39): rail notch in hidden sides, before the joints so dowels keep clear ---
+  const hangerId = opt<string | null>("hardware.hanger");
+  const hanger = hangerId !== null && rc.cabinet.kind === "wall" ? library.hardware.get(hangerId) : undefined;
+  let hangerParams: ReadonlyMap<string, number> | undefined;
+  if (hanger) {
+    const scope = new Map(rc.values);
+    scope.set("back_front_z", layout.backFrontZ);
+    const params = evaluateItemParams(hanger, scope, at);
+    diagnostics.push(...params.diagnostics, ...checkLimits(hanger, params.values, at));
+    hangerParams = params.values;
+    const nh = params.values.get("notch_h") ?? 0;
+    const nd = params.values.get("notch_d") ?? 0;
+    const sideOpt = (k: "left" | "right"): boolean => {
+      const o = opt<string>(`side.${k}`);
+      return o === "visible" ? true : o === "hidden" ? false : (context.visible?.[k] ?? false);
+    };
+    if (nh > 0 && nd > 0) {
+      const H = num("H");
+      for (const [code, k] of [["SL", "left"], ["SR", "right"]] as const) {
+        const side = byCode.get(code);
+        if (!side || sideOpt(k)) continue;
+        const b = side.box;
+        addPocketFromBox(side, { x0: b.x, x1: b.x + b.dx, y0: H - nh, y1: H + 1, z0: b.z - 1, z1: b.z + nd }, { kind: "hardware", ref: `${hanger.id}:notch` }, { through: true });
+      }
+      // Panels reaching into the notch zone would stop the rail.
+      if (parts.some((p) => (p.role === "top" || p.role === "rail_rear") && p.box.z < layout.carcaseZ0 + nd - 1e-6)) {
+        diagnostics.push({ severity: "warning", code: "hanger_rail_blocked", params: { item: hanger.id }, ...at });
       }
     }
   }
@@ -342,6 +376,12 @@ export function machineBox(
         drill(p, [{ x: xOpen, y: yEnd }, { x: xOpen + inward * cc, y: yEnd }]);
       }
     }
+    for (const p of parts.filter((x) => x.role === "flap")) {
+      const b = p.box;
+      const xc = b.x + b.dx / 2;
+      const y = b.y + num("handle_end_offset");
+      drill(p, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
+    }
     for (const p of parts.filter((x) => x.role === "drawer_front")) {
       const b = p.box;
       const y = opt<string>("handle.drawer") === "top" ? b.y + b.dy - num("handle_drawer_top") : b.y + b.dy / 2;
@@ -408,6 +448,57 @@ export function machineBox(
         const p = byCode.get(`${c}${d.index}`);
         if (p) addPocketFromBox(p, region, { kind: "joint", ref: `DT${d.index}` });
       }
+    }
+  }
+
+  // --- Hanger drilling: inside face of each side, `a` below the top edge, `b` in front of the back ---
+  if (hanger && hangerParams) {
+    const { drills, diagnostics: dd } = evaluateDrilling(hanger, hangerParams, at);
+    diagnostics.push(...dd);
+    const H = num("H");
+    const source: OpSource = { kind: "hardware", ref: hanger.id };
+    for (const [code, x, dir] of [["SL", t, "-x"], ["SR", W - t, "+x"]] as const) {
+      const side = byCode.get(code);
+      if (!side) continue;
+      for (const dr of drills) {
+        if (dr.mount !== "side") continue;
+        addBore(side, { x, y: H - dr.a, z: layout.backFrontZ + dr.b }, dir, dr.d, dr.depth, source);
+      }
+    }
+    use(hanger, 1);
+  }
+
+  // --- Lift-up flaps (D39): mechanism by power factor, drilled into both sides ---
+  if (layout.flaps.length) {
+    const item = library.hardware.get(opt<string>("hardware.flap"))!;
+    const H = num("H");
+    const source: OpSource = { kind: "hardware", ref: item.id };
+    for (const f of layout.flaps) {
+      const front = byCode.get(f.code)!;
+      const density = library.materials.get(front.material)?.density;
+      if (density === undefined) diagnostics.push({ severity: "warning", code: "material_no_density", params: { material: front.material }, ...at });
+      const kg = (front.length * front.width * front.thickness * (density ?? 750)) / 1e9 + 2 * num("flap_handle_weight");
+      const scope = new Map(rc.values);
+      scope.set("front_kg", Math.round(kg * 100) / 100);
+      scope.set("LF", Math.round(H * kg));
+      scope.set("FAo", Math.max(0, front.box.y + front.box.dy - (H - t)));
+      const params = evaluateItemParams(item, scope, at);
+      diagnostics.push(...params.diagnostics, ...checkLimits(item, params.values, { ...at, part: front.id }));
+      const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
+      diagnostics.push(...dd);
+      for (const [code, x, dir] of [["SL", t, "-x"], ["SR", W - t, "+x"]] as const) {
+        const side = byCode.get(code);
+        if (!side) continue;
+        for (const dr of drills) {
+          if (dr.mount !== "side") continue;
+          addBore(side, { x, y: H - dr.a, z: D - dr.b }, dir, dr.d, dr.depth, source);
+        }
+      }
+      const v = item.variants.find((x) => {
+        const val = params.values.get(x.param);
+        return val !== undefined && (x.min === undefined || val >= x.min) && (x.max === undefined || val <= x.max);
+      });
+      use(item, 1, undefined, v?.code);
     }
   }
 

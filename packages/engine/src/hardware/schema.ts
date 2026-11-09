@@ -76,10 +76,14 @@ export const HardwareItem = z.object({
   schemaVersion: z.literal(1).default(1),
   id: z.string().min(1),
   name: LocalizedText,
-  category: z.enum(["hinge", "connector", "shelf_support", "slide", "handle", "leg", "rail", "other"]),
+  category: z.enum(["hinge", "connector", "shelf_support", "slide", "handle", "leg", "rail", "hanger", "flap", "other"]),
   manufacturer: z.string().optional(),
   series: z.string().optional(),
   articles: z.array(z.object({ code: z.string().min(1), note: z.string().optional() })).default([]),
+  /** Article chosen by a computed value (e.g. lift mechanism by power factor LF); first match wins. */
+  variants: z
+    .array(z.object({ code: z.string().min(1), note: z.string().optional(), param: z.string().min(1), min: z.number().optional(), max: z.number().optional() }))
+    .default([]),
   /**
    * untested: data entered but never machined; tested: the author machined
    * parts with it; verified: reviewed. Untested drilling data will warn

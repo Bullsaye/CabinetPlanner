@@ -20,6 +20,7 @@ export type PartRole =
   | "door"
   | "blind_panel"
   | "appliance_front"
+  | "flap"
   | "worktop"
   | "plinth"
   | "drawer_front"
@@ -48,6 +49,7 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   door: "DO",
   blind_panel: "BP",
   appliance_front: "AF",
+  flap: "FL",
   worktop: "WT",
   plinth: "PL",
   drawer_front: "DF",
@@ -73,6 +75,7 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "door",
   "blind_panel",
   "appliance_front",
+  "flap",
   "drawer_front",
   "drawer_side_left",
   "drawer_side_right",

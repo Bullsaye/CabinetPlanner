@@ -81,7 +81,8 @@
       "hardware.handle": "generic-bar-160",
       "top.base_unit": "full",
       "back_extent": "behind_horizontals",
-      "dowel_pattern": "sequence"
+      "dowel_pattern": "sequence",
+      "hardware.hanger": "hettich-sah-130"
     }
   }
 }

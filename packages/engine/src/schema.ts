@@ -58,9 +58,10 @@ export const FrontZone = z.object({
    * door / drawer; open: no front (shelves stay visible); appliance: a niche
    * for a built-in appliance, with `front: true` a panel fixed to the
    * appliance door (integrated fridge, dishwasher) instead of an open niche;
-   * panel: a fixed front without hinges (filler under an oven).
+   * panel: a fixed front without hinges (filler under an oven); flap: a
+   * front lifting up on a lift fitting (hardware.flap).
    */
-  type: z.enum(["drawer", "door", "open", "appliance", "panel"]),
+  type: z.enum(["drawer", "door", "open", "appliance", "panel", "flap"]),
   h: VarInputSchema.optional(),
   /** Door zones: 1 or 2 doors side by side (default: door_count). */
   doors: z.number().int().min(1).max(2).optional(),

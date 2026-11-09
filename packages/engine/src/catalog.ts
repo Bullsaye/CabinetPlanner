@@ -19,7 +19,7 @@ export type VarGroup =
   | "hardware"
   | "drawers"
   | "machining";
-export type VarUnit = "mm" | "count";
+export type VarUnit = "mm" | "count" | "kg";
 
 export interface VarDef {
   name: string;
@@ -135,6 +135,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "hinge_count", group: "hardware", unit: "count", factory: 0, min: 0, max: 8, integer: true, step: 1 }),
   v({ name: "handle_edge_offset", group: "hardware", unit: "mm", factory: 40, min: 10, max: 400, step: 5 }),
   v({ name: "handle_end_offset", group: "hardware", unit: "mm", factory: 60, min: 10, max: 800, step: 5 }),
+  v({ name: "flap_handle_weight", group: "hardware", unit: "kg", factory: 0.2, min: 0, max: 5, step: 0.05 }),
   v({ name: "handle_drawer_top", group: "hardware", unit: "mm", factory: 40, min: 10, max: 300, step: 5 }),
   v({ name: "leg_inset_side", group: "hardware", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
   v({ name: "leg_inset_front", group: "hardware", unit: "mm", factory: "plinth_setback + 50", min: 0, max: 400, step: 5 }),
@@ -174,7 +175,7 @@ export const MATERIAL_CONSTANTS = {
 // ---------------------------------------------------------------------------
 // Options: non-numeric choices (construction variants, library references).
 
-export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "handle" | "leg" | "rail" | "other";
+export type HardwareCategory = "hinge" | "connector" | "shelf_support" | "slide" | "handle" | "leg" | "rail" | "hanger" | "flap" | "other";
 
 export type OptionKind =
   | { type: "enum"; values: readonly string[] }
@@ -265,6 +266,10 @@ export const OPTIONS: readonly OptionDef[] = [
     factory: "shelves",
   },
   { key: "hardware.rail", group: "hardware", kind: { type: "hardware", category: "rail" }, factory: "generic-wardrobe-rail" },
+  /** Wall units: cabinet hangers (D39); hidden sides get the rail notch. */
+  { key: "hardware.hanger", group: "hardware", kind: { type: "hardware", category: "hanger", nullable: true }, factory: null },
+  /** Lift-up flaps (front zone type flap, D39). */
+  { key: "hardware.flap", group: "hardware", kind: { type: "hardware", category: "flap" }, factory: "blum-aventos-hk-top" },
   /** Adjustable feet under floor units with a plinth (none: the plinth is built otherwise). */
   { key: "hardware.leg", group: "hardware", kind: { type: "hardware", category: "leg", nullable: true }, factory: "generic-leg-100" },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },

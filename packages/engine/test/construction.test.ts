@@ -191,3 +191,41 @@ describe("construction elements (D38)", () => {
     expect(r.parts.filter((x) => x.role === "back").length).toBe(2);
   });
 });
+
+describe("cabinet hangers and flaps (D39)", () => {
+  const wall = { kind: "wall", presets: ["wall-unit"], vars: { W: 600 }, options: { "hardware.hanger": "hettich-sah-130", back_extent: "behind_horizontals" } };
+
+  it("drills SAH 130 and notches hidden sides for the rail", () => {
+    const r = buildOne({ ...wall, options: { ...wall.options, "side.right": "visible" } });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const holes = refs(p.SL!, "hettich-sah-130");
+    // 23.7 below the top (720), 20.5 and 52.5 in front of the back's front face (18).
+    expect(holes.map((o) => (o.kind === "bore" ? [o.u, o.v, o.d] : []))).toEqual([
+      [720 - 23.7, 18 + 20.5, 10],
+      [720 - 23.7, 18 + 52.5, 10],
+    ].map(([u, z, d]) => [u, z, d]));
+    const notch = (x: Part) => refs(x, "hettich-sah-130:notch");
+    expect(notch(p.SL!)[0]).toMatchObject({ kind: "pocket", u0: 720 - 29, u1: 720, v0: 0, v1: 18, w0: 0, w1: 19 });
+    expect(notch(p.SR!)).toEqual([]); // visible: no notch
+    expect(r.cabinets[0]!.hardware.find((h) => h.item === "hettich-sah-130")?.qty).toBe(1);
+  });
+
+  it("warns when the top would block the rail, and checks the back setback", () => {
+    const r = buildOne({ ...wall, options: { "hardware.hanger": "hettich-sah-130" } });
+    expect(r.diagnostics.map((d) => d.code)).toContain("hanger_rail_blocked");
+    const r2 = buildOne({ ...wall, vars: { W: 600, back_groove_offset: 5 } });
+    expect(r2.diagnostics.map((d) => d.code)).toContain("hardware_limit");
+  });
+
+  it("lifts a flap on AVENTOS HK top, mechanism chosen by power factor", () => {
+    const r = buildOne({ kind: "wall", presets: ["wall-unit"], vars: { W: 800, H: 400 }, fronts: [{ type: "flap" }] });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    expect(p.FL1).toBeDefined();
+    // Ø5 holes 36 below the top edge at 37 / 69 / 133 / 165 from the front (D 320).
+    expect(refs(p.SL!, "blum-aventos-hk-top").map((o) => (o.kind === "bore" ? 320 - o.v : 0))).toEqual([37, 69, 133, 165]);
+    // Front 797 × 397 × 19 MDF (750 kg/m³) ≈ 4.5 kg + 0.4 handles → LF ≈ 400 × 4.9 ≈ 1960 → 22K2510.
+    expect(r.cabinets[0]!.hardware.find((h) => h.item === "blum-aventos-hk-top")).toMatchObject({ qty: 1, article: "22K2510" });
+  });
+});

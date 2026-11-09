@@ -22,6 +22,8 @@ import rastex from "../../library/hardware/hettich-rastex-15.json" with { type: 
 import clamex from "../../library/hardware/lamello-clamex-p14.json" with { type: "json" };
 import confirmat from "../../library/hardware/generic-confirmat-7x50.json" with { type: "json" };
 import cabinetScrew from "../../library/hardware/generic-cabinet-connector-screw.json" with { type: "json" };
+import sah130 from "../../library/hardware/hettich-sah-130.json" with { type: "json" };
+import aventosHk from "../../library/hardware/blum-aventos-hk-top.json" with { type: "json" };
 import shelfPin from "../../library/hardware/shelf-pin-5.json" with { type: "json" };
 import { HardwareItem } from "./schema.ts";
 
@@ -57,6 +59,8 @@ const RAW: readonly unknown[] = [
   clamex,
   confirmat,
   cabinetScrew,
+  sah130,
+  aventosHk,
 ];
 
 export const FACTORY_HARDWARE: readonly HardwareItem[] = RAW.map((raw) => HardwareItem.parse(raw));

@@ -142,6 +142,8 @@ export function addPocketFromBox(
   part: Part,
   box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number },
   source: OpSource,
+  /** Corner notches (D39) go through the whole thickness on purpose. */
+  opts: { through?: boolean } = {},
 ): Pocket | undefined {
   const lo: Point3 = {
     x: Math.max(box.x0, part.box.x),
@@ -165,7 +167,7 @@ export function addPocketFromBox(
   if (r.u0 <= EPS) touches.push("w1");
   if (r.u1 >= part.length - EPS) touches.push("w2");
   // A pocket through the whole thickness would split the part; rules must not create one.
-  if (touches.includes("t0") && touches.includes("t1")) {
+  if (touches.includes("t0") && touches.includes("t1") && !opts.through) {
     throw new Error(`pocket cuts through ${part.id}`);
   }
   const face = touches.find((f) => f === "t0" || f === "t1") ?? touches[0];

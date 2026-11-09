@@ -15,7 +15,7 @@ export interface CabinetTemplate {
     presets: string[];
     vars: Record<string, number | string>;
     options?: Record<string, string | boolean | null>;
-    fronts?: { type: "door" | "drawer" | "open" | "appliance" | "panel"; h?: number | string; doors?: number; front?: boolean }[];
+    fronts?: { type: "door" | "drawer" | "open" | "appliance" | "panel" | "flap"; h?: number | string; doors?: number; front?: boolean }[];
     construction?: {
       panels?: { y: number | string; setbackFront?: number | string; setbackRear?: number | string }[];
       fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;

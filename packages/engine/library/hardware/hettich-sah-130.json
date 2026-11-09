@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "hettich-sah-130",
+  "name": { "en": "Hettich SAH 130 cabinet hanger, mounting rail type B", "de": "Hettich Schrankaufhänger SAH 130, Montageschiene Typ B" },
+  "category": "hanger",
+  "manufacturer": "Hettich",
+  "series": "SAH 130",
+  "articles": [
+    { "code": "79724", "note": "set left + right, white" },
+    { "code": "79725", "note": "cover caps white" },
+    { "code": "9007651", "note": "mounting rail type B, 3000 mm" },
+    { "code": "9208678", "note": "mounting rail type L, 130 mm (visible end sides)" }
+  ],
+  "trust": "untested",
+  "source": "Hettich SAH 130 product page and assembly instruction: two Ø10 × 11.5 press-in holes on the inside of each side, row 23.7 below the top edge, 20.5 and 52.5 in front of the back's front face; back front face ≥ 16 from the side's rear edge; 35 kg per hanger; rail ~28 high, 6.5 off the wall. The side notch for the rail (29 high × 18 deep) is read from an unlabelled isometric — CHECK before machining. See docs/hardware-research/hanging-flaps.json.",
+  "params": { "row": 23.7, "first": 20.5, "pitch": 32, "notch_h": 29, "notch_d": 18, "back_min": 16 },
+  "drilling": [
+    { "mount": "side", "d": 10, "depth": 11.5, "a": "row", "b": "first" },
+    { "mount": "side", "d": 10, "depth": 11.5, "a": "row", "b": "first + pitch" }
+  ],
+  "limits": [{ "name": "back_front_z", "value": "back_front_z", "min": "back_min" }],
+  "bom": { "perPlacement": 1, "unit": "sets" }
+}

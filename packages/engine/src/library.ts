@@ -13,6 +13,8 @@ export const Material = z.object({
   thickness: z.number().positive(),
   /** True when the board has a visible grain direction to respect. */
   grain: z.boolean().default(false),
+  /** Density in kg/m³ (front weights for lift fittings). */
+  density: z.number().positive().optional(),
   /** Price per m², currency of the shop. Optional until costing (v1). */
   pricePerM2: z.number().nonnegative().optional(),
 });
@@ -39,12 +41,12 @@ export interface Library {
 
 /** Seed library. Values are typical, not tied to a specific supplier. */
 export const FACTORY_MATERIALS: readonly Material[] = [
-  { id: "mel-white-19", name: { en: "Melamine white 19", de: "Melamin weiß 19" }, thickness: 19, grain: false },
-  { id: "hdf-white-8", name: { en: "HDF white 8", de: "HDF weiß 8" }, thickness: 8, grain: false },
-  { id: "mel-white-16", name: { en: "Melamine white 16", de: "Melamin weiß 16" }, thickness: 16, grain: false },
-  { id: "mdf-lacquer-19", name: { en: "Lacquer MDF 19", de: "MDF lackiert 19" }, thickness: 19, grain: false },
-  { id: "worktop-laminate-38", name: { en: "Worktop laminate 38", de: "Arbeitsplatte Schichtstoff 38" }, thickness: 38, grain: false },
-  { id: "oak-veneer-19", name: { en: "Oak veneer 19", de: "Eiche furniert 19" }, thickness: 19, grain: true },
+  { id: "mel-white-19", name: { en: "Melamine white 19", de: "Melamin weiß 19" }, thickness: 19, grain: false, density: 650 },
+  { id: "hdf-white-8", name: { en: "HDF white 8", de: "HDF weiß 8" }, thickness: 8, grain: false, density: 850 },
+  { id: "mel-white-16", name: { en: "Melamine white 16", de: "Melamin weiß 16" }, thickness: 16, grain: false, density: 650 },
+  { id: "mdf-lacquer-19", name: { en: "Lacquer MDF 19", de: "MDF lackiert 19" }, thickness: 19, grain: false, density: 750 },
+  { id: "worktop-laminate-38", name: { en: "Worktop laminate 38", de: "Arbeitsplatte Schichtstoff 38" }, thickness: 38, grain: false, density: 700 },
+  { id: "oak-veneer-19", name: { en: "Oak veneer 19", de: "Eiche furniert 19" }, thickness: 19, grain: true, density: 650 },
 ];
 
 export const FACTORY_EDGEBANDS: readonly Edgeband[] = [

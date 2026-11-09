@@ -537,3 +537,28 @@ Two shop settings, because they are used for different things:
   back behind the fridge, a back in the upper section.
 - Cabinets record the template they came from (`template`), for the app's
   "save to template".
+
+### D39 · 2026-11-09 · Cabinet hangers, side notches, lift-up flaps
+
+- `hardware.hanger` (category hanger, nullable; wall units only): drilling
+  mount `side` on the inside face of each side, `a` below the carcase top
+  edge, `b` in front of the back's front face; limits may use
+  `back_front_z`. Params `notch_h` × `notch_d` cut a through notch in the
+  top rear corner of every hidden side for the wall rail (visible sides
+  keep their corner; the rail must end short of them). The notch is cut
+  before the joints so dowels keep clear of it. A top or rear rail
+  reaching into the notch zone warns (`hanger_rail_blocked`).
+- Hettich SAH 130 item: values from the product page and assembly
+  instruction; the notch size 29 × 18 is read from an unlabelled drawing
+  and must be checked before machining.
+- Front zone `flap` (role `flap`, FL): full-width front lifting on
+  `hardware.flap`. Front weight = front volume × material `density` +
+  2 × `flap_handle_weight`; `LF` = H × weight; `front_kg`, `LF`, `FAo`
+  (front overlap on the top) feed the item's params and limits. Drilling
+  mount `side`: `a` below the top edge, `b` from the front edge. Items may
+  list `variants` (article by a computed value); the hardware list carries
+  the chosen article.
+- Blum AVENTOS HK top item (system screws): LF ranges 420–9000 in four
+  mechanisms, cabinet height 205–600, ≤ 18 kg. Front brackets are screwed
+  on and not drilled.
+- Materials may give `density` (kg/m³); factory boards carry typical values.

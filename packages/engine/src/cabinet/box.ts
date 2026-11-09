@@ -39,6 +39,8 @@ export interface BoxLayout {
   drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal" }[];
   /** Panels fixed to an appliance door: they get a handle like a door. */
   applianceFronts: { code: string; hinge: "left" | "right" }[];
+  /** Lift-up flaps (D39). */
+  flaps: { code: string }[];
   /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
   rails: { x0: number; x1: number; y: number; z: number }[];
 }
@@ -573,6 +575,7 @@ export function buildBox(
   // --- Fronts: doors and drawer fronts (full overlay) ---------------------------
   const drawers: BoxLayout["drawers"] = [];
   const applianceFronts: BoxLayout["applianceFronts"] = [];
+  const flaps: BoxLayout["flaps"] = [];
   {
     // Vertical joints: left and right edge, between doors side by side (D35).
     const gl = num("front_gap_left");
@@ -582,9 +585,16 @@ export function buildBox(
     let doorNo = 0;
     let drawerNo = 0;
     let applianceNo = 0;
+    let flapNo = 0;
     for (const [fi, f] of fronts.entries()) {
       const h = f.y1 - f.y0;
       if (f.type === "open") continue;
+      if (f.type === "flap") {
+        flapNo++;
+        add("flap", flapNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
+        flaps.push({ code: `${ROLE_CODES.flap}${flapNo}` });
+        continue;
+      }
       if (f.type === "panel") {
         add("blind_panel", fi + 1, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "y", "x", "material.front", all);
         continue;
@@ -647,6 +657,6 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, rails },
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, flaps, rails },
   };
 }

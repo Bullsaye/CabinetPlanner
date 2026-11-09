@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "blum-aventos-hk-top",
+  "name": { "en": "Blum AVENTOS HK top lift mechanism (system screws)", "de": "Blum AVENTOS HK top Hochklappe (Systemschrauben)" },
+  "category": "flap",
+  "manufacturer": "Blum",
+  "series": "AVENTOS HK top",
+  "articles": [{ "code": "20S4200", "note": "front fixing bracket set, wooden fronts" }, { "code": "22K8000", "note": "cover caps" }],
+  "variants": [
+    { "code": "22K2310", "note": "LF 420–1610", "param": "LF", "min": 420, "max": 1610 },
+    { "code": "22K2510", "note": "LF 930–2800", "param": "LF", "min": 930, "max": 2800 },
+    { "code": "22K2710", "note": "LF 1730–5200", "param": "LF", "min": 1730, "max": 5200 },
+    { "code": "22K2910", "note": "LF 3200–9000", "param": "LF", "min": 3200, "max": 9000 }
+  ],
+  "trust": "untested",
+  "source": "Blum AVENTOS HK top data sheet (AU edition): power factor LF = cabinet height [mm] × front weight incl. double handle weight [kg]; cabinet height 205–600, front ≤ 18 kg with two mechanisms; system-screw version: Ø5 × 11.5 holes on a line 36 below the top edge at 37, 69, 133, 165 from the front edge. Front bracket 20S4200 is screwed on (4 screws per side at 62 + FAo, then 32 apart, 12.5 from the side's inner face) and not drilled here. See docs/hardware-research/hanging-flaps.json.",
+  "params": { "line": 36 },
+  "drilling": [
+    { "mount": "side", "d": 5, "depth": 11.5, "a": "line", "b": 37 },
+    { "mount": "side", "d": 5, "depth": 11.5, "a": "line", "b": 69 },
+    { "mount": "side", "d": 5, "depth": 11.5, "a": "line", "b": 133 },
+    { "mount": "side", "d": 5, "depth": 11.5, "a": "line", "b": 165 }
+  ],
+  "limits": [
+    { "name": "H", "value": "H", "min": 205, "max": 600 },
+    { "name": "LF", "value": "LF", "min": 420, "max": 9000 },
+    { "name": "front_kg", "value": "front_kg", "max": 18 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "sets" }
+}
