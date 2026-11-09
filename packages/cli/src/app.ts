@@ -6,12 +6,12 @@ import {
   FileFormatError,
   formatNumber,
   drawAssembly,
+  drawingText,
   drawPartSheets,
   stackSheets,
   FACTORY_STYLES,
   localName,
   resolveStyle,
-  type Library,
   loadProject,
   loadShop,
   VARIABLE_BY_NAME,
@@ -365,22 +365,3 @@ function readJson(io: Io, path: string): unknown {
 
 const isFsError = (e: unknown): boolean =>
   typeof e === "object" && e !== null && "code" in e && typeof (e as { code: unknown }).code === "string";
-
-/** Text callbacks for drawings, from the translator and library. */
-export function drawingText(tr: Translator, library: Library, styleName?: string) {
-  return {
-    t: (k: string, p?: Record<string, string | number>) => tr.t(k, p),
-    number: (x: number, d: number) => tr.number(x, d),
-    hardwareName: (id: string) => {
-      const h = library.hardware.get(id);
-      return h ? localName(h.name, tr.locale) : undefined;
-    },
-    materialName: (id: string) => {
-      const m = library.materials.get(id);
-      return m ? localName(m.name, tr.locale) : undefined;
-    },
-    edgeCode: (id: string) => library.edgebands.get(id)?.code,
-    roleName: (role: string) => tr.t(`role.${role}`),
-    ...(styleName ? { styleName } : {}),
-  };
-}

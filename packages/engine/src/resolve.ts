@@ -9,6 +9,7 @@ import {
 import type { Diagnostic } from "./diagnostics.ts";
 import { evaluateGraph, type VarInput } from "./graph.ts";
 import type { Library } from "./library.ts";
+import { FACTORY_PRESETS } from "./presets.ts";
 import type { CabinetInput, Layer, Preset, Project, Shop } from "./schema.ts";
 
 /** Layers in resolution order; the last one that sets a value wins. */
@@ -57,6 +58,7 @@ export interface ResolveContext {
 /** Builds the preset registry: shop presets, then project presets (later ids win). */
 export function presetRegistry(shop: Shop | undefined, project: Project): Map<string, Preset> {
   const reg = new Map<string, Preset>();
+  FACTORY_PRESETS.forEach((p) => reg.set(p.id, p));
   shop?.library.presets.forEach((p) => reg.set(p.id, p));
   project.library.presets.forEach((p) => reg.set(p.id, p));
   return reg;

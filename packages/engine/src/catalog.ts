@@ -45,6 +45,10 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "base_h", group: "dimensions", unit: "mm", factory: 720, min: 100, max: 2800, step: 10 }),
   v({ name: "worktop_d", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 1200, step: 10 }),
   v({ name: "plinth_h", group: "dimensions", unit: "mm", factory: 100, min: 0, max: 300, step: 10, quick: true }),
+  v({ name: "wall_h", group: "dimensions", unit: "mm", factory: 720, min: 100, max: 1500, step: 10 }),
+  v({ name: "wall_d", group: "dimensions", unit: "mm", factory: 320, min: 100, max: 800, step: 10 }),
+  v({ name: "wall_bottom", group: "dimensions", unit: "mm", factory: 1450, min: 0, max: 2500, step: 10 }),
+  v({ name: "tall_h", group: "dimensions", unit: "mm", factory: 2100, min: 300, max: 2800, step: 10 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),

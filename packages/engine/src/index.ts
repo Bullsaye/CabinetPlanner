@@ -9,6 +9,7 @@ export * from "./catalog.ts";
 export * from "./library.ts";
 export * from "./schema.ts";
 export * from "./resolve.ts";
+export * from "./presets.ts";
 export * from "./part.ts";
 export * from "./project.ts";
 export { buildBox, gridPositions, type BoxLayout } from "./cabinet/box.ts";

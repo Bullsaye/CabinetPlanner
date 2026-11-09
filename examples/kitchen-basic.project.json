@@ -2,37 +2,48 @@
   "schemaVersion": 1,
   "name": "Example kitchen",
   "revision": 1,
-  "library": {
-    "presets": [
-      {
-        "id": "wall-unit",
-        "name": { "en": "Wall unit", "de": "Hängeschrank" },
-        "group": "construction",
-        "vars": { "D": 320, "H": 720, "door_count": 2, "shelf_count": 2 },
-        "options": { "top": "full" }
-      }
-    ]
+  "vars": {
+    "base_h": 720,
+    "worktop_d": 600
   },
-  "vars": { "base_h": 720, "worktop_d": 600 },
   "cabinets": [
     {
       "id": "B01",
       "type": "box",
       "name": "Base 600, door",
-      "vars": { "W": 600 }
+      "vars": {
+        "W": 600
+      },
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ]
     },
     {
       "id": "B02",
       "type": "box",
       "name": "Base 450, door",
-      "vars": { "W": 450, "shelf_count": 0 }
+      "vars": {
+        "W": 450,
+        "shelf_count": 0
+      },
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ]
     },
     {
       "id": "W01",
       "type": "box",
       "name": "Wall 800, two doors",
-      "presets": ["wall-unit"],
-      "vars": { "W": "1600 / 2" }
+      "presets": [
+        "wall-unit"
+      ],
+      "vars": {
+        "W": "1600 / 2",
+        "door_count": 2
+      },
+      "kind": "wall"
     }
   ]
 }

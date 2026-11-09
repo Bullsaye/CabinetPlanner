@@ -4,7 +4,14 @@ Parametric planner for frameless (32 mm system) cabinets, aimed at European kitc
 
 Status: **Phase 1 in progress (systems)**. The engine resolves presets and expressions, builds a parametric box cabinet, derives its machining (back grooves, dowel joints on the 32 mm grid, system holes, hinge drilling from hardware items), checks it for collisions and writes a cutlist from the command line. Machine exports and UI come later.
 
-## Quick start
+## Try it
+
+```sh
+pnpm install
+pnpm app        # web app on http://localhost:5173
+```
+
+## Command line
 
 Requires Node 22 and pnpm.
 
@@ -24,6 +31,7 @@ pnpm cp ops examples/kitchen-basic.project.json --cabinet B01      # machining a
 - `packages/engine/library/hardware` — factory hardware items as JSON (generic, untested).
 - `packages/i18n` — English and German texts for UI and CLI.
 - `packages/cli` — `cabinet-planner` command.
+- `packages/app` — web app (Svelte, three.js).
 - `reference/` — reference cabinets with golden cutlists.
 - [`DECISIONS.md`](DECISIONS.md) — conventions outputs depend on (coordinates, edges, part numbers).
 - [`CLAUDE.md`](CLAUDE.md) — working notes and DE/EN glossary.

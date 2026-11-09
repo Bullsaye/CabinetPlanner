@@ -51,6 +51,8 @@ export const CabinetSchema = z.object({
   /** Short id used in part numbers, e.g. "B01". Must stay stable. */
   id: z.string().regex(/^[A-Za-z0-9]{1,8}$/, "1–8 letters or digits"),
   type: z.literal("box"),
+  /** Where the cabinet sits in a run: on the floor (base, tall) or on the wall. */
+  kind: z.enum(["base", "wall", "tall"]).default("base"),
   name: z.string().optional(),
   ...layerFields,
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */

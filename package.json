@@ -15,7 +15,9 @@
     "typecheck": "tsc -p packages/engine && tsc -p packages/i18n && tsc -p packages/cli",
     "check": "pnpm typecheck && pnpm test",
     "cp": "tsx packages/cli/src/main.ts",
-    "preview": "tsx tools/preview/gen.ts"
+    "preview": "tsx tools/preview/gen.ts",
+    "app": "pnpm --filter @cabinet-planner/app dev",
+    "app:build": "pnpm --filter @cabinet-planner/app build"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

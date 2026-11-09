@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import {
   buildProject,
   drawAssembly,
+  drawingText,
   drawPartSheets,
   stackSheets,
   formatNumber,
@@ -13,7 +14,6 @@ import {
   resolveStyle,
   sceneOf,
 } from "../../packages/engine/src/index.ts";
-import { drawingText } from "../../packages/cli/src/app.ts";
 import { createTranslator } from "../../packages/i18n/src/index.ts";
 
 const args = process.argv.slice(2);
