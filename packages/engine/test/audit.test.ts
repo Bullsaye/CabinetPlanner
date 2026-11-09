@@ -44,3 +44,21 @@ describe("blind corner units", () => {
     expect(errors(buildOne({ vars: { W: 1000, door_count: 1 }, options: { corner: "blind_left" } }))).toEqual([]);
   });
 });
+
+describe("connectors on upright rails", () => {
+  it("puts the housing on the rail's inner face whatever the cabinet height (D36)", () => {
+    for (const H of [720, 2000]) {
+      const r = buildOne({
+        kind: "tall",
+        vars: { W: 600, H, D: 560 },
+        options: { top: "rails", "rail.front": "upright", "rail.rear": "upright", joint_method: "connector" },
+      });
+      expect(errors(r)).toEqual([]);
+      const p = partsByCode(r);
+      const housing = (code: string): string[] => p[code]!.operations.filter((o) => o.kind === "bore" && o.d === 15).map((o) => o.face);
+      // Upright rails: thickness along Z, t0 is the rear face. Front rail: inner = rear; rear rail: inner = front.
+      expect(housing("RF"), `RF at H ${H}`).toEqual(["t0", "t0"]);
+      expect(housing("RR"), `RR at H ${H}`).toEqual(["t1", "t1"]);
+    }
+  });
+});

@@ -255,7 +255,7 @@ export function machineBox(
         }
         conn = { item: fastener, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
       }
-      const geo: JointGeometry = { j, W, H, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
+      const geo: JointGeometry = { j, W, H, D, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
 
       let placed = 0;
       let dowelLine: number[] = [];
@@ -842,6 +842,7 @@ interface JointGeometry {
   j: Joint;
   W: number;
   H: number;
+  D: number;
   minWall: number;
   mode: ThroughMode;
   overlap: number;
@@ -861,7 +862,7 @@ const sign = (d: Direction): 1 | -1 => (d[0] === "+" ? 1 : -1);
 function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part: Part; entry: Point3; dir: Direction } {
   const { j } = g;
   const across = j.across.axis;
-  const centre = across === "x" ? g.W / 2 : g.H / 2;
+  const centre = across === "x" ? g.W / 2 : across === "y" ? g.H / 2 : g.D / 2;
   const inner = centre >= j.across.value ? 1 : -1; // edge part's inner face, towards the cabinet centre
   const intoEdge = flip(j.intoFace);
   const p: Point3 = { x: 0, y: 0, z: 0 };
