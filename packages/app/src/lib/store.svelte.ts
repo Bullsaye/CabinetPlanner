@@ -64,7 +64,7 @@ export function blankProject(name: string): Doc {
   };
 }
 
-export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware" | "library";
+export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware" | "library" | "community";
 export type Screen = "home" | "project";
 export type Layer = "cabinet" | "project" | "shop";
 

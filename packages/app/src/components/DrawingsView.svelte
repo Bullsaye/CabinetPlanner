@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { confirmCnc, untestedPackHardware } from "../lib/packs.ts";
   import {
     drawAssembly,
     drawingText,
@@ -95,6 +96,7 @@
       return c.parts.filter((p) => !partFilter || p.id === partFilter).flatMap((p) => partDxf(p, { W: v("W"), H: v("H"), D: v("D") }, profile, meta));
     });
   }
+  let cncAsk = $state<{ scope: "part" | "cabinet" | "project"; items: { id: string; pack: string }[] } | null>(null);
   async function exportDxf(scope: "part" | "cabinet" | "project"): Promise<void> {
     const r = store.result;
     if (!r || !r.ok) {
@@ -106,6 +108,15 @@
     const roomDxf = (list: typeof roomParts) => list.flatMap((p) => partDxf(p, { W: p.box.dx, H: p.box.dy, D: p.box.dz }, profile, meta));
     const roomScope = kind === "room_part";
     const cabs = scope === "project" ? r.cabinets : cab && !roomScope ? [cab] : [];
+    // Hardware from an untested community pack: the first CNC export asks (PLAN.md, trust levels).
+    const usedHardware = cabs.flatMap((c) => c.hardware.map((h) => h.item));
+    const untested = untestedPackHardware(store.shop, usedHardware);
+    if (untested.length && cncAsk?.scope !== scope) {
+      cncAsk = { scope, items: untested };
+      return;
+    }
+    if (cncAsk) confirmCnc(store.shop, usedHardware);
+    cncAsk = null;
     const files =
       roomScope && scope === "part"
         ? roomDxf(roomPart ? [roomPart] : [])
@@ -172,6 +183,16 @@
     <button onclick={() => exportDxf("cabinet")} disabled={!cab || kind === "room_part"}>{t("ui.dxf_cabinet")}</button>
     <button onclick={() => exportDxf("project")}>{t("ui.dxf_project")}</button>
   </div>
+  {#if cncAsk}
+    <div class="c-notice warn" role="alertdialog" aria-label={t("cloud.cnc.title")} style="margin: 8px">
+      <strong>{t("cloud.cnc.title")}</strong>
+      <p>{t("cloud.cnc.text", { items: cncAsk.items.map((x) => `${x.id} (${x.pack})`).join(", ") })}</p>
+      <div class="c-row">
+        <button onclick={() => exportDxf(cncAsk!.scope)}>{t("cloud.cnc.export")}</button>
+        <button class="quiet" onclick={() => (cncAsk = null)}>{t("ui.cancel")}</button>
+      </div>
+    </div>
+  {/if}
   {#if note}<p class="note muted">{note}</p>{/if}
   {#if kind === "plan" || kind === "elevation" || kind === "room_part"}
     <div class="sheet scroll-x">{@html svg}</div>

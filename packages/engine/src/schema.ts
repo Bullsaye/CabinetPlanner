@@ -164,6 +164,12 @@ export const InstalledPackSchema = z.object({
   trust: z.enum(["community", "tested", "verified"]).default("community"),
   /** Ids of the installed items per library kind. */
   items: z.record(z.string(), z.array(z.string())).default({}),
+  /** Fingerprint per installed item ("kind/id"), to tell what the user changed since. */
+  hashes: z.record(z.string(), z.string()).optional(),
+  /** Pack items installed under another id because the library had its own item of that id ("kind/id" → new id). */
+  renames: z.record(z.string(), z.string()).optional(),
+  /** The user confirmed a CNC export with this pack's untested hardware data. */
+  cncConfirmed: z.boolean().optional(),
 });
 export type InstalledPack = z.infer<typeof InstalledPackSchema>;
 

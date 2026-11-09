@@ -15,10 +15,12 @@ check shared content.
 
    ```sh
    pnpm install
-   pnpm server
+   pnpm run server
    ```
 
-   The server prints its addresses, for example
+   (`pnpm run server`, not `pnpm server`: pnpm has a built-in command of
+   that name, which does nothing here.) The server prints its addresses,
+   for example
 
    ```
    this computer:  http://localhost:8787
@@ -62,7 +64,7 @@ Good to know for the first try:
 | `CORS_ORIGINS` | `*` | Comma-separated origins allowed to call the API. `*` is safe here because sign-in uses an `Authorization` header, not cookies. To restrict it, list the web app's origin and those of the Tauri apps (`tauri://localhost`, `http://tauri.localhost`, `https://tauri.localhost`). |
 | `TRUST_PROXY` | off | `1` behind a reverse proxy: take the client address (rate limits, install counts) from `X-Forwarded-For` |
 
-Windows (PowerShell): `$env:ADMIN_EMAILS="you@example.com"; pnpm server`.
+Windows (PowerShell): `$env:ADMIN_EMAILS="you@example.com"; pnpm run server`.
 
 ## Admin
 

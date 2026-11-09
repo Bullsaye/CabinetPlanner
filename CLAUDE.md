@@ -15,6 +15,8 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 - `packages/app` – Svelte 5 web app (PWA). Talks to its host only through
   `src/lib/platform.ts` (storage, file dialogs, downloads).
 - `packages/desktop` – Tauri 2 shell around the app (native dialogs only).
+- `packages/server` – optional server (Node 22, `node:sqlite`, no native
+  deps): accounts, community packs, library sync. See its README and D45.
 - `reference/` – reference cabinets with golden cutlists (byte-exact tests).
 - `examples/` – example project and shop files.
 - `design/` – UI mockups (visual reference only).
@@ -33,6 +35,8 @@ pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + ha
 pnpm app             # web app dev server (http://localhost:5173)
 pnpm desktop         # desktop window (Tauri) around the dev server
 pnpm desktop:build   # desktop installers
+pnpm run server      # account/community server on :8787 (`pnpm server` is a pnpm built-in)
+pnpm server:build    # one-file bundle packages/server/dist/server.mjs
 ```
 
 ## Rules

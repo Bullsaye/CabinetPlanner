@@ -652,3 +652,37 @@ Two shop settings, because they are used for different things:
   every kink. Below `ceiling_filler_min` it is left out (warning).
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
+
+### D45 · 2026-11-09 · Accounts, community packs, library sync
+
+- The cloud is our own small server (`packages/server`): Node 22,
+  `node:http`, `node:sqlite`, scrypt, zod; no native modules, one SQLite
+  file, self-hostable. (PocketBase/Supabase from PLAN.md could not be run
+  and tested here.) The app never needs it: no server address, no account
+  and no connection are normal states, shown as a status.
+- Errors are `{ error: { code, message } }`; the app translates `code`
+  (`cloud.error.<code>`) and never shows `message`.
+- A community pack is metadata plus versions; a version's content is a
+  library fragment (`LibraryFragmentSchema`, the shape of the library
+  section), validated by the server with the engine's schema (unknown
+  fields dropped), at most 512 kB. Default licence CC-BY-4.0.
+- Trust: `community` → `tested` (author confirms a machined part) →
+  `verified` (admin; ends with the next version). On install, hardware gets
+  the pack's level as its `trust`, whatever the item said. The first DXF
+  export using untested pack hardware asks for a confirmation.
+- Installing copies the items into the shop library and records it in the
+  shop file (`installedPacks`: pack id, version, item ids, a fingerprint per
+  item, renames). Same id: an item unchanged since its install is replaced
+  silently; an own or changed item asks – keep both (the pack's item gets
+  `<id>-<suffix>` and references inside the pack follow), keep mine, or
+  replace mine. A fork is install + publish with `forkedFrom`.
+- Deleting an account deletes its packs; installed copies stay with their
+  users.
+- Sync: one document per user, kind and id with a server revision; a write
+  names its base revision and gets 409 plus the server copy when that is
+  stale. The app syncs the shop file (`shop/default`): pull at start, push
+  2.5 s after a change. When both sides changed, the later change wins and
+  the other copy is kept on the device (download / restore / discard). A
+  device that still has the untouched example shop takes the server copy.
+- No e-mail yet: no address verification, no reset by mail (admin command
+  `set-password`). Admins are the accounts named in `ADMIN_EMAILS`.
