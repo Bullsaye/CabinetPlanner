@@ -1,8 +1,9 @@
-import { buildProject, loadProject, type CabinetInput, type Part, type ProjectResult } from "../src/index.ts";
+import { buildProject, loadProject, type Part, type ProjectResult } from "../src/index.ts";
 
 /** Builds a one-cabinet project from partial input. */
 export function buildOne(
-  cabinet: Partial<CabinetInput> & Record<string, unknown> = {},
+  /** Cabinet input as written in a file (defaults may be left out). */
+  cabinet: Record<string, unknown> = {},
   project: Record<string, unknown> = {},
 ): ProjectResult {
   return buildProject(
