@@ -2,14 +2,19 @@
 
 Parametric planner for frameless (32 mm system) cabinets, aimed at European kitchens in board material with dowel construction. Every dimension is a variable, every default lives in a preset, and cutlist, BOM, drawings, STEP and CNC-ready DXF all come from one model.
 
-Status: **Phase 1 in progress (systems)**. The engine resolves presets and expressions, builds a parametric box cabinet, derives its machining (back grooves, dowel joints on the 32 mm grid, system holes, hinge drilling from hardware items), checks it for collisions and writes a cutlist from the command line. Machine exports and UI come later.
+Status: engine, web app, desktop shell and a first account/community server exist; nothing has been machined from it yet, and all factory hardware data is untested.
 
 ## Try it
 
-```sh
-pnpm install
-pnpm app        # web app on http://localhost:5173
-```
+| Where | How |
+| --- | --- |
+| Browser, on this machine | `pnpm install`, then `pnpm app` → http://localhost:5173 |
+| Web app, hosted | GitHub Actions workflow **Web app** publishes the PWA with GitHub Pages (once: Settings → Pages → Source "GitHub Actions") |
+| Windows (also macOS, Linux) | workflow **Desktop builds** → download the installer from the run's artifacts (unsigned: SmartScreen warns) |
+| Android | workflow **Android build** → download the APK from the run's artifacts and side-load it |
+| Accounts and community | `pnpm server` starts the server on port 8787; enter its address in the app's account dialog (see `packages/server/README.md`) |
+
+The app works without an account and offline. The account server is optional; set the repository variable `CLOUD_URL` to build its address into the apps.
 
 ## Command line
 
@@ -32,7 +37,9 @@ pnpm cp dxf examples/kitchen-basic.project.json --zip kitchen.zip  # CNC DXF per
 - `packages/engine/library/hardware` — factory hardware items as JSON (generic, untested).
 - `packages/i18n` — English and German texts for UI and CLI.
 - `packages/cli` — `cabinet-planner` command.
-- `packages/app` — web app (Svelte, three.js).
+- `packages/app` — web app (Svelte, three.js), also the UI of the desktop and Android apps.
+- `packages/desktop` — Tauri 2 shell: Windows, macOS, Linux, Android.
+- `packages/server` — optional account, sync and community server (Node, SQLite).
 - `reference/` — reference cabinets with golden cutlists.
 - [`DECISIONS.md`](DECISIONS.md) — conventions outputs depend on (coordinates, edges, part numbers).
 - [`CLAUDE.md`](CLAUDE.md) — working notes and DE/EN glossary.
