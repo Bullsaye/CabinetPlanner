@@ -9,7 +9,8 @@
     type HardwareItem as HardwareItemT,
   } from "@cabinet-planner/engine";
   import { openFile } from "../lib/platform.ts";
-  import { parseInput, store } from "../lib/store.svelte.ts";
+  import { parseInput, store, templateBody } from "../lib/store.svelte.ts";
+  import { optionChoices, optionDef } from "../lib/fields.ts";
 
   type Section = "materials" | "edgebands" | "hardware" | "presets";
   type Doc = Record<string, any>;
@@ -126,6 +127,41 @@
   const templates = $derived(store.built.shop?.library.templates ?? []);
   let newName = $state("");
 
+  /** Applies a preset to the selected cabinet (after the ones it has, so it wins over them). */
+  function applyToCabinet(id: string): void {
+    const c = store.cabinetDoc;
+    if (!c) return;
+    if (!(c.presets ?? []).includes(id)) c.presets = [...(c.presets ?? []), id];
+    note = t("ui.preset_applied", { name: store.presetName(id), cabinet: c.name || c.id });
+  }
+  /** Cabinets and layers that use a preset: removing it would leave them with an error. */
+  function presetUsers(id: string): string[] {
+    const users = (store.project.cabinets ?? []).filter((c: Doc) => (c.presets ?? []).includes(id)).map((c: Doc) => c.id as string);
+    if ((store.project.presets ?? []).includes(id)) users.push(t("ui.layer.project"));
+    if ((store.shop.defaults?.presets ?? []).includes(id)) users.push(t("ui.layer.shop"));
+    return users;
+  }
+  function removePreset(id: string): void {
+    // Take it off everything that uses it in this project and the shop defaults.
+    for (const c of store.project.cabinets ?? []) if (c.presets) c.presets = c.presets.filter((p: string) => p !== id);
+    if (store.project.presets) store.project.presets = store.project.presets.filter((p: string) => p !== id);
+    if (store.shop.defaults?.presets) store.shop.defaults.presets = store.shop.defaults.presets.filter((p: string) => p !== id);
+    removeShop("presets", id);
+  }
+  function setPresetVar(p: Doc, key: string, text: string): void {
+    const v = parseInput(text);
+    if (v === undefined) delete p.vars[key];
+    else p.vars[key] = v;
+  }
+  let addVarName = $state("");
+  function addPresetVar(p: Doc): void {
+    const n = addVarName.trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(n)) return;
+    p.vars ??= {};
+    if (p.vars[n] === undefined) p.vars[n] = store.cabinet?.resolved.values.get(n) ?? 0;
+    addVarName = "";
+  }
+
   /** The selected cabinet's own values as a preset (no size), or the whole cabinet as a template. */
   function saveFromCabinet(kind: "preset" | "template"): void {
     const c = store.cabinetDoc;
@@ -136,12 +172,8 @@
       const { W: _w, ...vars } = snap.vars ?? {};
       lib().presets.push({ id: uniqueId("presets", "preset"), name: label, group: "shop", vars, options: snap.options ?? {} });
     } else {
-      lib().templates.push({
-        id: uniqueId("templates", "template"),
-        name: label,
-        group: "shop",
-        cabinet: { kind: snap.kind ?? "base", presets: snap.presets ?? [], vars: snap.vars ?? {}, options: snap.options ?? {}, ...(snap.fronts ? { fronts: snap.fronts } : {}), parts: snap.parts ?? {} },
-      });
+      // The whole cabinet: fronts, construction with free parts, parameters, part overrides (D40, D45).
+      lib().templates.push({ id: uniqueId("templates", "template"), name: label, group: "shop", cabinet: templateBody(c) });
     }
     newName = "";
     note = t(kind === "preset" ? "ui.preset_saved" : "ui.template_saved", { name: label });
@@ -313,18 +345,63 @@
       {#if !templates.length}<p class="muted small">{t("ui.no_templates")}</p>{/if}
       <ul class="plain">
         {#each templates as tp (tp.id)}
-          <li><span>{name(tp.name)}</span> <span class="muted small">{t(`ui.kind.${tp.cabinet.kind}`)}</span> <button class="quiet" onclick={() => removeShop("templates", tp.id)}>{t("ui.remove")}</button></li>
+          <li><input class="pname" type="text" aria-label={t("ui.name")} value={name(tp.name)} onchange={(e) => { const v = (e.target as HTMLInputElement).value.trim(); const own = shopItem("templates", tp.id); if (v && own) own.name = v; }} /> <span class="muted small">{t(`ui.kind.${tp.cabinet.kind}`)}</span> <button class="quiet" onclick={() => removeShop("templates", tp.id)}>{t("ui.remove")}</button></li>
         {/each}
       </ul>
-      <h4 class="label">{t("ui.lib.presets")}</h4>
+      <h4 class="label">{t("ui.presets")}</h4>
+      <p class="muted small">{t("ui.presets_hint")}</p>
       <ul class="plain">
         {#each presets as p (p.id)}
           {@const src = sourceOf("presets", p.id)}
-          <li>
-            <span>{name(p.name)}</span>
-            <span class="pill {src}">{t(`layer.${src}`)}</span>
-            <span class="muted small mono">{Object.entries(p.vars).map(([k, v]) => `${k}=${v}`).join(" ")}</span>
-            {#if src === "shop"}<button class="quiet" onclick={() => removeShop("presets", p.id)}>{t("ui.remove")}</button>{/if}
+          {@const own = src === "shop" ? shopItem("presets", p.id) : undefined}
+          <li class="preset">
+            <div class="phead">
+              {#if own}
+                <input class="pname" type="text" aria-label={t("ui.name")} value={name(own.name)} onchange={(e) => { const v = (e.target as HTMLInputElement).value.trim(); if (v) own.name = v; }} />
+              {:else}
+                <span>{name(p.name)}</span>
+              {/if}
+              <span class="pill {src}">{t(`layer.${src}`)}</span>
+              {#if store.cabinetDoc}
+                <button class="quiet" disabled={(store.cabinetDoc.presets ?? []).includes(p.id)} onclick={() => applyToCabinet(p.id)}>{t("ui.apply_to", { cabinet: store.cabinetDoc.id })}</button>
+              {/if}
+              {#if own}
+                {@const users = presetUsers(p.id)}
+                <button class="quiet" title={users.length ? t("ui.preset_in_use", { users: users.join(", ") }) : ""} onclick={() => removePreset(p.id)}>{t("ui.remove")}</button>
+              {/if}
+            </div>
+            {#if own}
+              <details>
+                <summary class="small">{t("ui.preset_values", { n: String(Object.keys(own.vars ?? {}).length + Object.keys(own.options ?? {}).length) })}</summary>
+                <div class="pvals">
+                  {#each Object.entries(own.vars ?? {}) as [k, v] (k)}
+                    <label class="pv"><span title={k}>{store.tr.has(`var.${k}`) ? t(`var.${k}`) : k}</span>
+                      <input class="mono" type="text" value={String(v)} onchange={(e) => setPresetVar(own, k, (e.target as HTMLInputElement).value)} />
+                      <button class="quiet" aria-label={`${t("ui.remove")} ${k}`} onclick={() => delete own.vars[k]}>×</button>
+                    </label>
+                  {/each}
+                  {#each Object.entries(own.options ?? {}) as [k, v] (k)}
+                    {@const o = optionDef(k)}
+                    <label class="pv"><span title={k}>{store.tr.has(`option.${k}`) ? t(`option.${k}`) : k}</span>
+                      {#if o}
+                        <select value={JSON.stringify(v)} onchange={(e) => (own.options[k] = JSON.parse((e.target as HTMLSelectElement).value))}>
+                          {#each optionChoices(o) as ch}<option value={ch.value}>{ch.label}</option>{/each}
+                        </select>
+                      {:else}
+                        <span class="mono">{String(v)}</span>
+                      {/if}
+                      <button class="quiet" aria-label={`${t("ui.remove")} ${k}`} onclick={() => delete own.options[k]}>×</button>
+                    </label>
+                  {/each}
+                  <div class="pv add">
+                    <input class="mono" type="text" placeholder={t("ui.variable_name")} aria-label={t("ui.variable_name")} bind:value={addVarName} />
+                    <button onclick={() => addPresetVar(own)}>{t("ui.add_value")}</button>
+                  </div>
+                </div>
+              </details>
+            {:else}
+              <span class="muted small mono">{Object.entries(p.vars).map(([k, v]) => `${k}=${v}`).join(" ")}</span>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -357,6 +434,14 @@
   .err { color: var(--err); white-space: pre-wrap; font-size: 12px; }
   .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .presets { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .plain li.preset { flex-direction: column; flex-wrap: nowrap; gap: 4px; align-items: stretch; }
+  .phead { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pname { font-weight: 500; min-width: 10em; }
+  .pvals { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 16px; padding: 6px 0; }
+  .pv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; font-size: 12px; }
+  .pv span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pv input, .pv select { min-width: 0; width: 100%; }
+  .pv.add { grid-template-columns: minmax(0, 1fr) auto; }
   .save { padding: 10px; display: flex; flex-direction: column; gap: 6px; max-width: 520px; }
   .plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .plain li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

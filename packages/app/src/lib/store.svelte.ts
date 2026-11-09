@@ -386,7 +386,7 @@ export function discardConstruction(): void {
 }
 
 /** Template content of a cabinet: everything except id, name, place and template. */
-function templateBody(c: Doc): Doc {
+export function templateBody(c: Doc): Doc {
   const { id: _i, type: _t, name: _n, place: _p, template: _tp, ...rest } = clone($state.snapshot(c));
   return { kind: "base", presets: [], vars: {}, options: {}, parts: {}, ...rest };
 }
