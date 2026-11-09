@@ -1,0 +1,79 @@
+name: Android build
+
+# APK of the tablet/phone app (Tauri mobile around the same web app).
+# Run by hand, or by pushing a tag v*; the APK is attached to the run.
+#
+# Signing: with the repository secrets ANDROID_KEYSTORE_BASE64,
+# ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD the
+# release APK is signed with that key (updates install over each other).
+# Without them a debug APK is built: it installs by side-loading, but each
+# run signs with a fresh debug key, so an older install has to be removed
+# first.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+    branches: ["claude/repo-audit-multiplatform-n18kd0"]
+    paths: [".github/workflows/android.yml"]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      VITE_CLOUD_URL: ${{ vars.CLOUD_URL }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Android NDK
+        run: |
+          sdkmanager --install "ndk;27.2.12479018" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: packages/desktop/src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      # The Android project is generated, not committed: it follows tauri.conf.json.
+      - name: Generate the Android project
+        working-directory: packages/desktop
+        run: |
+          pnpm tauri android init --ci
+          pnpm tauri icon ../app/public/icon-1024.png
+      - name: Signing configuration
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: packages/desktop/src-tauri/gen/android
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "password=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+          node ../../../../../tools/android-signing.mjs app/build.gradle.kts
+      - name: Build APK
+        working-directory: packages/desktop
+        run: pnpm tauri android build --apk --target aarch64 --target armv7 --target x86_64 ${{ env.HAS_KEYSTORE == 'true' && ' ' || '--debug' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cabinet-planner-android
+          path: packages/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error

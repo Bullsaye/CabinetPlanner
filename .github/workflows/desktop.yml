@@ -24,6 +24,9 @@ jobs:
           - os: macos-latest
             args: "--target x86_64-apple-darwin"
     runs-on: ${{ matrix.os }}
+    env:
+      # Default account/community server of the build (repository variable; may be empty).
+      VITE_CLOUD_URL: ${{ vars.CLOUD_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
