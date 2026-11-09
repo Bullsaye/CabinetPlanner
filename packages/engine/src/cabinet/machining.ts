@@ -1,5 +1,5 @@
 import type { Diagnostic } from "../diagnostics.ts";
-import { checkLimits, evaluateDrilling, evaluateItemParams } from "../hardware/evaluate.ts";
+import { checkLimits, evaluateDrilling, evaluateItemParams, type EvaluatedDrill } from "../hardware/evaluate.ts";
 import type { HardwareItem } from "../hardware/schema.ts";
 import type { Library } from "../library.ts";
 import {
@@ -11,6 +11,7 @@ import {
   resolveOpposing,
   type Direction,
   type OpSource,
+  type Point3,
   type ThroughMode,
 } from "../ops.ts";
 import { roundMm, type Axis, type Part } from "../part.ts";
@@ -38,6 +39,11 @@ export interface HardwareUse {
   lengths?: number[];
 }
 
+/** What the room knows about a cabinet (D37): which carcase sides can be seen. */
+export interface CabinetContext {
+  visible?: { left: boolean; right: boolean };
+}
+
 /**
  * Fittings shown in 3D (cabinet coordinates): a rail from (x, y, z) along +X
  * with `length`, or a leg standing under (x, y, z) with height `h`.
@@ -63,6 +69,7 @@ export function machineBox(
   library: Library,
   parts: Part[],
   layout: BoxLayout,
+  context: CabinetContext = {},
 ): { diagnostics: Diagnostic[]; hardware: HardwareUse[]; handles: HandlePlacement[]; fittings: Fitting[] } {
   const diagnostics: Diagnostic[] = [];
   const cab = rc.cabinet.id;
@@ -119,47 +126,121 @@ export function machineBox(
     }
   }
 
-  // --- Joints (construction method) -------------------------------------------
-  if (opt<string>("joint_method") === "dowel") {
-    const connector = library.hardware.get(opt<string>("hardware.connector"))!;
-    const params = evaluateItemParams(connector, rc.values, at);
-    diagnostics.push(...params.diagnostics);
-    const need = ["d", "face_depth", "edge_depth"];
-    const missing = need.filter((n) => !params.values.has(n));
-    if (missing.length) {
-      diagnostics.push({
-        severity: "error",
-        code: "hardware_param_missing",
-        params: { item: connector.id, params: missing.join(", ") },
-        ...at,
-      });
-    } else {
-      const dowel = {
-        d: params.values.get("d")!,
-        faceDepth: params.values.get("face_depth")!,
-        edgeDepth: params.values.get("edge_depth")!,
+  // --- Joints (construction method, D36) -------------------------------------------
+  // dowel: dowels on every joint; connector: connector items (cam, Clamex,
+  // confirmat) only; connector_dowel: connectors at the front and rear
+  // positions of the dowel pattern, dowels in between.
+  const method = opt<string>("joint_method");
+  if (method !== "none") {
+    const minWall = num("bore_min_wall");
+    const H = num("H");
+    const base = {
+      pitch: num("sys_pitch"),
+      offsetFront: num("dowel_offset_front"),
+      offsetRear: num("dowel_offset_rear"),
+      maxSpacing: num("dowel_max_spacing"),
+      minCount: num("dowel_min_count"),
+      margin: minWall,
+      ...(opt<string>("dowel_pattern") === "sequence" ? { sequence: { second: num("dowel_second"), spacing: num("dowel_raster") } } : {}),
+    };
+    // Dowel item (option hardware.connector).
+    let dowel: { d: number; faceDepth: number; edgeDepth: number } | undefined;
+    const dowelItem = library.hardware.get(opt<string>("hardware.connector"))!;
+    if (method === "dowel" || method === "connector_dowel") {
+      const params = evaluateItemParams(dowelItem, rc.values, at);
+      diagnostics.push(...params.diagnostics);
+      const missing = ["d", "face_depth", "edge_depth"].filter((n) => !params.values.has(n));
+      if (missing.length) {
+        diagnostics.push({ severity: "error", code: "hardware_param_missing", params: { item: dowelItem.id, params: missing.join(", ") }, ...at });
+      } else {
+        dowel = { d: params.values.get("d")!, faceDepth: params.values.get("face_depth")!, edgeDepth: params.values.get("edge_depth")! };
+      }
+    }
+    const fastener = method === "connector" || method === "connector_dowel" ? library.hardware.get(opt<string>("hardware.fastener"))! : undefined;
+    const seenLimits = new Set<string>();
+
+    for (const j of carcaseJoints(parts, opt<string>("carcase_joint"))) {
+      const zMin = Math.max(j.facePart.box.z, j.edgePart.box.z);
+      const zMax = Math.min(j.facePart.box.z + j.facePart.box.dz, j.edgePart.box.z + j.edgePart.box.dz);
+      const point = (z: number): Point3 => {
+        const p = { x: 0, y: 0, z };
+        p[j.plane.axis] = j.plane.value;
+        p[j.across.axis] = j.across.value;
+        return p;
       };
-      for (const j of carcaseJoints(parts, opt<string>("carcase_joint"))) {
-        const count = dowelJoint(j, dowel, {
-          pitch: num("sys_pitch"),
-          offsetFront: num("dowel_offset_front"),
-          offsetRear: num("dowel_offset_rear"),
-          maxSpacing: num("dowel_max_spacing"),
-          minCount: num("dowel_min_count"),
-          margin: num("bore_min_wall"),
-          ...(opt<string>("dowel_pattern") === "sequence" ? { sequence: { second: num("dowel_second"), spacing: num("dowel_raster") } } : {}),
-        });
-        if (count.placed === 0) {
-          diagnostics.push({ severity: "error", code: "joint_no_dowels", params: { joint: j.ref }, ...at });
-        } else if (count.placed < num("dowel_min_count")) {
-          diagnostics.push({
-            severity: "warning",
-            code: "joint_few_dowels",
-            params: { joint: j.ref, count: count.placed, min: num("dowel_min_count") },
-            ...at,
-          });
+      const dowelFree = (z: number): boolean =>
+        !!dowel &&
+        !boreWouldCollide(j.facePart, point(z), j.intoFace, dowel.d, dowel.faceDepth, minWall) &&
+        !boreWouldCollide(j.edgePart, point(z), flip(j.intoFace), dowel.d, dowel.edgeDepth, minWall);
+      const placeDowel = (z: number): void => {
+        const src: OpSource = { kind: "joint", ref: j.ref };
+        addBore(j.facePart, point(z), j.intoFace, dowel!.d, dowel!.faceDepth, src);
+        addBore(j.edgePart, point(z), flip(j.intoFace), dowel!.d, dowel!.edgeDepth, src);
+      };
+
+      // Connector drilling for this joint (panel thicknesses differ per joint).
+      let conn: ConnectorPlan | undefined;
+      if (fastener) {
+        const scope = new Map(rc.values);
+        scope.set("t_edge", j.edgePart.thickness);
+        scope.set("t_face", j.facePart.thickness);
+        const params = evaluateItemParams(fastener, scope, at);
+        diagnostics.push(...params.diagnostics);
+        for (const d of checkLimits(fastener, params.values, at)) {
+          const k = JSON.stringify(d.params);
+          if (!seenLimits.has(k)) diagnostics.push(d), seenLimits.add(k);
         }
-        use(connector, count.placed);
+        const { drills, diagnostics: dd } = evaluateDrilling(fastener, params.values, at);
+        diagnostics.push(...dd);
+        for (const dr of drills) {
+          if (dr.mount !== "face" && dr.mount !== "edge" && dr.mount !== "edge_face") {
+            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: fastener.id, mount: dr.mount, category: fastener.category }, ...at });
+          }
+        }
+        conn = { item: fastener, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+      }
+      const geo: JointGeometry = { j, W, H, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap") };
+
+      let placed = 0;
+      if (method === "dowel") {
+        const zs = dowelPositions(zMin, zMax, base, dowelFree);
+        zs.forEach(placeDowel);
+        placed = zs.length;
+        use(dowelItem, zs.length);
+      } else if (method === "connector" && conn) {
+        const c = conn;
+        const o = {
+          ...base,
+          offsetFront: Math.max(num("connector_offset_front"), c.endMin),
+          offsetRear: Math.max(num("connector_offset_rear"), c.endMin),
+          maxSpacing: Math.min(num("connector_max_spacing"), c.spacingMax),
+          minCount: 2,
+        };
+        delete (o as { sequence?: unknown }).sequence;
+        const zs = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, z));
+        for (const z of zs) placeConnector(geo, c, z);
+        placed = zs.length;
+        use(c.item, zs.length);
+      } else if (method === "connector_dowel" && conn) {
+        const c = conn;
+        // The dowel pattern without the free check, then connectors at its ends.
+        const zs = dowelPositions(zMin, zMax, base, (z) => dowelFree(z) || connectorFits(geo, c, z));
+        const ends = zs.length >= 2 ? [zs[0]!, zs[zs.length - 1]!] : zs;
+        for (const z of zs) {
+          if (ends.includes(z) && connectorFits(geo, c, z)) {
+            placeConnector(geo, c, z);
+            use(c.item, 1);
+          } else if (dowel && dowelFree(z)) {
+            placeDowel(z);
+            use(dowelItem, 1);
+          } else continue;
+          placed++;
+        }
+      }
+      if (placed === 0) {
+        diagnostics.push({ severity: "error", code: "joint_no_dowels", params: { joint: j.ref }, ...at });
+      } else if (method === "dowel" && placed < num("dowel_min_count")) {
+        diagnostics.push({ severity: "warning", code: "joint_few_dowels", params: { joint: j.ref, count: placed, min: num("dowel_min_count") }, ...at });
       }
     }
   }
@@ -586,30 +667,86 @@ function sequencePositions(
   return out;
 }
 
-function dowelJoint(
-  j: Joint,
-  dowel: { d: number; faceDepth: number; edgeDepth: number },
-  o: Parameters<typeof dowelPositions>[2] & { margin: number },
-): { placed: number } {
-  const zMin = Math.max(j.facePart.box.z, j.edgePart.box.z);
-  const zMax = Math.min(j.facePart.box.z + j.facePart.box.dz, j.edgePart.box.z + j.edgePart.box.dz);
-  const point = (z: number) => {
-    const p = { x: 0, y: 0, z };
-    p[j.plane.axis] = j.plane.value;
-    p[j.across.axis] = j.across.value;
-    return p;
-  };
-  const free = (z: number): boolean =>
-    !boreWouldCollide(j.facePart, point(z), j.intoFace, dowel.d, dowel.faceDepth, o.margin) &&
-    !boreWouldCollide(j.edgePart, point(z), flip(j.intoFace), dowel.d, dowel.edgeDepth, o.margin);
-  const zs = dowelPositions(zMin, zMax, o, free);
-  const source: OpSource = { kind: "joint", ref: j.ref };
-  for (const z of zs) {
-    const p = point(z);
-    addBore(j.facePart, p, j.intoFace, dowel.d, dowel.faceDepth, source);
-    addBore(j.edgePart, p, flip(j.intoFace), dowel.d, dowel.edgeDepth, source);
+interface ConnectorPlan {
+  item: HardwareItem;
+  drills: EvaluatedDrill[];
+  endMin: number;
+  spacingMax: number;
+}
+
+interface JointGeometry {
+  j: Joint;
+  W: number;
+  H: number;
+  minWall: number;
+  mode: ThroughMode;
+  overlap: number;
+}
+
+const sign = (d: Direction): 1 | -1 => (d[0] === "+" ? 1 : -1);
+
+/**
+ * Where one connector drill goes (D36): "face" into the face part from the
+ * joint plane, "edge" into the edge part's end, both `b` across from the
+ * edge part's mid-thickness towards its inner face; "edge_face" into the
+ * edge part's inner face, `b` from the joint plane. `a` runs along the
+ * joint towards the front.
+ */
+function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part: Part; entry: Point3; dir: Direction } {
+  const { j } = g;
+  const across = j.across.axis;
+  const centre = across === "x" ? g.W / 2 : g.H / 2;
+  const inner = centre >= j.across.value ? 1 : -1; // edge part's inner face, towards the cabinet centre
+  const intoEdge = flip(j.intoFace);
+  const p: Point3 = { x: 0, y: 0, z: z + dr.a };
+  if (dr.mount === "edge_face") {
+    p[j.plane.axis] = j.plane.value + sign(intoEdge) * dr.b;
+    p[across] = j.across.value + (inner * j.edgePart.box[across === "x" ? "dx" : across === "y" ? "dy" : "dz"]) / 2;
+    return { part: j.edgePart, entry: p, dir: `${inner > 0 ? "-" : "+"}${across}` as Direction };
   }
-  return { placed: zs.length };
+  p[j.plane.axis] = j.plane.value;
+  p[across] = j.across.value + inner * dr.b;
+  return dr.mount === "face" ? { part: j.facePart, entry: p, dir: j.intoFace } : { part: j.edgePart, entry: p, dir: intoEdge };
+}
+
+function connectorFits(g: JointGeometry, c: ConnectorPlan, z: number): boolean {
+  return c.drills.every((dr) => {
+    if (dr.op === "groove") return true;
+    const { part, entry, dir } = connectorDrill(g, dr, z);
+    const depth = dr.through ? part.thickness : dr.depth;
+    // A bore that would leave the part (e.g. too close to the end) does not fit either.
+    try {
+      return !boreWouldCollide(part, entry, dir, dr.d, depth, g.minWall);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
+  // One group per connector: its housing, bolt hole and lever hole meet on purpose.
+  const source: OpSource = { kind: "hardware", ref: c.item.id, group: `${g.j.ref}@${roundMm(z)}` };
+  for (const dr of c.drills) {
+    const { part, entry, dir } = connectorDrill(g, dr, z);
+    if (dr.op === "groove") {
+      // Slot of width d and length len, depth into the part from the joint plane.
+      const lo = { ...entry };
+      const hi = { ...entry };
+      const ax = dir[1] as Axis;
+      const across = g.j.across.axis;
+      if (sign(dir) > 0) hi[ax] += dr.depth;
+      else lo[ax] -= dr.depth;
+      lo[across] -= dr.d / 2;
+      hi[across] += dr.d / 2;
+      lo.z -= dr.len / 2;
+      hi.z += dr.len / 2;
+      addPocketFromBox(part, { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z }, source);
+    } else if (dr.through) {
+      addThroughBore(part, entry, dir, dr.d, g.mode, g.overlap, source);
+    } else {
+      addBore(part, entry, dir, dr.d, dr.depth, source);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

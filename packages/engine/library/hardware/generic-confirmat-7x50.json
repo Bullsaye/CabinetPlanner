@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-confirmat-7x50",
+  "name": { "en": "Confirmat screw 7 × 50 (generic)", "de": "Konfirmatschraube 7 × 50 (generisch)" },
+  "category": "connector",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic one-piece connector screw: Ø7 clearance hole through the side (head visible outside), Ø5 pilot into the panel end, length 50 minus the side thickness plus 2 mm. Replace with the screw you use.",
+  "params": { "length": 50, "end_min": 50, "spacing_max": 250 },
+  "drilling": [
+    { "mount": "face", "d": 7, "depth": 0, "a": 0, "b": 0, "through": true },
+    { "mount": "edge", "d": 5, "depth": "length - t_face + 2", "a": 0, "b": 0 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

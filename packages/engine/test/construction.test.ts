@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dowelPositions } from "../src/index.ts";
+import { buildProject, dowelPositions, loadProject, neighbours } from "../src/index.ts";
 import { buildOne, partsByCode } from "./helpers.ts";
 
 import type { Operation, Part } from "../src/index.ts";
@@ -60,5 +60,88 @@ describe("front gaps (D35)", () => {
   it("derives side gaps from the vertical gap", () => {
     const r = buildOne({ vars: { front_gap_v: 4 } });
     expect(partsByCode(r).DO1!.box.x).toBe(2);
+  });
+});
+
+describe("connectors (D36)", () => {
+  const bores = (p: Part, ref: string) => refs(p, ref).filter((o) => o.kind === "bore");
+
+  it("drills Minifix: housing in the bottom's top face 24 from the end, Ø8 into the end, Ø5 in the side", () => {
+    const r = buildOne({ options: { joint_method: "connector", "hardware.fastener": "hafele-minifix-15", top: "full" } });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const bo = bores(p.BO!, "hafele-minifix-15");
+    // Bottom from x 19: housing centre at x 19 + 24, on the top face, Ø15 × 14.
+    const housing = bo.filter((b) => b.kind === "bore" && b.d === 15);
+    expect(housing.length).toBe(6); // three per side (≤ 300 apart)
+    expect(housing[0]).toMatchObject({ face: "t1", u: 24, d: 15, depth: 14 });
+    expect(bo.filter((b) => b.kind === "bore" && b.d === 8)[0]).toMatchObject({ face: "w1", depth: 24, w: 9.5 });
+    expect(bores(p.SL!, "hafele-minifix-15").every((b) => b.kind === "bore" && b.d === 5 && b.depth === 13)).toBe(true);
+    // Defaults: first 50 from the front, then the rear one (≤ 300 apart → a middle one on a 560 deep joint).
+    expect(r.cabinets[0]!.hardware.find((h) => h.item === "hafele-minifix-15")?.qty).toBe(12); // bottom + top, 3 per side
+  });
+
+  it("mills Clamex P-System grooves in both parts and the lever hole in the panel", () => {
+    const r = buildOne({ options: { joint_method: "connector", "hardware.fastener": "lamello-clamex-p14" } });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const grooves = refs(p.SL!, "lamello-clamex-p14").filter((o) => o.kind === "pocket");
+    expect(grooves.length).toBeGreaterThan(0);
+    const g = grooves[0]!;
+    if (g.kind !== "pocket") throw new Error();
+    expect(g.w1 - g.w0).toBe(14);
+    expect(g.v1 - g.v0).toBeCloseTo(69.6);
+    const lever = bores(p.BO!, "lamello-clamex-p14");
+    expect(lever[0]).toMatchObject({ d: 6, u: 7.5 });
+  });
+
+  it("combines connectors at the ends with dowels between", () => {
+    const r = buildOne({ options: { joint_method: "connector_dowel", top: "full" } });
+    expect(r.diagnostics).toEqual([]);
+    const sl = partsByCode(r).SL!;
+    expect(bores(sl, "hafele-minifix-15").length).toBe(4); // front and back, bottom and top
+    expect(bores(sl, "SL-BO").length).toBeGreaterThan(0);
+  });
+
+  it("drills confirmat clearance holes through the side and pilots into the end", () => {
+    const r = buildOne({ options: { joint_method: "connector", "hardware.fastener": "generic-confirmat-7x50", top: "full" } });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    expect(bores(p.SL!, "generic-confirmat-7x50").every((b) => b.kind === "bore" && b.d === 7 && b.through)).toBe(true);
+    expect(bores(p.BO!, "generic-confirmat-7x50")[0]).toMatchObject({ d: 5, depth: 33 });
+  });
+});
+
+describe("neighbours and cabinet screws (D37)", () => {
+  const room = { walls: [{ id: "A", length: 3000 }, { id: "B", length: 2000 }, { id: "C", length: 3000 }, { id: "D", length: 2000 }] };
+  const build = (cabinets: unknown[], shop: Record<string, unknown> = {}) =>
+    buildProject(loadProject({ schemaVersion: 1, name: "n", room, shop: { presets: [], vars: {}, options: shop }, cabinets }));
+
+  it("knows visible ends of a run", () => {
+    const r = build([
+      { id: "B01", type: "box", place: { wall: "A", x: 600 } },
+      { id: "B02", type: "box", place: { wall: "A" } },
+    ]);
+    const near = neighbours(r.room!);
+    expect(near.get("B01")!.visible).toEqual({ left: true, right: false });
+    expect(near.get("B02")!.visible).toEqual({ left: false, right: true });
+  });
+
+  it("screws neighbours together through both sides at the same heights", () => {
+    const r = build(
+      [
+        { id: "B01", type: "box", place: { wall: "A", x: 600 } },
+        { id: "B02", type: "box", place: { wall: "A" } },
+      ],
+      { cabinet_link: "screws" },
+    );
+    expect(r.diagnostics).toEqual([]);
+    const sr = r.parts.find((p) => p.id === "B01-SR")!;
+    const sl = r.parts.find((p) => p.id === "B02-SL")!;
+    const a = sr.operations.filter((o) => o.sources.some((s) => s.ref === "generic-cabinet-connector-screw"));
+    const b = sl.operations.filter((o) => o.sources.some((s) => s.ref === "generic-cabinet-connector-screw"));
+    expect(a.length).toBe(2);
+    expect(a.map((o) => (o.kind === "bore" ? o.u : 0))).toEqual(b.map((o) => (o.kind === "bore" ? o.u : 0)));
+    expect(r.cabinets[0]!.hardware.find((h) => h.item === "generic-cabinet-connector-screw")?.qty).toBe(2);
   });
 });

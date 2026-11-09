@@ -79,6 +79,12 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "dowel_offset_front", group: "construction", unit: "mm", factory: "sys_row_front", min: 5, max: 200 }),
   v({ name: "dowel_offset_rear", group: "construction", unit: "mm", factory: 20, min: 5, max: 200 }),
   v({ name: "dowel_max_spacing", group: "construction", unit: "mm", factory: 160, min: 32, max: 1000 }),
+  v({ name: "connector_offset_front", group: "construction", unit: "mm", factory: 50, min: 10, max: 300, step: 1 }),
+  v({ name: "connector_offset_rear", group: "construction", unit: "mm", factory: 50, min: 10, max: 300, step: 1 }),
+  v({ name: "connector_max_spacing", group: "construction", unit: "mm", factory: 300, min: 50, max: 2000, step: 10 }),
+  v({ name: "link_offset_front", group: "construction", unit: "mm", factory: 50, min: 10, max: 500, step: 1 }),
+  v({ name: "link_offset_end", group: "construction", unit: "mm", factory: 80, min: 10, max: 1000, step: 1 }),
+  v({ name: "link_max_spacing", group: "construction", unit: "mm", factory: 600, min: 50, max: 2500, step: 10 }),
   v({ name: "dowel_second", group: "construction", unit: "mm", factory: 32, min: 0, max: 500, step: 1 }),
   v({ name: "dowel_raster", group: "construction", unit: "mm", factory: 128, min: 16, max: 1000, step: 1 }),
   v({ name: "dowel_min_count", group: "construction", unit: "count", factory: 2, min: 1, max: 20, integer: true, step: 1 }),
@@ -202,7 +208,20 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "back_extent", group: "back", kind: { type: "enum", values: ["inside", "behind_horizontals"] }, factory: "inside" },
   /** Dowel positions: on the system grid thinned to dowel_max_spacing, or front offset, second, then every dowel_spacing. */
   { key: "dowel_pattern", group: "construction", kind: { type: "enum", values: ["grid", "sequence"] }, factory: "grid" },
-  { key: "joint_method", group: "construction", kind: { type: "enum", values: ["dowel", "none"] }, factory: "dowel" },
+  {
+    key: "joint_method",
+    group: "construction",
+    kind: { type: "enum", values: ["dowel", "connector", "connector_dowel", "none"] },
+    factory: "dowel",
+  },
+  /** Screws between neighbouring cabinets in the room (D37). */
+  { key: "cabinet_link", group: "construction", kind: { type: "enum", values: ["none", "screws"] }, factory: "none" },
+  { key: "hardware.link", group: "construction", kind: { type: "hardware", category: "connector" }, factory: "generic-cabinet-connector-screw" },
+  /** Carcase sides: visible (end of a run, no notches) or hidden; auto follows the room. */
+  { key: "side.left", group: "construction", kind: { type: "enum", values: ["auto", "visible", "hidden"] }, factory: "auto" },
+  { key: "side.right", group: "construction", kind: { type: "enum", values: ["auto", "visible", "hidden"] }, factory: "auto" },
+  /** Connector for joint_method connector / connector_dowel (cam connectors, Clamex, confirmat). */
+  { key: "hardware.fastener", group: "construction", kind: { type: "hardware", category: "connector" }, factory: "hafele-minifix-15" },
   {
     key: "hardware.connector",
     group: "construction",

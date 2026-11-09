@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "lamello-clamex-p14",
+  "name": { "en": "Lamello Clamex P-14 (P-System groove, lever access Ø6)", "de": "Lamello Clamex P-14 (P-System-Nut, Hebelzugang Ø6)" },
+  "category": "connector",
+  "manufacturer": "Lamello",
+  "series": "Clamex P",
+  "articles": [{ "code": "145334", "note": "80 pairs" }],
+  "trust": "untested",
+  "source": "Lamello P-System brochure (EN) pp. 16-17, 72, 86: 14 mm deep P-System groove in both parts, 7 mm wide, ~69.6 mm long at the surface (disc cutter Ø100.4), centred in the board thickness; lever access hole Ø6, axis 7.5 from the joint face, from the inner face into the groove; first connector ≥ 37 from the end, ≤ 300 apart, butt joints from 15 mm. The groove's 9.8 mm undercut is not modelled. See docs/hardware-research/lamello-keku.json.",
+  "params": { "end_min": 37, "spacing_max": 300, "groove_len": 69.6 },
+  "drilling": [
+    { "mount": "edge", "op": "groove", "d": 7, "depth": 14, "len": "groove_len", "a": 0, "b": 0 },
+    { "mount": "face", "op": "groove", "d": 7, "depth": 14, "len": "groove_len", "a": 0, "b": 0 },
+    { "mount": "edge_face", "d": 6, "depth": "t_edge / 2", "a": 0, "b": 7.5 }
+  ],
+  "limits": [{ "name": "t_edge", "value": "t_edge", "min": 15 }, { "name": "t_face", "value": "t_face", "min": 15 }],
+  "bom": { "perPlacement": 1, "unit": "pairs" }
+}

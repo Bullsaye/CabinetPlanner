@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-cabinet-connector-screw",
+  "name": { "en": "Cabinet connecting screw with sleeve, Ø5 (generic)", "de": "Korpusverbinder Schraube mit Hülse, Ø5 (generisch)" },
+  "category": "connector",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic two-part cabinet connecting screw (screw and sleeve) for two sides of 2 × 16–19 mm, through holes Ø5 in both sides. Replace with the connector you use.",
+  "params": { "d": 5 },
+  "drilling": [],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

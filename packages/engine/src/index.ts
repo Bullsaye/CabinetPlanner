@@ -26,4 +26,5 @@ export * from "./output/dxf.ts";
 export * from "./output/zip.ts";
 export * from "./room/room.ts";
 export * from "./room/room-svg.ts";
+export * from "./room/links.ts";
 export * from "./drawing/index.ts";

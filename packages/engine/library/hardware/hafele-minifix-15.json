@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "hafele-minifix-15",
+  "name": { "en": "Häfele Minifix 15 cam connector, bolt S100 B (Ø5)", "de": "Häfele Minifix 15 Verbinder, Bolzen S100 B (Ø5)" },
+  "category": "connector",
+  "manufacturer": "Häfele",
+  "series": "Minifix 15",
+  "articles": [{ "code": "262.26.035", "note": "housing 19 mm, without rim, bright" }, { "code": "262.27.020", "note": "bolt S100 B, B = 24" }],
+  "trust": "untested",
+  "source": "Häfele Minifix 15: housing Ø15 in the panel face, centre B = 24 (or 34) from the panel end, depth by thickness (19 mm: 14.0 +0.5); bolt hole Ø8 in the panel end on the housing axis; bolt S100 B in a Ø5 hole in the side. Bolt hole depth not stated: 13 used (system hole depth). See docs/hardware-research/grass-hafele.json.",
+  "params": {
+    "B": 24,
+    "housing_depth": "if(t_edge >= 29, 19.5, if(t_edge >= 26, 18, if(t_edge >= 23, 16.5, if(t_edge >= 19, 14, if(t_edge >= 18, 13.5, if(t_edge >= 16, 12.5, if(t_edge >= 15, 12, 11)))))))",
+    "end_min": 37,
+    "spacing_max": 300
+  },
+  "drilling": [
+    { "mount": "edge_face", "d": 15, "depth": "housing_depth", "a": 0, "b": "B" },
+    { "mount": "edge", "d": 8, "depth": "B", "a": 0, "b": 0 },
+    { "mount": "face", "d": 5, "depth": 13, "a": 0, "b": 0 }
+  ],
+  "limits": [{ "name": "t_edge", "value": "t_edge", "min": 12, "max": 29 }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

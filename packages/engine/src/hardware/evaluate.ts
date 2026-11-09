@@ -9,6 +9,9 @@ export interface EvaluatedDrill {
   a: number;
   b: number;
   through: boolean;
+  op: "bore" | "groove";
+  /** Grooves: length along the joint. */
+  len: number;
 }
 
 /**
@@ -70,12 +73,13 @@ export function evaluateDrilling(
   const drills: EvaluatedDrill[] = [];
   const diagnostics: Diagnostic[] = [];
   item.drilling.forEach((op: DrillOp, i) => {
-    const defs = new Map([
+    const defs = new Map<string, string | number>([
       ["__d", op.d],
       ["__depth", op.depth],
       ["__a", op.a],
       ["__b", op.b],
-    ] as const);
+    ]);
+    if (op.len !== undefined) defs.set("__len", op.len);
     const r = evaluateGraph(defs, scope);
     if (r.diagnostics.length > 0) {
       diagnostics.push(
@@ -95,6 +99,8 @@ export function evaluateDrilling(
       a: r.values.get("__a")!,
       b: r.values.get("__b")!,
       through: op.through ?? false,
+      op: op.op ?? "bore",
+      len: r.values.get("__len") ?? 0,
     });
   });
   return { drills, diagnostics };

@@ -16,6 +16,8 @@ export interface OpSource {
   kind: "system" | "joint" | "hardware" | "back";
   /** e.g. "SL-BO" for a joint, a hardware item id, "rows" for system holes. */
   ref: string;
+  /** Operations of one fitting that are meant to meet (cam housing and bolt hole). */
+  group?: string;
 }
 
 export interface Bore {
@@ -364,6 +366,9 @@ const describe = (op: Operation): string => op.sources.map((s) => `${s.kind}:${s
  * - no two operations remove overlapping material, except identical bores
  *   (already merged) and bores of the same source group.
  */
+const sameGroup = (a: Operation, b: Operation): boolean =>
+  a.sources.some((s) => s.group !== undefined && b.sources.some((t) => t.group === s.group));
+
 export function checkOperations(part: Part, minWall: number): Diagnostic[] {
   const diags: Diagnostic[] = [];
   const at = { cabinet: part.cabinet, part: part.id };
@@ -410,6 +415,7 @@ export function checkOperations(part: Part, minWall: number): Diagnostic[] {
       const b = ops[j]!;
       if (a.kind === "pocket" && b.kind === "pocket") continue; // pockets may join (e.g. groove corners)
       if (isSplitPair(a, b)) continue; // the two halves of one hole drilled from both faces
+      if (sameGroup(a, b)) continue; // parts of one fitting that join by design
       if (overlaps(opBounds(part, a), opBounds(part, b))) {
         diags.push({
           severity: "error",

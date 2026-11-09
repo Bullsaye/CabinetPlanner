@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "hettich-rastex-15",
+  "name": { "en": "Hettich Rastex 15 cam connector, Rapid S dowel", "de": "Hettich Rastex 15 Verbinder, Rapid S Dübel" },
+  "category": "connector",
+  "manufacturer": "Hettich",
+  "series": "Rastex 15",
+  "articles": [{ "code": "79471", "note": "19 mm, without rim, bright" }, { "code": "9046180", "note": "Rapid S dowel DU 324, 20 mm" }],
+  "trust": "untested",
+  "source": "Hettich Connecting technology 2016 pp. 8-11: housing Ø15 on the inner face, centre 24 from the panel end (20 mm dowel), depth 13.7 for 19 mm (16: 12.7, 18: 13.4, 22: 15.7, 15: 12.2); edge bore Ø8 at mid-thickness into the housing; Rapid S dowel Ø8 × 11 in the side. See docs/hardware-research/hettich.json.",
+  "params": {
+    "B": 24,
+    "housing_depth": "if(t_edge >= 22, 15.7, if(t_edge >= 19, 13.7, if(t_edge >= 18, 13.4, if(t_edge >= 16, 12.7, 12.2))))",
+    "end_min": 37,
+    "spacing_max": 300
+  },
+  "drilling": [
+    { "mount": "edge_face", "d": 15, "depth": "housing_depth", "a": 0, "b": "B" },
+    { "mount": "edge", "d": 8, "depth": "B", "a": 0, "b": 0 },
+    { "mount": "face", "d": 8, "depth": 11, "a": 0, "b": 0 }
+  ],
+  "limits": [{ "name": "t_edge", "value": "t_edge", "min": 15, "max": 29 }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

@@ -484,3 +484,38 @@ Two shop settings, because they are used for different things:
 - `top: auto` (new factory value) uses `top.base_unit` (rails or full) for
   base units and a full top for wall and tall units; the kind presets no
   longer set `top`, so a shop can choose its base unit top.
+
+### D36 · 2026-11-09 · Connectors
+
+- `joint_method`: `dowel`, `connector` (item `hardware.fastener`),
+  `connector_dowel` (connectors at the first and last position of the
+  dowel pattern, dowels at the others), `none`.
+- Connector items (category connector) drill relative to a position on
+  the joint line: mount `face` into the face part (side) from the joint
+  plane, `edge` into the panel end, both `b` across from the panel's
+  mid-thickness towards its inner face; `edge_face` into the panel's inner
+  face (the face towards the cabinet centre), `b` from the joint plane;
+  `a` along the joint towards the front. `op: groove` mills a slot `d`
+  wide, `len` long and `depth` deep (P-System groove; undercut not
+  modelled). Expressions see `t_edge` and `t_face`.
+- Connector positions: the dowel position rule with
+  `connector_offset_front/rear` (at least the item's `end_min`) and
+  `connector_max_spacing` (at most the item's `spacing_max`).
+- The operations of one connector share a `group` and may intersect each
+  other (housing and bolt hole); the checker skips those pairs.
+- Factory items: Häfele Minifix 15 (S100 B), Hettich Rastex 15 (Rapid S),
+  Lamello Clamex P-14, generic confirmat 7 × 50 — untested.
+
+### D37 · 2026-11-09 · Neighbours, visible sides, cabinet screws
+
+- With a room, cabinets are built twice: the room layout tells each one
+  which carcase sides are visible (no unit of the same height band
+  against it, not against a wall end or a corner run). Options `side.left`
+  / `side.right` (`auto`, `visible`, `hidden`) override it; without a room
+  `auto` means hidden.
+- `cabinet_link: screws`: through holes Ø (item `d`) in the right side of a
+  cabinet and the left side of its right neighbour, `link_offset_front`
+  behind the shallower carcase front, spread between `link_offset_end`
+  from the shared top and bottom, at most `link_max_spacing` apart; a
+  blocked position moves by the pitch. The left cabinet's settings apply
+  and it carries the screws in its hardware list.

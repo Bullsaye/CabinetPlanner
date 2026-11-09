@@ -6,7 +6,9 @@ import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
 import { presetRegistry, resolveCabinet, type ResolvedCabinet } from "./resolve.ts";
 import { layoutRoom, type RoomLayout } from "./room/room.ts";
-import { CabinetSchema, ProjectSchema, SCHEMA_VERSION, ShopSchema, type Project, type Shop } from "./schema.ts";
+import { linkCabinets, neighbours } from "./room/links.ts";
+import type { CabinetContext } from "./cabinet/machining.ts";
+import { CabinetSchema, ProjectSchema, SCHEMA_VERSION, ShopSchema, type CabinetInput, type Project, type Shop } from "./schema.ts";
 
 export class FileFormatError extends Error {
   readonly issues: { path: string; message: string }[];
@@ -96,8 +98,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
   // A shop file wins over an inline `shop` block in the project.
   const shopLayer = shop?.defaults ?? project.shop;
 
-  const cabinets: CabinetResult[] = [];
-  for (const cabinet of project.cabinets) {
+  const build = (cabinet: CabinetInput, context: CabinetContext = {}): CabinetResult => {
     const resolved = resolveCabinet(project, cabinet, { library, presets, shop: shopLayer });
     const diagnostics = [...resolved.diagnostics];
     let parts: Part[] = [];
@@ -110,18 +111,18 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
       diagnostics.push(...built.diagnostics);
       // Machining needs sound geometry; skip it when the parts are already wrong.
       if (!hasErrors(built.diagnostics)) {
-        const machined = machineBox(resolved, library, parts, built.layout);
+        const machined = machineBox(resolved, library, parts, built.layout, context);
         diagnostics.push(...machined.diagnostics);
         hardware = machined.hardware;
         handles = machined.handles;
         fittings = machined.fittings;
       }
     }
-    cabinets.push({ resolved, parts, hardware, handles, fittings, diagnostics });
-  }
-  const diagnostics = cabinets.flatMap((c) => c.diagnostics);
-  const ok = !hasErrors(diagnostics);
+    return { resolved, parts, hardware, handles, fittings, diagnostics };
+  };
+  let cabinets: CabinetResult[] = project.cabinets.map((c) => build(c));
   let room: RoomLayout | undefined;
+  const roomDiagnostics: Diagnostic[] = [];
   if (project.room) {
     // Project-level values (room height, …) through the same layers, without a cabinet's own values.
     const probe = resolveCabinet(project, CabinetSchema.parse({ id: "ROOM", type: "box" }), { library, presets, shop: shopLayer });
@@ -143,8 +144,14 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
         },
       },
     );
-    diagnostics.push(...room.diagnostics);
+    // Second pass: what each cabinet stands next to (visible sides), then
+    // screws between neighbours (D37).
+    const near = neighbours(room);
+    cabinets = project.cabinets.map((c, i) => (near.has(c.id) ? build(c, { visible: near.get(c.id)!.visible }) : cabinets[i]!));
+    roomDiagnostics.push(...room.diagnostics, ...linkCabinets(room, cabinets, library));
   }
+  const diagnostics = [...cabinets.flatMap((c) => c.diagnostics), ...roomDiagnostics];
+  const ok = !hasErrors(cabinets.flatMap((c) => c.diagnostics));
   return {
     project,
     library,

@@ -12,10 +12,22 @@ const identifier = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "must be a valid
  *   from the hinge centre (up is positive), `b` from the hinge edge inwards.
  * - hinge, mount "side": inner face of the hinge side; `a` as above, `b`
  *   from the front edge of the side backwards.
- * All values are expressions over the item params and cabinet variables.
+ * - connector (D36), at a joint between a panel's end ("edge" part) and
+ *   another panel's face ("face" part), relative to the connector position
+ *   on the joint line: mount "face" into the face part, "edge" into the
+ *   edge part's end, `a` along the joint (towards the front), `b` across
+ *   from the edge part's mid-thickness; mount "edge_face" into the edge
+ *   part's inner face, `b` from the joint plane. `op: groove` mills a slot
+ *   `d` wide and `len` long instead of a bore (Lamello P-System).
+ * - leg, mount "bottom"; rail, mount "end": see D31 / D30.
+ * All values are expressions over the item params and cabinet variables;
+ * connectors also see `t_edge` and `t_face` (the two panel thicknesses).
  */
 export const DrillOp = z.object({
   mount: z.string().min(1),
+  op: z.enum(["bore", "groove"]).default("bore"),
+  /** Grooves: length along the joint. */
+  len: VarInput.optional(),
   d: VarInput,
   depth: VarInput,
   a: VarInput,
