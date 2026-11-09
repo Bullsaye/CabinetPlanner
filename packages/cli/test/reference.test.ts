@@ -93,9 +93,14 @@ describe("performance budget", () => {
       })),
     });
     buildProject(project); // warm up
-    const t0 = performance.now();
-    const r = buildProject(project);
-    const ms = performance.now() - t0;
+    // Best of five: test files run in parallel, a single run measures the neighbours too.
+    let ms = Infinity;
+    let r = buildProject(project);
+    for (let k = 0; k < 5; k++) {
+      const t0 = performance.now();
+      r = buildProject(project);
+      ms = Math.min(ms, performance.now() - t0);
+    }
     expect(r.ok).toBe(true);
     // Target is < 50 ms on a mid-range tablet (docs/PLAN.md). CI machines
     // vary, so this only catches gross regressions.
