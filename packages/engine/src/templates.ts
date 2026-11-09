@@ -131,13 +131,13 @@ export const FACTORY_TEMPLATES: readonly CabinetTemplate[] = [
       kind: "base",
       presets: [],
       vars: { W: 1200, H: 450, D: 380, shelf_count: 0, door_count: 0, plinth_h: 0 },
-      options: { back_mount: "none", system_holes: "none", "hardware.leg": null },
+      options: { top: "full", back_mount: "none", system_holes: "none", "hardware.leg": null },
       params: [
         { name: "stretcher_h", label: { en: "Stretcher height", de: "Zargenhöhe" }, default: 120, min: 40, max: 400, step: 10 },
         { name: "stretcher_y", label: { en: "Stretcher above floor", de: "Zarge über Boden" }, default: 100, min: 0, max: 600, step: 10 },
       ],
       construction: {
-        omit: ["SL", "SR", "BO", "RF", "RR"],
+        omit: ["SL", "SR", "BO", "TO"],
         parts: [
           { id: "WL", name: { en: "Cheek left", de: "Wange links" }, plane: "vertical", x: 0, y: 0, z: 0, dy: "H", dz: "D", edges: { front: "edge.carcase", rear: "edge.carcase", top: "edge.carcase" } },
           { id: "WR", name: { en: "Cheek right", de: "Wange rechts" }, plane: "vertical", x: "W - t_carcase", y: 0, z: 0, dy: "H", dz: "D", edges: { front: "edge.carcase", rear: "edge.carcase", top: "edge.carcase" } },

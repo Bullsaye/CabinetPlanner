@@ -3,6 +3,7 @@
   import { openConstruction, setKind, store } from "../lib/store.svelte.ts";
   import FrontBuilder from "./FrontBuilder.svelte";
   import OptRow from "./fields/OptRow.svelte";
+  import ParamRow from "./fields/ParamRow.svelte";
   import VarRow from "./fields/VarRow.svelte";
 
   const t = $derived(store.tr.t);
@@ -43,6 +44,13 @@
       <VarRow name="t_carcase" label={t("ui.material_thickness")} />
       <button class="quiet link" onclick={fitToCeiling} title={t("ui.fit_to_ceiling_hint")}>{t("ui.fit_to_ceiling")}</button>
     </section>
+
+    {#if c.params?.length}
+      <section>
+        <h3 class="label">{t("ui.params")}</h3>
+        {#each c.params as p (p.name)}<ParamRow param={p} />{/each}
+      </section>
+    {/if}
 
     <section>
       <h3 class="label">{t("ui.fronts")}</h3>

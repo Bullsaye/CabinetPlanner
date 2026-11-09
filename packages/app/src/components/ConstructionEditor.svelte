@@ -9,6 +9,7 @@
     store,
     templateName,
   } from "../lib/store.svelte.ts";
+  import FreeConstruction from "./FreeConstruction.svelte";
   import Inspector from "./Inspector.svelte";
   import OptRow from "./fields/OptRow.svelte";
   import VarRow from "./fields/VarRow.svelte";
@@ -224,6 +225,8 @@
       {#if kind === "tall"}<OptRow key="hardware.rail" />{/if}
       <OptRow key="corner" />
     </section>
+
+    <FreeConstruction />
 
     <details>
       <summary class="label">{t("ui.all_settings")}</summary>
