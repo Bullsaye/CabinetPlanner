@@ -17,6 +17,18 @@ import { roundMm, type Axis, type Part } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
 import { gridPositions, type BoxLayout } from "./box.ts";
 
+/** Where a handle or knob sits (for 3D and drawings): holes on the outer face, cabinet coordinates. */
+export interface HandlePlacement {
+  item: string;
+  part: string;
+  points: { x: number; y: number; z: number }[];
+  /** Display sizes from the item (mm): bar length and Ø, knob size, standoff. */
+  length?: number;
+  barD?: number;
+  size?: number;
+  standoff?: number;
+}
+
 /** Hardware and consumables a cabinet needs (input for the BOM later). */
 export interface HardwareUse {
   item: string;
@@ -34,7 +46,7 @@ export function machineBox(
   library: Library,
   parts: Part[],
   layout: BoxLayout,
-): { diagnostics: Diagnostic[]; hardware: HardwareUse[] } {
+): { diagnostics: Diagnostic[]; hardware: HardwareUse[]; handles: HandlePlacement[] } {
   const diagnostics: Diagnostic[] = [];
   const cab = rc.cabinet.id;
   const at = { cabinet: cab };
@@ -42,6 +54,7 @@ export function machineBox(
   const opt = <T>(key: string): T => rc.options.get(key)!.value as T;
   const byCode = new Map(parts.map((p) => [p.code, p]));
   const usage = new Map<string, HardwareUse>();
+  const handles: HandlePlacement[] = [];
   const use = (item: HardwareItem, qty: number): void => {
     if (qty <= 0) return;
     const u = usage.get(item.id);
@@ -172,7 +185,18 @@ export function machineBox(
     const overlap = num("through_overlap");
     const source: OpSource = { kind: "hardware", ref: item.id };
     const drill = (part: Part, pts: { x: number; y: number }[]): void => {
-      for (const p of pts) addThroughBore(part, { x: p.x, y: p.y, z: part.box.z + part.box.dz }, "-z", hd, mode, overlap, source);
+      const z = part.box.z + part.box.dz;
+      for (const p of pts) addThroughBore(part, { x: p.x, y: p.y, z }, "-z", hd, mode, overlap, source);
+      const pv = (n: string): number | undefined => params.values.get(n);
+      handles.push({
+        item: item.id,
+        part: part.id,
+        points: pts.map((p) => ({ x: roundMm(p.x), y: roundMm(p.y), z: roundMm(z) })),
+        ...(pv("length") !== undefined ? { length: pv("length")! } : {}),
+        ...(pv("bar_d") !== undefined ? { barD: pv("bar_d")! } : {}),
+        ...(pv("size") !== undefined ? { size: pv("size")! } : {}),
+        ...(pv("standoff") !== undefined ? { standoff: pv("standoff")! } : {}),
+      });
       use(item, 1);
     };
     const wall = rc.cabinet.kind === "wall";
@@ -224,6 +248,31 @@ export function machineBox(
     }
     use(item, 1);
 
+    // Drawer front fixing: the system's own holes in the back of the front,
+    // or (wooden drawers) screws through the inner front.
+    const df = byCode.get(`DF${d.index}`);
+    if (df && sd.frontFixing) {
+      const ff = sd.frontFixing;
+      const yb = d.axisY - sd.axisToBox;
+      const src: OpSource = { kind: "hardware", ref: `${item.id}:front` };
+      for (const x of [t + ff.fromSide, W - t - ff.fromSide]) {
+        for (const r of ff.rows) addBore(df, { x, y: yb + ff.fromBox + r, z: df.box.z }, "+z", ff.d, ff.depth, src);
+      }
+    } else if (d.box === "wood" && opt<string>("drawer_front.fixing") === "screws") {
+      const inner = byCode.get(`DI${d.index}`);
+      if (inner) {
+        const b = inner.box;
+        const s = num("front_screw_side");
+        const e = num("front_screw_edge");
+        const src: OpSource = { kind: "joint", ref: `DI${d.index}-DF${d.index}` };
+        for (const x of [b.x + s, b.x + b.dx - s]) {
+          for (const y of [b.y + e, b.y + b.dy - e]) {
+            addThroughBore(inner, { x, y, z: b.z }, "+z", num("front_screw_d"), "one_side", 0, src);
+          }
+        }
+      }
+    }
+
     // Wooden box: the bottom sits in a groove in sides, inner front and back.
     const bottom = byCode.get(`DT${d.index}`);
     if (d.box === "wood" && bottom) {
@@ -255,7 +304,7 @@ export function machineBox(
   for (const p of parts) resolveOpposing(p, opposite, num("through_overlap"), minWall);
   for (const p of parts) diagnostics.push(...checkOperations(p, minWall));
 
-  return { diagnostics, hardware: [...usage.values()].sort((a, b) => a.item.localeCompare(b.item)) };
+  return { diagnostics, hardware: [...usage.values()].sort((a, b) => a.item.localeCompare(b.item)), handles };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { buildBox } from "./cabinet/box.ts";
-import { machineBox, type HardwareUse } from "./cabinet/machining.ts";
+import { machineBox, type HandlePlacement, type HardwareUse } from "./cabinet/machining.ts";
 import { hasErrors, type Diagnostic } from "./diagnostics.ts";
 import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
@@ -66,6 +66,8 @@ export interface CabinetResult {
   parts: Part[];
   /** Hardware and consumables, aggregated per library item. */
   hardware: HardwareUse[];
+  /** Handles and knobs with their hole positions (cabinet coordinates). */
+  handles: HandlePlacement[];
   diagnostics: Diagnostic[];
 }
 
@@ -95,6 +97,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     const diagnostics = [...resolved.diagnostics];
     let parts: Part[] = [];
     let hardware: HardwareUse[] = [];
+    let handles: HandlePlacement[] = [];
     if (!hasErrors(diagnostics)) {
       const built = buildBox(resolved, library);
       parts = sortParts(built.parts);
@@ -104,9 +107,10 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
         const machined = machineBox(resolved, library, parts, built.layout);
         diagnostics.push(...machined.diagnostics);
         hardware = machined.hardware;
+        handles = machined.handles;
       }
     }
-    cabinets.push({ resolved, parts, hardware, diagnostics });
+    cabinets.push({ resolved, parts, hardware, handles, diagnostics });
   }
   const diagnostics = cabinets.flatMap((c) => c.diagnostics);
   return {

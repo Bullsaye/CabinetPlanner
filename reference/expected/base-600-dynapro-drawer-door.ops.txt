@@ -121,6 +121,10 @@ B01-DO1  Bore       t0    89.5   21.5   0    35  13                      hardwar
 B01-DO1  Bore       t0    441.5  21.5   0    35  13                      hardware:generic-hinge-110
 B01-DL1  Pocket     t1    9.5    11.75  9.5             491 × 8.5 × 6.5  joint:DT1
 B01-DR1  Pocket     t0    9.5    11.75  0               491 × 8.5 × 6.5  joint:DT1
+B01-DI1  Bore       t0    40     25     0    4   16                      joint:DI1-DF1
+B01-DI1  Bore       t0    40     108    0    4   16                      joint:DI1-DF1
+B01-DI1  Bore       t0    480    25     0    4   16                      joint:DI1-DF1
+B01-DI1  Bore       t0    480    108    0    4   16                      joint:DI1-DF1
 B01-DI1  Pocket     t0    0      11.75  0               520 × 8.5 × 6.5  joint:DT1
 B01-DB1  Pocket     t1    0      11.75  9.5             520 × 8.5 × 6.5  joint:DT1
 

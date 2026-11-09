@@ -58,6 +58,22 @@ export function buildDrawer(
   } else {
     axis = Math.max(axis, minAxis);
   }
+  // A system front fixing (hooks) must land on the front: raise the rail to
+  // the next grid line if the lowest hook would come too close to the front's
+  // lower edge.
+  const ff = slide.frontFixing;
+  if (ff) {
+    const lowest = front.y0 + ff.d / 2 + num("bore_min_wall") - ff.fromBox + slide.axisToBox;
+    if (axis < lowest - 1e-9) {
+      if (rc.options.get("system_holes")!.value === "full") {
+        const y0 = num("sys_grid_y0");
+        const pitch = num("sys_pitch");
+        axis = y0 + Math.ceil((lowest - y0) / pitch - 1e-9) * pitch;
+      } else {
+        axis = lowest;
+      }
+    }
+  }
   axis = roundMm(axis);
 
   const LWK = c.W - 2 * c.t;

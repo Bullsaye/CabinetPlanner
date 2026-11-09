@@ -47,6 +47,16 @@ export const SlideData = z.object({
   box: z.enum(["wood", "metal"]),
   /** Metal systems: side heights and matching back panel heights. */
   heights: z.array(z.object({ h: z.number(), back: z.number(), name: z.string().optional() })).default([]),
+  /**
+   * Holes in the back of the drawer front for the system's front fixing
+   * (hooks, holders). Per side: `fromSide` from the carcase side's inner
+   * face line inwards, lowest hole `fromBox` above the box underside, more
+   * holes at `rows` offsets upwards. Without it, wooden drawers use shop
+   * screws through the inner front (option drawer_front.fixing).
+   */
+  frontFixing: z
+    .object({ d: z.number().positive(), depth: z.number().positive(), fromSide: z.number(), fromBox: z.number(), rows: z.array(z.number()).min(1) })
+    .optional(),
 });
 export type SlideData = z.infer<typeof SlideData>;
 

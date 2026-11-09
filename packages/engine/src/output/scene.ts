@@ -1,3 +1,4 @@
+import type { HandlePlacement } from "../cabinet/machining.ts";
 import type { CabinetResult } from "../project.ts";
 import { faceAxes, toCabinet, type Face } from "../ops.ts";
 import { thicknessAxis, type Axis, type Box, type Part, type PartRole } from "../part.ts";
@@ -31,6 +32,7 @@ export interface Scene {
   cabinet: string;
   size: { W: number; H: number; D: number; plinth: number };
   parts: ScenePart[];
+  handles: HandlePlacement[];
 }
 
 function cabinetAxisOf(part: Part, local: "u" | "v" | "w"): Axis {
@@ -46,6 +48,7 @@ export function sceneOf(c: CabinetResult): Scene {
   return {
     cabinet: c.resolved.cabinet.id,
     size: { W: v("W"), H: v("H"), D: v("D"), plinth: v("plinth_h") },
+    handles: c.handles,
     parts: c.parts.map((p) => ({
       id: p.id,
       code: p.code,

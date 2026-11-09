@@ -86,3 +86,50 @@ describe("handles", () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe("drawer front fixing (D26)", () => {
+  it("wooden drawers: four screw holes through the inner front", () => {
+    const r = buildOne({ fronts: [{ type: "drawer", h: 150 }, { type: "door" }] });
+    const di = bores(partsByCode(r).DI1!, "DI1-DF1");
+    expect(di.map((b) => [b.u, b.v, b.d, b.face, b.through])).toEqual([
+      [40, 25, 4, "t0", true],
+      [40, 76, 4, "t0", true],
+      [480, 25, 4, "t0", true],
+      [480, 76, 4, "t0", true],
+    ]);
+    const none = buildOne({ fronts: [{ type: "drawer" }], options: { "drawer_front.fixing": "none" } });
+    expect(bores(partsByCode(none).DI1!, "DI1-DF1")).toEqual([]);
+  });
+
+  it("Nova Pro Scala: two Ø10 × 12 hooks per side, 32 apart, 21.5 from the side line, kept on the front", () => {
+    const r = buildOne({
+      vars: { W: 800 },
+      options: { "hardware.slide": "grass-nova-pro-scala-40" },
+      fronts: [{ type: "drawer", h: 177.75 }, { type: "drawer", h: 177.75 }, { type: "drawer" }],
+    });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    for (const code of ["DF1", "DF2", "DF3"]) {
+      const h = bores(p[code]!, "grass-nova-pro-scala-40:front");
+      expect(h).toHaveLength(4);
+      // Drawer fronts run along the width: u across, v up.
+      expect(new Set(h.map((b) => b.u))).toEqual(new Set([39, 758])); // 19 − 1.5 + 21.5, mirrored
+      const ys = [...new Set(h.map((b) => b.v))].sort((a, b) => a - b);
+      expect(ys[1]! - ys[0]!).toBe(32);
+      expect(ys[0]! - 5).toBeGreaterThanOrEqual(2); // hook clear of the lower edge
+      expect(h.every((b) => b.d === 10 && b.depth === 12 && b.face === "t0")).toBe(true);
+    }
+  });
+});
+
+describe("handle placements for 3D", () => {
+  it("records bars and knobs with their sizes", () => {
+    const r = buildOne({ fronts: [{ type: "drawer", h: 150 }, { type: "door" }], options: { "hardware.handle": "generic-bar-160" } });
+    const hs = r.cabinets[0]!.handles;
+    expect(hs.map((h) => [h.part, h.points.length, h.length])).toEqual([
+      ["C1-DO1", 2, 220],
+      ["C1-DF1", 2, 220],
+    ]);
+    expect(hs[0]!.points.every((pt) => pt.z === 579)).toBe(true); // outer face of the door
+  });
+});

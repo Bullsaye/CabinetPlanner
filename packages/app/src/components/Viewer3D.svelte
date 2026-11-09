@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { sceneOf, type CabinetResult } from "@cabinet-planner/engine";
+  import { sceneOf, type CabinetResult, type HandlePlacement } from "@cabinet-planner/engine";
   import { store } from "../lib/store.svelte.ts";
 
   const t = $derived(store.tr.t);
@@ -96,6 +96,8 @@
             pg.add(m);
           }
         }
+        // Handles and knobs on this front, attached so they follow explode.
+        for (const h of sc.handles.filter((x) => x.part === p.id)) addHandle(pg, h);
         if (store.ui.explode && selected) {
           const off = pg.position.clone().sub(centre);
           const drawerPart = p.role.startsWith("drawer_") && p.role !== "drawer_front";
@@ -110,6 +112,41 @@
     }
     scene.add(root);
     if (!framed) frame();
+  }
+
+  const metal = (): THREE.Material =>
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(css("--part-edge")), metalness: 0.55, roughness: 0.35 });
+
+  /** Bar on two posts, or a knob on one post, standing off the front's outer face. */
+  function addHandle(pg: THREE.Group, h: HandlePlacement): void {
+    const m = metal();
+    const pts = h.points.map((q) => new THREE.Vector3(q.x, q.y, q.z).sub(pg.position));
+    const off = h.standoff ?? 30;
+    const postD = Math.max((h.barD ?? 12) * 0.75, 7);
+    for (const q of pts) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(postD / 2, postD / 2, off, 16), m);
+      post.quaternion.setFromUnitVectors(AX.y, AX.z);
+      post.position.copy(q).add(new THREE.Vector3(0, 0, off / 2));
+      pg.add(post);
+    }
+    if (pts.length >= 2) {
+      const a = pts[0]!;
+      const b = pts[pts.length - 1]!;
+      const dir = b.clone().sub(a);
+      const cc = dir.length();
+      const len = Math.max(h.length ?? cc + 40, cc);
+      const d = h.barD ?? 12;
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(d / 2, d / 2, len, 20), m);
+      bar.quaternion.setFromUnitVectors(AX.y, dir.normalize());
+      bar.position.copy(a.clone().add(b).multiplyScalar(0.5)).add(new THREE.Vector3(0, 0, off));
+      pg.add(bar);
+    } else if (pts.length === 1) {
+      const r = (h.size ?? 30) / 2;
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), m);
+      knob.scale.set(1, 1, 0.7);
+      knob.position.copy(pts[0]!).add(new THREE.Vector3(0, 0, off + r * 0.5));
+      pg.add(knob);
+    }
   }
 
   function frame(): void {

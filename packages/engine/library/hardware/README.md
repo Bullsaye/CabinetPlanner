@@ -27,6 +27,6 @@ Rules (DECISIONS.md D15, D18):
 | grass-tiomos-110-k3-screw | Grass | F028138520 (cranking 3) + plate F058139756 (H0, Euro screws) |
 | generic-undermount | – | Generic concealed slide, wooden drawer, factory default |
 | grass-dynapro-40 | Grass | Dynapro EB 21 40 kg, wooden drawer |
-| grass-nova-pro-scala-40 | Grass | Nova Pro Scala 40 kg, metal sides (front hooks not drilled yet) |
+| grass-nova-pro-scala-40 | Grass | Nova Pro Scala 40 kg, metal sides, front hooks Ø10 × 12 |
 | generic-bar-128 / -160 / -192 | – | Bar handles, two through holes Ø5 |
 | generic-knob | – | Knob, one through hole Ø5 |

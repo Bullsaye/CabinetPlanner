@@ -135,8 +135,20 @@ B01-DL3  Pocket     t1    9.5    11.75  9.5            471 × 8.5 × 6.5  joint:
 B01-DR1  Pocket     t0    9.5    11.75  0              471 × 8.5 × 6.5  joint:DT1
 B01-DR2  Pocket     t0    9.5    11.75  0              471 × 8.5 × 6.5  joint:DT2
 B01-DR3  Pocket     t0    9.5    11.75  0              471 × 8.5 × 6.5  joint:DT3
+B01-DI1  Bore       t0    40     25     0    4  16                      joint:DI1-DF1
+B01-DI1  Bore       t0    40     76     0    4  16                      joint:DI1-DF1
+B01-DI1  Bore       t0    480    25     0    4  16                      joint:DI1-DF1
+B01-DI1  Bore       t0    480    76     0    4  16                      joint:DI1-DF1
 B01-DI1  Pocket     t0    0      11.75  0              520 × 8.5 × 6.5  joint:DT1
+B01-DI2  Bore       t0    40     25     0    4  16                      joint:DI2-DF2
+B01-DI2  Bore       t0    40     83     0    4  16                      joint:DI2-DF2
+B01-DI2  Bore       t0    480    25     0    4  16                      joint:DI2-DF2
+B01-DI2  Bore       t0    480    83     0    4  16                      joint:DI2-DF2
 B01-DI2  Pocket     t0    0      11.75  0              520 × 8.5 × 6.5  joint:DT2
+B01-DI3  Bore       t0    40     25     0    4  16                      joint:DI3-DF3
+B01-DI3  Bore       t0    40     282    0    4  16                      joint:DI3-DF3
+B01-DI3  Bore       t0    480    25     0    4  16                      joint:DI3-DF3
+B01-DI3  Bore       t0    480    282    0    4  16                      joint:DI3-DF3
 B01-DI3  Pocket     t0    0      11.75  0              520 × 8.5 × 6.5  joint:DT3
 B01-DB1  Pocket     t1    0      11.75  9.5            520 × 8.5 × 6.5  joint:DT1
 B01-DB2  Pocket     t1    0      11.75  9.5            520 × 8.5 × 6.5  joint:DT2

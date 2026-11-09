@@ -111,6 +111,9 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "drawer_axis_offset", group: "drawers", unit: "mm", factory: 25, min: 0, max: 300, step: 1 }),
   v({ name: "drawer_bottom_offset", group: "drawers", unit: "mm", factory: 12, min: 0, max: 60 }),
   v({ name: "drawer_bottom_groove", group: "drawers", unit: "mm", factory: 6, min: 0, max: 15 }),
+  v({ name: "front_screw_d", group: "drawers", unit: "mm", factory: 4, min: 2, max: 10, step: 0.5 }),
+  v({ name: "front_screw_side", group: "drawers", unit: "mm", factory: 40, min: 10, max: 300 }),
+  v({ name: "front_screw_edge", group: "drawers", unit: "mm", factory: 25, min: 8, max: 200 }),
 
   // Machining limits.
   v({ name: "bore_min_wall", group: "machining", unit: "mm", factory: 2, min: 0, max: 20, step: 0.5 }),
@@ -189,6 +192,8 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "hardware.handle", group: "hardware", kind: { type: "hardware", category: "handle", nullable: true }, factory: null },
   { key: "handle.door", group: "hardware", kind: { type: "enum", values: ["vertical", "horizontal"] }, factory: "vertical" },
   { key: "handle.drawer", group: "hardware", kind: { type: "enum", values: ["center", "top"] }, factory: "center" },
+  /** Wooden drawers without a system front fixing: screws through the inner front, or nothing drilled. */
+  { key: "drawer_front.fixing", group: "drawers", kind: { type: "enum", values: ["screws", "none"] }, factory: "screws" },
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },

@@ -12,7 +12,10 @@
   "source": "Generic handle: M4 screws through the front; hole spacing (cc) as named. Replace with the handle you use.",
   "params": {
     "cc": 192,
-    "hole_d": 5
+    "hole_d": 5,
+    "length": 252,
+    "bar_d": 12,
+    "standoff": 32
   },
   "drilling": [],
   "bom": {

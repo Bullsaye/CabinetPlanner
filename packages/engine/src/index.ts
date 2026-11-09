@@ -13,7 +13,7 @@ export * from "./presets.ts";
 export * from "./part.ts";
 export * from "./project.ts";
 export { buildBox, gridPositions, layoutFronts, type BoxLayout, type PlacedFront } from "./cabinet/box.ts";
-export { machineBox, dowelPositions, type HardwareUse } from "./cabinet/machining.ts";
+export { machineBox, dowelPositions, type HandlePlacement, type HardwareUse } from "./cabinet/machining.ts";
 export * from "./ops.ts";
 export * from "./text.ts";
 export { HardwareItem, DrillOp } from "./hardware/schema.ts";

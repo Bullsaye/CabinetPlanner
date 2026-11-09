@@ -287,3 +287,20 @@ Two shop settings, because they are used for different things:
   `handle_end_offset` from the top (wall units: from the bottom),
   vertical or horizontal (`handle.door`); drawer fronts centred or
   `handle_drawer_top` below the top (`handle.drawer`). Default: no handle.
+
+### D26 · 2026-11-09 · Drawer front fixing; handle placements
+
+- Slide items may carry `frontFixing` (holes in the back of the drawer
+  front: Ø, depth, distance from the carcase side's inner face line, lowest
+  hole above the box underside, row offsets). Nova Pro Scala: 2 × Ø10 × 12
+  per side, 32 apart, 21.5 from the side line, lowest 40.5 above the slide
+  underside (read from the catalogue drawing; check on a first part).
+  The rail line is raised to the next grid line if the lowest hook would
+  come closer than Ø/2 + bore_min_wall to the front's lower edge.
+- Wooden drawers without a system fixing: `drawer_front.fixing` = screws
+  (default) drills four Ø`front_screw_d` holes through the inner front,
+  `front_screw_side` from its ends and `front_screw_edge` from top and
+  bottom; `none` drills nothing.
+- Machining records each handle/knob placement (hole positions on the outer
+  face, plus display sizes from the item: length, bar Ø, knob size,
+  standoff) for 3D and later drawings.
