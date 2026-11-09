@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 600, three drawers, generic slide",
+  "cabinets": [
+    {
+      "id": "B01",
+      "type": "box",
+      "presets": [
+        "base-unit"
+      ],
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "drawer"
+        }
+      ]
+    }
+  ]
+}

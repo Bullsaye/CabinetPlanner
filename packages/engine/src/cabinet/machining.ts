@@ -155,6 +155,42 @@ export function machineBox(
     }
   }
 
+  // --- Drawer slides ------------------------------------------------------------------
+  for (const [i, d] of layout.drawers.entries()) {
+    const item = library.hardware.get(d.slide)!;
+    const sd = item.slide!;
+    if (i === 0) {
+      const ctx = new Map(rc.values);
+      ctx.set("LWK", W - 2 * t);
+      ctx.set("NL", d.nl);
+      diagnostics.push(...checkLimits(item, evaluateItemParams(item, ctx, at).values, at));
+    }
+    const fix = sd.fixings.find((f) => d.nl <= f.upTo) ?? sd.fixings[sd.fixings.length - 1]!;
+    const source: OpSource = { kind: "hardware", ref: item.id };
+    for (const [code, x, dir] of [
+      ["SL", t, "-x"],
+      ["SR", W - t, "+x"],
+    ] as const) {
+      const side = byCode.get(code);
+      if (!side) continue;
+      for (const a of fix.at) {
+        addBore(side, { x, y: d.axisY, z: D - sd.firstFixing - a }, dir, num("sys_hole_d"), num("sys_hole_depth"), source);
+      }
+    }
+    use(item, 1);
+
+    // Wooden box: the bottom sits in a groove in sides, inner front and back.
+    const bottom = byCode.get(`DT${d.index}`);
+    if (d.box === "wood" && bottom) {
+      const b = bottom.box;
+      const region = { x0: b.x - 0.5, x1: b.x + b.dx + 0.5, y0: b.y - 0.25, y1: b.y + b.dy + 0.25, z0: b.z - 0.5, z1: b.z + b.dz + 0.5 };
+      for (const c of ["DL", "DR", "DI", "DB"]) {
+        const p = byCode.get(`${c}${d.index}`);
+        if (p) addPocketFromBox(p, region, { kind: "joint", ref: `DT${d.index}` });
+      }
+    }
+  }
+
   // --- Shelf supports ----------------------------------------------------------------
   const supportId = opt<string | null>("hardware.shelf_support");
   const shelves = parts.filter((p) => p.role === "shelf").length;

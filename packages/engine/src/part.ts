@@ -15,7 +15,13 @@ export type PartRole =
   | "rail_rear"
   | "back"
   | "shelf"
-  | "door";
+  | "door"
+  | "drawer_front"
+  | "drawer_side_left"
+  | "drawer_side_right"
+  | "drawer_inner"
+  | "drawer_back"
+  | "drawer_bottom";
 
 /**
  * Part codes are fixed per role (plus a 1-based index for repeated roles),
@@ -32,6 +38,12 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   back: "BK",
   shelf: "SH",
   door: "DO",
+  drawer_front: "DF",
+  drawer_side_left: "DL",
+  drawer_side_right: "DR",
+  drawer_inner: "DI",
+  drawer_back: "DB",
+  drawer_bottom: "DT",
 };
 
 /** Stable sort order of roles in lists. */
@@ -45,6 +57,12 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "back",
   "shelf",
   "door",
+  "drawer_front",
+  "drawer_side_left",
+  "drawer_side_right",
+  "drawer_inner",
+  "drawer_back",
+  "drawer_bottom",
 ];
 
 export type Axis = "x" | "y" | "z";

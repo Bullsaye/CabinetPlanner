@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "grass-dynapro-40",
+  "name": { "en": "Grass Dynapro soft-close, full extension, 40 kg (wooden drawers)", "de": "Grass Dynapro Soft-close, Vollauszug, 40 kg (Holzschubkästen)" },
+  "category": "slide",
+  "manufacturer": "Grass",
+  "series": "Dynapro EB 21",
+  "articles": [
+    { "code": "F130107820", "note": "40 kg set L+R, NL 500" },
+    { "code": "F130107829", "note": "40 kg set L+R, NL 600" }
+  ],
+  "trust": "untested",
+  "source": "Grass Movement Systems catalogue 2026/27, mediacenter.grass.eu/Katalog/EN/434–436, 456: LWS = LWK − 42 (+0/−1.5), SKL = NL − 10, MET = NL + 3 (overlay), rail fixings from 37 mm, screw axis ≥ 38 above the carcase bottom, 10 above the drawer bottom underside, drawer sides 10–16 mm. Article numbers for other lengths: catalogue p. 434.",
+  "params": { "inner_w": "LWK - 42", "length": "NL - 10" },
+  "slide": {
+    "lengths": [250, 270, 300, 320, 350, 380, 400, 420, 450, 480, 500, 520, 550, 600],
+    "depthExtra": 3,
+    "firstFixing": 37,
+    "fixings": [
+      { "upTo": 320, "at": [0, 32, 128, 160] },
+      { "upTo": 450, "at": [0, 32, 192, 224] },
+      { "upTo": 520, "at": [0, 32, 256, 288] },
+      { "upTo": 550, "at": [0, 32, 224, 288, 352] },
+      { "upTo": 600, "at": [0, 32, 224, 352, 384] }
+    ],
+    "axisMin": 38,
+    "axisToBox": 10,
+    "box": "wood"
+  },
+  "limits": [
+    { "name": "drawer_side_t", "value": "drawer_side_t", "min": 10, "max": 16 },
+    { "name": "drawer_inner_w", "value": "LWK - 42", "min": 180 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "set" }
+}

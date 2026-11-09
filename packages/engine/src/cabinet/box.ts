@@ -12,6 +12,9 @@ import {
   type PartRole,
 } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
+import type { FrontZone } from "../schema.ts";
+import { evaluateGraph } from "../graph.ts";
+import { buildDrawer } from "./drawer.ts";
 
 /**
  * Rule for the parametric box cabinet: two sides, bottom, top (full panel or
@@ -32,6 +35,65 @@ export interface BoxLayout {
   innerTopY: number;
   /** Doors with the side their hinges are on. */
   doors: { code: string; hinge: "left" | "right" }[];
+  /** Drawers: slide item, nominal length and rail screw axis height. */
+  drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal" }[];
+}
+
+export interface PlacedFront {
+  type: "drawer" | "door";
+  doors: number;
+  /** Front bottom and top edge (cabinet Y). */
+  y0: number;
+  y1: number;
+}
+
+/**
+ * Lays out the front stack top to bottom: fronts with a height keep it,
+ * the others share what is left after the gaps.
+ */
+export function layoutFronts(
+  zones: readonly FrontZone[],
+  H: number,
+  gaps: { top: number; bottom: number; between: number },
+  doorCount: number,
+  values: ReadonlyMap<string, number>,
+  at: { cabinet: string },
+): { fronts: PlacedFront[]; diagnostics: Diagnostic[] } {
+  const diagnostics: Diagnostic[] = [];
+  if (zones.length === 0) return { fronts: [], diagnostics };
+  const available = H - gaps.top - gaps.bottom - gaps.between * (zones.length - 1);
+  const heights: (number | undefined)[] = zones.map((z, i) => {
+    if (z.h === undefined) return undefined;
+    const r = evaluateGraph(new Map([["__h", z.h]]), values);
+    const v = r.values.get("__h");
+    if (v === undefined || r.diagnostics.length) {
+      diagnostics.push({ severity: "error", code: "front_height_invalid", params: { index: i + 1, expr: String(z.h) }, ...at });
+      return 0;
+    }
+    return v;
+  });
+  const fixed = heights.reduce<number>((a, h) => a + (h ?? 0), 0);
+  const rest = heights.filter((h) => h === undefined).length;
+  const restH = rest ? (available - fixed) / rest : 0;
+  if (rest === 0 && Math.abs(fixed - available) > 0.01) {
+    diagnostics.push({
+      severity: "error",
+      code: "fronts_sum_mismatch",
+      params: { sum: roundMm(fixed), available: roundMm(available) },
+      ...at,
+    });
+  }
+  const fronts: PlacedFront[] = [];
+  let top = H - gaps.top;
+  zones.forEach((z, i) => {
+    const h = heights[i] ?? restH;
+    if (h <= 0) {
+      diagnostics.push({ severity: "error", code: "fronts_too_high", params: { index: i + 1, available: roundMm(available) }, ...at });
+    }
+    fronts.push({ type: z.type, doors: z.doors ?? Math.max(1, doorCount), y0: roundMm(top - h), y1: roundMm(top) });
+    top = top - h - gaps.between;
+  });
+  return { fronts, diagnostics };
 }
 
 /** System-hole Y positions on the grid inside [lo, hi]. */
@@ -41,6 +103,16 @@ export function gridPositions(y0: number, pitch: number, lo: number, hi: number)
   for (let y = y0 + k * pitch; y <= hi + 1e-9; y = y0 + ++k * pitch) out.push(roundMm(y));
   return out;
 }
+
+export type AddPart = (
+  role: PartRole,
+  index: number | undefined,
+  box: Box,
+  lengthAxis: Axis,
+  widthAxis: Axis,
+  materialKey: string,
+  edges: PartEdges,
+) => void;
 
 export function buildBox(
   rc: ResolvedCabinet,
@@ -95,7 +167,7 @@ export function buildBox(
 
   const parts: Part[] = [];
   const doors: BoxLayout["doors"] = [];
-  const add = (
+  const add: AddPart = (
     role: PartRole,
     index: number | undefined,
     box: Box,
@@ -229,14 +301,37 @@ export function buildBox(
     add("back", undefined, box, "y", "x", "material.back", none);
   }
 
+  // --- Front stack -----------------------------------------------------------
+  const fz = layoutFronts(
+    rc.cabinet.fronts ?? (num("door_count") > 0 ? [{ type: "door" as const }] : []),
+    H,
+    { top: num("front_gap_top"), bottom: num("front_gap_bottom"), between: num("front_gap") },
+    num("door_count"),
+    rc.values,
+    { cabinet: cab },
+  );
+  diagnostics.push(...fz.diagnostics);
+  const fronts = fz.fronts;
+
+  // Shelves live in the tallest door zone; without fronts, in the whole interior.
+  const doorZones = fronts.filter((f) => f.type === "door").sort((a, b) => b.y1 - b.y0 - (a.y1 - a.y0));
+  const shelfRange: [number, number] | undefined =
+    fronts.length === 0
+      ? [t, H - t]
+      : doorZones[0]
+        ? [Math.max(t, doorZones[0].y0), Math.min(H - t, doorZones[0].y1)]
+        : undefined;
+
   // --- Adjustable shelves ----------------------------------------------------
   const shelfCount = num("shelf_count");
-  if (shelfCount > 0) {
+  if (shelfCount > 0 && !shelfRange && rc.vars.get("shelf_count")?.source.layer === "cabinet" && !rc.vars.get("shelf_count")?.source.preset) {
+    diagnostics.push({ severity: "warning", code: "shelves_no_door_zone", params: { count: shelfCount }, cabinet: cab });
+  }
+  if (shelfCount > 0 && shelfRange) {
     const gap = num("shelf_gap");
     const zStart = backFrontZ + num("shelf_back_gap");
     const zEnd = D - num("shelf_front_setback");
-    const innerBottom = t;
-    const innerTop = H - t;
+    const [innerBottom, innerTop] = shelfRange;
     const pitch = (innerTop - innerBottom) / (shelfCount + 1);
     // With system holes, shelves rest on pins in the nearest hole row so the
     // view shows a real position; height does not change the cutlist.
@@ -263,21 +358,33 @@ export function buildBox(
     }
   }
 
-  // --- Doors (full overlay) --------------------------------------------------
-  const doorCount = num("door_count");
-  if (doorCount > 0) {
+  // --- Fronts: doors and drawer fronts (full overlay) ---------------------------
+  const drawers: BoxLayout["drawers"] = [];
+  {
     const gs = num("front_gap_side");
-    const gt = num("front_gap_top");
-    const gb = num("front_gap_bottom");
     const gap = num("front_gap");
-    const doorW = (W - 2 * gs - (doorCount - 1) * gap) / doorCount;
     const all: PartEdges = { l1: edgeFront, l2: edgeFront, w1: edgeFront, w2: edgeFront };
-    for (let i = 1; i <= doorCount; i++) {
-      const x = gs + (i - 1) * (doorW + gap);
-      add("door", i, { x, y: gb, z: D, dx: doorW, dy: H - gt - gb, dz: tFront }, "y", "x", "material.front", all);
-      // One door: hinge side from the option. Two doors: hinged outwards.
-      const hinge = doorCount === 1 ? opt<"left" | "right">("door_hinge_side") : i === 1 ? "left" : "right";
-      doors.push({ code: `${ROLE_CODES.door}${i}`, hinge });
+    let doorNo = 0;
+    let drawerNo = 0;
+    for (const f of fronts) {
+      const h = f.y1 - f.y0;
+      if (f.type === "door") {
+        const n = f.doors;
+        const doorW = (W - 2 * gs - (n - 1) * gap) / n;
+        for (let i = 1; i <= n; i++) {
+          doorNo++;
+          const x = gs + (i - 1) * (doorW + gap);
+          add("door", doorNo, { x, y: f.y0, z: D, dx: doorW, dy: h, dz: tFront }, "y", "x", "material.front", all);
+          // One door: hinge side from the option. Two doors: hinged outwards.
+          const hinge = n === 1 ? opt<"left" | "right">("door_hinge_side") : i === 1 ? "left" : "right";
+          doors.push({ code: `${ROLE_CODES.door}${doorNo}`, hinge });
+        }
+      } else {
+        drawerNo++;
+        add("drawer_front", drawerNo, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "x", "y", "material.front", all);
+        const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ }, add, diagnostics);
+        if (d) drawers.push(d);
+      }
     }
   }
 
@@ -292,6 +399,6 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors },
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers },
   };
 }

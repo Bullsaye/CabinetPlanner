@@ -16,6 +16,7 @@ export type VarGroup =
   | "shelves"
   | "fronts"
   | "hardware"
+  | "drawers"
   | "machining";
 export type VarUnit = "mm" | "count";
 
@@ -97,6 +98,15 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "hinge_end_offset", group: "hardware", unit: "mm", factory: 80, min: 20, max: 500, step: 5, quick: true }),
   v({ name: "hinge_count", group: "hardware", unit: "count", factory: 0, min: 0, max: 8, integer: true, step: 1 }),
 
+  // Drawers (shop preferences; product data comes from the slide item).
+  v({ name: "drawer_side_t", group: "drawers", unit: "mm", factory: "mat_drawer_t", min: 8, max: 25 }),
+  v({ name: "drawer_bottom_t", group: "drawers", unit: "mm", factory: "mat_drawer_bottom_t", min: 3, max: 25 }),
+  v({ name: "drawer_clearance", group: "drawers", unit: "mm", factory: 40, min: 0, max: 200, step: 5 }),
+  v({ name: "drawer_setback", group: "drawers", unit: "mm", factory: 3, min: 0, max: 100 }),
+  v({ name: "drawer_axis_offset", group: "drawers", unit: "mm", factory: 25, min: 0, max: 300, step: 1 }),
+  v({ name: "drawer_bottom_offset", group: "drawers", unit: "mm", factory: 12, min: 0, max: 60 }),
+  v({ name: "drawer_bottom_groove", group: "drawers", unit: "mm", factory: 6, min: 0, max: 15 }),
+
   // Machining limits.
   v({ name: "bore_min_wall", group: "machining", unit: "mm", factory: 2, min: 0, max: 20, step: 0.5 }),
   v({ name: "through_overlap", group: "machining", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
@@ -110,6 +120,8 @@ export const MATERIAL_CONSTANTS = {
   mat_back_t: "material.back",
   mat_shelf_t: "material.shelf",
   mat_front_t: "material.front",
+  mat_drawer_t: "material.drawer",
+  mat_drawer_bottom_t: "material.drawer_bottom",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -169,14 +181,18 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["both_sides", "through", "error"] },
     factory: "both_sides",
   },
+  { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   { key: "door_hinge_side", group: "fronts", kind: { type: "enum", values: ["left", "right"] }, factory: "left" },
   { key: "material.carcase", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.back", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "material.shelf", group: "materials", kind: { type: "material" }, factory: "mel-white-19" },
   { key: "material.front", group: "materials", kind: { type: "material" }, factory: "mdf-lacquer-19" },
+  { key: "material.drawer", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
+  { key: "material.drawer_bottom", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
   { key: "edge.carcase", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
   { key: "edge.shelf", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
   { key: "edge.front", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
+  { key: "edge.drawer", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
   /** Subtract edgeband thickness from finished size to get the cut size. */
   { key: "edge.deduct", group: "edges", kind: { type: "boolean" }, factory: true },
 ];

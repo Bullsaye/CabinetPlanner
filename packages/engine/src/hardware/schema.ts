@@ -26,6 +26,30 @@ export const DrillOp = z.object({
 });
 export type DrillOp = z.infer<typeof DrillOp>;
 
+/**
+ * Drawer slide product data (category "slide"). Positions in mm.
+ * - lengths: available nominal lengths (NL); the longest that fits wins.
+ * - depthExtra: clear inside depth needed beyond NL (e.g. NL + 3).
+ * - fixings: rail screw positions on the carcase side, measured backwards
+ *   from the first fixing (`firstFixing` from the front edge), chosen by NL.
+ * - axisMin: lowest rail screw axis above the carcase bottom's top face.
+ * - axisToBox: rail screw axis above the drawer box underside.
+ * - box: "wood" (drawer built from board; params inner_w, length) or
+ *   "metal" (metal sides; params bottom_w, bottom_l, back_w and `heights`).
+ */
+export const SlideData = z.object({
+  lengths: z.array(z.number().positive()).min(1),
+  depthExtra: z.number().default(3),
+  firstFixing: z.number().default(37),
+  fixings: z.array(z.object({ upTo: z.number(), at: z.array(z.number()) })).min(1),
+  axisMin: z.number().default(38),
+  axisToBox: z.number().default(10),
+  box: z.enum(["wood", "metal"]),
+  /** Metal systems: side heights and matching back panel heights. */
+  heights: z.array(z.object({ h: z.number(), back: z.number(), name: z.string().optional() })).default([]),
+});
+export type SlideData = z.infer<typeof SlideData>;
+
 export const HardwareItem = z.object({
   schemaVersion: z.literal(1).default(1),
   id: z.string().min(1),
@@ -45,6 +69,7 @@ export const HardwareItem = z.object({
   /** Item parameters; may reference cabinet variables and placement context. */
   params: z.record(identifier, VarInput).default({}),
   drilling: z.array(DrillOp).default([]),
+  slide: SlideData.optional(),
   /**
    * Ranges the manufacturer allows, checked per placement, e.g. the cup
    * boring distance a hinge can take or the door thickness. Outside → error.

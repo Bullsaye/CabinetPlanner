@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 600, Grass Dynapro drawer over a door",
+  "cabinets": [
+    {
+      "id": "B01",
+      "type": "box",
+      "presets": [
+        "base-unit"
+      ],
+      "options": {
+        "hardware.slide": "grass-dynapro-40"
+      },
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": 180
+        },
+        {
+          "type": "door"
+        }
+      ]
+    }
+  ]
+}

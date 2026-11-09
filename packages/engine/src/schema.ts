@@ -47,6 +47,18 @@ export const PartOverride = z.object({
 });
 export type PartOverride = z.infer<typeof PartOverride>;
 
+/**
+ * One front of the stack, listed top to bottom. `h` is the front height
+ * (number or formula); fronts without `h` share the remaining height.
+ */
+export const FrontZone = z.object({
+  type: z.enum(["drawer", "door"]),
+  h: VarInputSchema.optional(),
+  /** Door zones: 1 or 2 doors side by side (default: door_count). */
+  doors: z.number().int().min(1).max(2).optional(),
+});
+export type FrontZone = z.infer<typeof FrontZone>;
+
 export const CabinetSchema = z.object({
   /** Short id used in part numbers, e.g. "B01". Must stay stable. */
   id: z.string().regex(/^[A-Za-z0-9]{1,8}$/, "1–8 letters or digits"),
@@ -55,6 +67,8 @@ export const CabinetSchema = z.object({
   kind: z.enum(["base", "wall", "tall"]).default("base"),
   name: z.string().optional(),
   ...layerFields,
+  /** Front stack, top to bottom. Without it the cabinet has one door zone (door_count doors). */
+  fronts: z.array(FrontZone).max(12).optional(),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
 });

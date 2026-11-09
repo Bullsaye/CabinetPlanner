@@ -33,6 +33,31 @@
       ]
     },
     {
+      "id": "B03",
+      "type": "box",
+      "kind": "base",
+      "name": "Base 600, three drawers",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600
+      },
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "drawer"
+        }
+      ]
+    },
+    {
       "id": "W01",
       "type": "box",
       "name": "Wall 800, two doors",

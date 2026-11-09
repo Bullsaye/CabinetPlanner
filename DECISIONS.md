@@ -246,3 +246,28 @@ Two shop settings, because they are used for different things:
   deep (`through_overlap` default 1 mm). The halves are marked `split`, a
   through bore `through`; drawings say "through" or "from both faces", and
   a part with split holes gets a sheet per side (D22).
+
+### D24 · 2026-11-09 · Front stack and drawers
+
+- A cabinet may list its fronts top to bottom (`fronts`): drawers and door
+  zones, each with a height (number or formula) or none to share the rest.
+  Without a list the cabinet has one door zone over the full height, as
+  before. Shelves go into the tallest door zone.
+- Drawer slides are hardware items with `slide` product data: available
+  nominal lengths, depth allowance, rail fixing pattern per length (from
+  the first fixing, 37 mm), minimum rail height, rail-to-box offset, box
+  type (wood or metal sides), and formulas for box sizes (`inner_w`,
+  `length` or `bottom_w`, `bottom_l`, `back_w`) over `LWK` (carcase inner
+  width) and `NL`.
+- NL: the longest length with NL + depthExtra ≤ clear inside depth (back
+  panel front face to carcase front edge).
+- Rail screw axis: `drawer_axis_offset` above the front's lower edge, moved
+  down to a system-grid line, never below the slide's `axisMin` above the
+  carcase bottom. Rail holes use the system hole Ø and depth.
+- Box: underside = axis − axisToBox; top at most `drawer_clearance` below
+  the front's top edge and inside the carcase. Wooden boxes: sides full
+  length, inner front and back between them, bottom in a groove
+  (`drawer_bottom_offset`, `drawer_bottom_groove`). Metal systems: bottom
+  and back only, side height = the largest the slide offers that fits.
+- Not yet: drawer front fixing drilling (front hooks/holders), back notches
+  and rear hook holes — the catalogue data is incomplete for them.

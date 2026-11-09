@@ -73,7 +73,8 @@
       "hinge_end_offset": 80
     },
     "options": {
-      "hardware.hinge": "grass-tiomos-110-screw"
+      "hardware.hinge": "grass-tiomos-110-screw",
+      "hardware.slide": "grass-dynapro-40"
     }
   }
 }

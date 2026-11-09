@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-undermount",
+  "name": { "en": "Concealed full-extension slide for wooden drawers (generic)", "de": "Verdeckter Vollauszug für Holzschubkästen (generisch)" },
+  "category": "slide",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Typical values for a concealed full-extension slide (drawer inner width = carcase inner width − 42, drawer length = NL − 10, inside depth NL + 3). Replace with the slide you use.",
+  "params": { "inner_w": "LWK - 42", "length": "NL - 10" },
+  "slide": {
+    "lengths": [250, 300, 350, 400, 450, 500, 550, 600],
+    "depthExtra": 3,
+    "firstFixing": 37,
+    "fixings": [
+      { "upTo": 320, "at": [0, 32, 128, 160] },
+      { "upTo": 450, "at": [0, 32, 192, 224] },
+      { "upTo": 9999, "at": [0, 32, 256, 288] }
+    ],
+    "axisMin": 38,
+    "axisToBox": 10,
+    "box": "wood"
+  },
+  "limits": [{ "name": "drawer_side_t", "value": "drawer_side_t", "max": 16 }],
+  "bom": { "perPlacement": 1, "unit": "set" }
+}

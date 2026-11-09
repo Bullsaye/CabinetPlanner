@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "Base 800, Grass Nova Pro Scala, three drawers",
+  "cabinets": [
+    {
+      "id": "B01",
+      "type": "box",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 800
+      },
+      "options": {
+        "hardware.slide": "grass-nova-pro-scala-40"
+      },
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": "(H - 3 * front_gap) / 4"
+        },
+        {
+          "type": "drawer",
+          "h": "(H - 3 * front_gap) / 4"
+        },
+        {
+          "type": "drawer"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "grass-nova-pro-scala-40",
+  "name": { "en": "Grass Nova Pro Scala, double-wall drawer, 40 kg", "de": "Grass Nova Pro Scala, doppelwandige Zarge, 40 kg" },
+  "category": "slide",
+  "manufacturer": "Grass",
+  "series": "Nova Pro Scala, slide S16/S19",
+  "articles": [
+    { "code": "F101108276", "note": "slide 40 kg S16/S19, NL 500" },
+    { "code": "F100103123", "note": "drawer sides H90 Stone, NL 500" }
+  ],
+  "trust": "untested",
+  "source": "Grass Movement Systems catalogue 2026/27, mediacenter.grass.eu/Katalog/EN/29–45: BB = LWK − 2 × 29, RWB = BB, BL = NL − 19 (16 mm), MET = NL + 3, back heights per side height, rail fixings from 37 mm, screw axis 42.5 above the slide underside, ≥ 49.5 above the carcase bottom, min. LWK 261. Front hooks (Ø10 × 12) are not drilled yet.",
+  "params": { "bottom_w": "LWK - 2 * 29", "bottom_l": "NL - 19", "back_w": "LWK - 2 * 29" },
+  "slide": {
+    "lengths": [270, 300, 350, 400, 450, 500, 550, 600],
+    "depthExtra": 3,
+    "firstFixing": 37,
+    "fixings": [
+      { "upTo": 270, "at": [0, 32, 160, 192] },
+      { "upTo": 400, "at": [0, 32, 224, 256] },
+      { "upTo": 600, "at": [0, 32, 288, 320] }
+    ],
+    "axisMin": 49.5,
+    "axisToBox": 42.5,
+    "box": "metal",
+    "heights": [
+      { "h": 63, "back": 57, "name": "H63" },
+      { "h": 90, "back": 84, "name": "H90" },
+      { "h": 122, "back": 116, "name": "H122" },
+      { "h": 186, "back": 185, "name": "H186" },
+      { "h": 250, "back": 249, "name": "H250" }
+    ]
+  },
+  "limits": [{ "name": "LWK", "value": "LWK", "min": 261 }],
+  "bom": { "perPlacement": 1, "unit": "set" }
+}

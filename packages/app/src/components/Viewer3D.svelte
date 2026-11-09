@@ -65,12 +65,13 @@
       const selected = store.ui.selected === id;
       const centre = new THREE.Vector3(sc.size.W / 2, sc.size.H / 2, sc.size.D / 2);
       for (const p of sc.parts) {
-        if (p.role === "door" && !store.ui.fronts) continue;
+        const isFront = p.role === "door" || p.role === "drawer_front";
+        if (isFront && !store.ui.fronts) continue;
         const b = p.box;
         const pg = new THREE.Group();
         const isPart = store.ui.part === p.id;
         const base =
-          p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : p.role === "door" ? partColor.clone().lerp(accent, 0.12) : partColor;
+          p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : isFront ? partColor.clone().lerp(accent, 0.12) : partColor;
         const color = isPart ? partColor.clone().lerp(accent, 0.45) : selected ? base.clone().lerp(accent, 0.1) : base;
         const geo = new THREE.BoxGeometry(b.dx, b.dy, b.dz);
         const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color, flatShading: true }));
@@ -97,8 +98,10 @@
         }
         if (store.ui.explode && selected) {
           const off = pg.position.clone().sub(centre);
-          const k = p.role === "back" ? 0.9 : p.role === "door" ? 1.4 : 0.45;
-          pg.position.add(new THREE.Vector3(off.x * k, off.y * k * 0.6, off.z * k + (p.role === "back" ? -120 : p.role === "door" ? 160 : 0)));
+          const drawerPart = p.role.startsWith("drawer_") && p.role !== "drawer_front";
+          const k = p.role === "back" ? 0.9 : isFront ? 1.4 : drawerPart ? 0.2 : 0.45;
+          const pull = p.role === "back" ? -120 : isFront ? 260 : drawerPart ? 160 : 0;
+          pg.position.add(new THREE.Vector3(off.x * k, off.y * k * 0.6, off.z * k + pull));
         }
         g.add(pg);
         meshes.push(mesh);

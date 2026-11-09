@@ -41,6 +41,7 @@ export interface Library {
 export const FACTORY_MATERIALS: readonly Material[] = [
   { id: "mel-white-19", name: { en: "Melamine white 19", de: "Melamin weiß 19" }, thickness: 19, grain: false },
   { id: "hdf-white-8", name: { en: "HDF white 8", de: "HDF weiß 8" }, thickness: 8, grain: false },
+  { id: "mel-white-16", name: { en: "Melamine white 16", de: "Melamin weiß 16" }, thickness: 16, grain: false },
   { id: "mdf-lacquer-19", name: { en: "Lacquer MDF 19", de: "MDF lackiert 19" }, thickness: 19, grain: false },
   { id: "oak-veneer-19", name: { en: "Oak veneer 19", de: "Eiche furniert 19" }, thickness: 19, grain: true },
 ];

@@ -8,6 +8,7 @@
     type VarDef,
   } from "@cabinet-planner/engine";
   import { parseInput, setKind, setOption, setVar, store, type Layer } from "../lib/store.svelte.ts";
+  import FrontStack from "./FrontStack.svelte";
 
   const t = $derived(store.tr.t);
   const layer = $derived(store.ui.layer);
@@ -15,7 +16,7 @@
   const res = $derived(store.cabinet?.resolved);
   const lib = $derived(store.result?.library);
 
-  const GROUPS = ["dimensions", "fronts", "shelves", "construction", "back", "board", "system", "hardware", "machining"] as const;
+  const GROUPS = ["dimensions", "fronts", "shelves", "drawers", "construction", "back", "board", "system", "hardware", "machining"] as const;
   const OPEN = new Set(["dimensions", "fronts", "shelves"]);
   const OPTION_GROUP: Record<string, string> = { materials: "materials", edges: "edges" };
 
@@ -82,6 +83,8 @@
       </select>
     </div>
   {/if}
+
+  {#if layer === "cabinet" && store.cabinetDoc}<FrontStack />{/if}
 
   {#if !doc}
     <p class="muted">{t("ui.select_cabinet")}</p>

@@ -78,7 +78,14 @@ function offset(role: PartRole, c: { W: number; H: number; D: number }, e: numbe
     case "shelf":
       return [0, 0, 0.5 * fwd * k];
     case "door":
+    case "drawer_front":
       return [0, -0.08 * c.H * k, 1.25 * fwd * k];
+    case "drawer_side_left":
+    case "drawer_side_right":
+    case "drawer_inner":
+    case "drawer_back":
+    case "drawer_bottom":
+      return [0, 0, 0.8 * fwd * k];
   }
 }
 
@@ -118,7 +125,7 @@ export function drawAssembly(input: AssemblyInput): AssemblyDrawing {
     const x0 = b.x + o[0], y0 = b.y + o[1], z0 = b.z + o[2];
     const x1 = x0 + b.dx, y1 = y0 + b.dy, z1 = z0 + b.dz;
     const pr = (x: number, y: number, z: number): [number, number] => [dot([x, y, z], R), dot([x, y, z], P)];
-    const roleCls = part.role === "door" ? " asm-door" : part.role === "back" ? " asm-back" : "";
+    const roleCls = part.role === "door" || part.role === "drawer_front" ? " asm-door" : part.role === "back" ? " asm-back" : "";
     const quad = (pts: [number, number][], cls: string): Face => {
       let a = 0;
       for (let i = 0; i < pts.length; i++) {

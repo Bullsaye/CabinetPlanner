@@ -21,6 +21,9 @@ each confirmed file in the table below.
 | base-600-surface-back | Surface back, no edge deduction | – |
 | tall-600-sides-between | Sides between, full top, 4 shelves | – |
 | wall-800-two-doors | Full top, 2 doors, shallow depth | – |
+| base-600-drawers-3 | Front stack 150/150/rest, generic slide, wooden boxes | – |
+| base-600-dynapro-drawer-door | Grass Dynapro drawer over a door, shelf in the door zone | – |
+| base-800-novapro-3 | Grass Nova Pro Scala, fronts by formula, metal sides | – |
 
 After an intended rule change: `pnpm test -u`, then review `git diff
 reference/expected` line by line before committing.

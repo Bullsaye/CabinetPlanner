@@ -26,6 +26,12 @@ const Role = z.enum([
   "back",
   "shelf",
   "door",
+  "drawer_front",
+  "drawer_side_left",
+  "drawer_side_right",
+  "drawer_inner",
+  "drawer_back",
+  "drawer_bottom",
 ]);
 
 /** Which features a rule applies to; every given field must match. */
