@@ -152,6 +152,15 @@ describe("upright rails and the interior", () => {
     }
   });
 
+  it("reports shelves that cannot fit instead of stacking them into each other", () => {
+    // 6 shelves of 19 mm in 262 mm with pins on a 32 mm grid: several land on the same holes.
+    const r = buildOne({ vars: { W: 600, H: 300, shelf_count: 6, door_count: 0 }, options: { top: "full" } });
+    expect(errors(r)).toEqual(["shelves_too_close"]);
+    const free = buildOne({ vars: { W: 600, H: 300, shelf_count: 14, door_count: 0 }, options: { top: "full", system_holes: "none" } });
+    expect(errors(free)).toContain("shelves_too_close");
+    expect(errors(buildOne({ vars: { W: 600, H: 300, shelf_count: 3, door_count: 0 }, options: { top: "full" } }))).toEqual([]);
+  });
+
   it("refuses a fixed shelf in the height of an upright rail", () => {
     const r = buildOne({ vars: { W: 600 }, options: upright, fronts: [{ type: "open", h: 60 }, { type: "door" }] });
     expect(errors(r)).toContain("fixed_shelf_outside");

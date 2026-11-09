@@ -593,8 +593,10 @@ export function buildBox(
       opt<string>("system_holes") === "full"
         ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
         : [];
+    let crowded = false;
     for (const [k, [sx0, sx1]] of sections.entries()) {
       if (main && hanging.has(k)) continue;
+      let lastTop = innerBottom;
       for (let i = 1; i <= count; i++) {
         const target = innerBottom + i * pitch - tShelf / 2;
         const rest = num("shelf_pin_rest");
@@ -602,6 +604,12 @@ export function buildBox(
           ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
           : undefined;
         const y = nearest !== undefined ? nearest + rest : target;
+        // More shelves than the zone can take: they would overlap each other or the panels around them.
+        if (!crowded && (y < lastTop - 1e-6 || y + tShelf > innerTop + 1e-6)) {
+          crowded = true;
+          diagnostics.push({ severity: "error", code: "shelves_too_close", params: { count, space: roundMm(innerTop - innerBottom) }, cabinet: cab });
+        }
+        lastTop = y + tShelf;
         add(
           "shelf",
           ++shelfNo,

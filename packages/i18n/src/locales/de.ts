@@ -330,6 +330,7 @@ export const de: Record<MessageKey, string> = {
   "diag.front_height_invalid": "Front {index}: Höhe „{expr}“ ist ungültig.",
   "diag.fronts_sum_mismatch": "Die Fronthöhen ergeben {sum} mm, verfügbar sind {available} mm. Eine Höhe leer lassen, um den Rest zu füllen.",
   "diag.fronts_too_high": "Für Front {index} ist kein Platz mehr; für alle Fronten stehen {available} mm zur Verfügung.",
+  "diag.shelves_too_close": "{count} Fachböden passen nicht in {space} mm lichte Höhe: Sie würden sich überschneiden.",
   "diag.shelves_no_door_zone": "{count} Fachböden gesetzt, aber der Schrank hat keinen Türbereich dafür.",
   "diag.slide_no_length": "{item}: der Schrank ist für jeden Auszug zu flach ({depth} mm innen, {min} mm nötig).",
   "diag.drawer_too_low": "Schubkasten {index}: die Blende ({front} mm) ist für einen Kasten mit {clearance} mm Abstand zu niedrig.",

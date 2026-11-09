@@ -350,6 +350,7 @@ export const en = {
   "diag.front_height_invalid": "Front {index}: height “{expr}” is not valid.",
   "diag.fronts_sum_mismatch": "The front heights add up to {sum} mm, but {available} mm are available. Leave one height empty to fill the rest.",
   "diag.fronts_too_high": "Front {index} has no room left; {available} mm are available for all fronts.",
+  "diag.shelves_too_close": "{count} shelves do not fit into {space} mm of clear height: they would overlap.",
   "diag.shelves_no_door_zone": "{count} shelf/shelves set, but the cabinet has no door zone for them.",
   "diag.slide_no_length": "{item}: the cabinet is too shallow for any slide ({depth} mm inside, {min} mm needed).",
   "diag.drawer_too_low": "Drawer {index}: the front ({front} mm) is too low for a drawer box with {clearance} mm clearance.",
