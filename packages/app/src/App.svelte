@@ -10,10 +10,11 @@
   import FileMenu from "./components/FileMenu.svelte";
   import RoomView from "./components/RoomView.svelte";
   import ProjectsHome from "./components/ProjectsHome.svelte";
+  import LibraryView from "./components/LibraryView.svelte";
   import { onMount } from "svelte";
 
   const t = $derived(store.tr.t);
-  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware"];
+  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware", "library"];
 
   onMount(() => {
     void store.boot();
@@ -145,6 +146,8 @@
           <CutlistView />
         {:else if store.ui.tab === "drawings"}
           <DrawingsView />
+        {:else if store.ui.tab === "library"}
+          <LibraryView />
         {:else}
           <HardwareView />
         {/if}

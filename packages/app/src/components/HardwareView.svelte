@@ -16,7 +16,6 @@
     }
     return [...m.entries()];
   });
-  const items = $derived([...(lib?.hardware.values() ?? [])]);
   const unit = (u: string): string => (store.tr.has(`unit.${u}`) ? t(`unit.${u}`) : u);
 </script>
 
@@ -39,24 +38,7 @@
     </tbody>
   </table>
 
-  <h2 class="label">{t("ui.library")}</h2>
-  <p class="muted small">{t("ui.library_hint")}</p>
-  <div class="scroll-x">
-    <table class="grid">
-      <thead><tr><th>{t("ui.item")}</th><th>{t("ui.category")}</th><th>{t("ui.brand")}</th><th>{t("ui.trust")}</th><th>{t("ui.articles")}</th></tr></thead>
-      <tbody>
-        {#each items as h (h.id)}
-          <tr title={h.source ?? ""}>
-            <td>{localName(h.name, store.tr.locale)}</td>
-            <td>{t(`ui.cat.${h.category}`)}</td>
-            <td>{h.manufacturer ?? ""}</td>
-            <td><span class="pill {h.trust === 'untested' ? 'cabinet' : 'project'}">{t(`ui.trust.${h.trust}`)}</span></td>
-            <td class="mono">{h.articles.map((a) => a.code).join(", ")}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
+  <p class="muted small">{t("ui.hardware_library_moved")}</p>
 </section>
 
 <style>

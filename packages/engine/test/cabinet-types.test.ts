@@ -83,3 +83,16 @@ describe("adjustable legs (D31)", () => {
     expect(buildOne({ kind: "wall", presets: ["wall-unit"] }).cabinets[0]!.fittings).toEqual([]);
   });
 });
+
+describe("shop templates (D33)", () => {
+  it("reads cabinet templates from the shop library", async () => {
+    const { loadShop } = await import("../src/index.ts");
+    const shop = loadShop({
+      schemaVersion: 1,
+      kind: "shop",
+      library: { templates: [{ id: "my-base", name: "My base", cabinet: { kind: "base", presets: ["base-unit"], vars: { W: 450 }, fronts: [{ type: "drawer", h: 150 }, { type: "door" }] } }] },
+    });
+    expect(shop.library.templates[0]).toMatchObject({ id: "my-base", group: "shop", cabinet: { kind: "base", vars: { W: 450 }, options: {}, parts: {} } });
+    expect(() => loadShop({ schemaVersion: 1, kind: "shop", library: { templates: [{ id: "x", name: "X", cabinet: { kind: "roof" } }] } })).toThrow();
+  });
+});

@@ -85,6 +85,25 @@ export const CabinetSchema = z.object({
 });
 export type CabinetInput = z.infer<typeof CabinetSchema>;
 
+/**
+ * A cabinet template of the shop (D33): cabinet input without id and place,
+ * offered in the app's add menu next to the factory templates.
+ */
+export const CabinetTemplateSchema = z.object({
+  id: z.string().min(1),
+  name: LocalizedText,
+  group: z.string().default("shop"),
+  cabinet: z.object({
+    kind: z.enum(["base", "wall", "tall"]).default("base"),
+    presets: z.array(z.string()).default([]),
+    vars: z.record(identifier, VarInputSchema).default({}),
+    options: z.record(z.string(), OptionValueSchema).default({}),
+    fronts: z.array(FrontZone).max(12).optional(),
+    parts: z.record(z.string(), PartOverride).default({}),
+  }),
+});
+export type CabinetTemplateInput = z.infer<typeof CabinetTemplateSchema>;
+
 /** Library section of a project or shop file; later layers replace items with the same id. */
 const LibraryFile = z
   .object({
@@ -96,8 +115,10 @@ const LibraryFile = z
     drawingStyles: z.array(DrawingStyleSchema).default([]),
     /** DXF layer profiles: map machining to the CAM's layer names. */
     dxfProfiles: z.array(DxfProfileSchema).default([]),
+    /** Cabinet templates for the add menu. */
+    templates: z.array(CabinetTemplateSchema).default([]),
   })
-  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [] });
+  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
 
 export const ProjectSchema = z
   .object({

@@ -3,10 +3,11 @@
   import { FACTORY_TEMPLATES, formatNumber, localName } from "@cabinet-planner/engine";
 
   const groups = ["kitchen", "storage", "wardrobe", "bath"] as const;
+  const shopTemplates = $derived(store.built.shop?.library.templates ?? []);
   function pick(e: Event): void {
     const sel = e.target as HTMLSelectElement;
-    const tpl = FACTORY_TEMPLATES.find((x) => x.id === sel.value);
-    if (tpl) addFromTemplate(tpl);
+    const tpl = FACTORY_TEMPLATES.find((x) => x.id === sel.value) ?? shopTemplates.find((x) => `shop:${x.id}` === sel.value);
+    if (tpl) addFromTemplate(tpl as never);
     sel.value = "";
   }
 
@@ -32,6 +33,11 @@
     <button onclick={() => addCabinet("tall")}>+ {t("ui.kind.tall")}</button>
     <select id="add-template" aria-label={t("ui.add_from_template")} onchange={pick}>
       <option value="">{t("ui.add_from_template")}</option>
+      {#if shopTemplates.length}
+        <optgroup label={t("ui.my_templates")}>
+          {#each shopTemplates as tpl}<option value={`shop:${tpl.id}`}>{localName(tpl.name, store.ui.lang)}</option>{/each}
+        </optgroup>
+      {/if}
       {#each groups as g}
         <optgroup label={t(`ui.template_group.${g}`)}>
           {#each FACTORY_TEMPLATES.filter((x) => x.group === g) as tpl}

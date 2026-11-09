@@ -440,3 +440,16 @@ Two shop settings, because they are used for different things:
 - A radius over half the cutout's smaller side is an error
   (`worktop_cutout_radius`); the cutout is then left out.
 - Not yet: radii in the 3D view; CAM tool radius checks.
+
+### D33 · 2026-11-09 · App storage, templates in the shop library
+
+- The app keeps projects locally (IndexedDB; localStorage when IndexedDB
+  is unavailable), one document per project plus an index, the shop file
+  and UI preferences. Project files stay the exchange format: export,
+  import and "Save project" write the same JSON the CLI reads.
+- Shop and project libraries may hold `templates`: cabinet input without
+  id and place (`kind`, `presets`, `vars`, `options`, `fronts`, `parts`),
+  shown in the add menu as "My templates". A preset saved from a cabinet
+  takes its vars without `W` and its options.
+- Undo/redo works on project snapshots (up to 100), grouped 0.4 s after
+  the last change; shop edits are not part of the history.

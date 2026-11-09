@@ -4,6 +4,7 @@
     localName,
     OPTIONS,
     VARIABLES,
+    FACTORY_PRESETS,
     type OptionDef,
     type VarDef,
   } from "@cabinet-planner/engine";
@@ -66,6 +67,7 @@
   }
 
   const LAYERS: Layer[] = ["cabinet", "project", "shop"];
+  const allPresets = $derived([...FACTORY_PRESETS, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
   let customName = $state("");
   let customValue = $state("");
   const customVars = $derived(Object.keys(doc?.vars ?? {}).filter((n) => !VARIABLES.some((v) => v.name === n)));
@@ -90,6 +92,16 @@
       <select id="cab-kind" value={c.kind ?? "base"} onchange={(e) => setKind((e.target as HTMLSelectElement).value as "base")}>
         {#each ["base", "wall", "tall"] as k}<option value={k}>{t(`ui.kind.${k}`)}</option>{/each}
       </select>
+      <span class="label-like">{t("ui.presets")}</span>
+      <div class="chips">
+        {#each c.presets ?? [] as p, i}
+          <span class="chip">{store.presetName(p)}<button class="quiet x" aria-label={`${t("ui.remove")} ${store.presetName(p)}`} onclick={() => c.presets.splice(i, 1)}>×</button></span>
+        {/each}
+        <select id="add-preset" aria-label={t("ui.add_preset")} onchange={(e) => { const s = e.target as HTMLSelectElement; if (s.value) { c.presets = [...(c.presets ?? []), s.value]; s.value = ""; } }}>
+          <option value="">+ {t("ui.add_preset")}</option>
+          {#each allPresets.filter((p) => !(c.presets ?? []).includes(p.id)) as p}<option value={p.id}>{store.presetName(p.id)}</option>{/each}
+        </select>
+      </div>
     </div>
   {/if}
 
@@ -225,6 +237,11 @@
   .var { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 46px auto 22px; gap: 6px; align-items: center; }
   .var.opt { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; }
   .field { display: flex; min-width: 0; gap: 2px; }
+  .label-like { color: var(--fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .chip { display: inline-flex; align-items: center; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 0 2px 0 8px; font-size: 12px; }
+  .chip .x { padding: 0 6px; min-height: 0; }
+  #add-preset { max-width: 12em; font-size: 12px; }
   .field input { flex: 1; min-width: 0; width: 100%; }
   .step { display: none; padding: 0 8px; }
   @media (pointer: coarse) {
