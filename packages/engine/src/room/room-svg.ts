@@ -1,7 +1,7 @@
 import type { CabinetResult } from "../project.ts";
 import { formatNumber } from "../output/format.ts";
 import type { DrawingText } from "../drawing/render.ts";
-import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout } from "./room.ts";
+import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout, type WorktopLayout } from "./room.ts";
 
 /**
  * Room drawings (DECISIONS.md D28) on A3 landscape sheets, to scale, mm:
@@ -186,7 +186,7 @@ export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText
       [c[1]![0] + q.n[0] * q.depth, c[1]![1] + q.n[1] * q.depth],
       [c[0]![0] + q.n[0] * q.depth, c[0]![1] + q.n[1] * q.depth],
     ];
-    const topped = q.kind === "base" && room.worktops.some((wt) => wt.wall === q.wall && wt.x0 <= q.x + 1 && wt.x1 >= q.x + q.W - 1);
+    const topped = q.kind === "base" && room.worktops.some((wt) => wt.wall === q.wall && under(wt, q));
     if (!topped) o.push(poly(sh, q.kind === "wall" ? "rm-cab-wall" : "rm-cab", pts));
     const centre: [number, number] = [(pts[0]![0] + pts[2]![0]) / 2, (pts[0]![1] + pts[2]![1]) / 2];
     o.push(text(sh, "rm-id", centre, q.cabinet, TH * 0.9, "middle", 0, q.kind === "wall" ? -TH * 0.6 : TH * 0.9));
@@ -203,11 +203,20 @@ export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText
     // Wall name outside, beyond its dimension chains.
     const off = w.thickness + sh.den * (ops.length ? 27 : 20);
     const label: [number, number] = [w.start[0] + w.d[0] * w.length / 2 - w.n[0] * off, w.start[1] + w.d[1] * w.length / 2 - w.n[1] * off];
-    o.push(text(sh, "rm-id", label, `${t("room.wall")} ${w.id}`, TH, "middle", 0, TH * 0.35));
+    // Beside a vertical wall the name starts at that distance, so it does not run back over the chains.
+    const anchor = outward[0] > 0.5 ? "start" : outward[0] < -0.5 ? "end" : "middle";
+    o.push(text(sh, "rm-id", label, `${t("room.wall")} ${w.id}`, TH, anchor, 0, TH * 0.35));
   }
   o.push(`</svg>\n`);
   return o.join("");
 }
+
+/**
+ * A base unit stands under a worktop of its wall. In an inside corner the
+ * worktop starts at the other worktop's front edge (D29), a little past
+ * the unit's side, so overlap along the wall decides, not full cover.
+ */
+const under = (wt: WorktopLayout, q: CabinetPlacement): boolean => wt.x0 < q.x + q.W - 1 && wt.x1 > q.x + 1;
 
 function outer(w: WallLayout, p: [number, number]): [number, number] {
   return [p[0] - w.n[0] * w.thickness, p[1] - w.n[1] * w.thickness];
@@ -267,7 +276,7 @@ export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonl
         o.push(`<circle class="rm-front" cx="${x}" cy="${y}" r="${r3(Math.max(15 / sh.den, 0.4))}"/>`);
       }
     }
-    const top = room.worktops.find((wt) => wt.wall === w.id && wt.x0 <= q.x + 1 && wt.x1 >= q.x + q.W - 1 && q.kind === "base");
+    const top = room.worktops.find((wt) => wt.wall === w.id && under(wt, q) && q.kind === "base");
     o.push(text(sh, "rm-id", [X(q.W / 2), q.baseY + q.H + (top ? top.t : 0) + 40], q.cabinet, TH * 0.9));
   }
   for (const p of room.plinths.filter((x) => x.wall === w.id)) {

@@ -72,6 +72,31 @@ describe("room layout (D28)", () => {
     }
   });
 
+  it("treats a corner unit as covered by its worktop, which starts at the other worktop's front edge", () => {
+    // B01 fills the end of wall A; B02 starts behind it on wall B (at 579), its worktop at 600 (D29).
+    const r = build([
+      { id: "B01", type: "box", place: { wall: "A", x: 3000 } },
+      { id: "B02", type: "box", place: { wall: "B" } },
+    ]);
+    expect(r.room!.worktops.map((w) => [w.wall, w.x0])).toEqual([["A", 2980], ["B", 600]]);
+    // No floor unit is drawn on top of the worktops in the plan.
+    expect(floorPlanSvg(r.room!, "R", text)).not.toContain('class="rm-cab"');
+    // Elevation of wall B: the id sits above the worktop (858 + 38 + 40), not on it.
+    const el = elevationSvg(r.room!, "B", r.cabinets, "R", text);
+    const y = (label: string): number => Number(new RegExp(`y="([\\d.]+)"[^>]*>${label}<`).exec(el)![1]);
+    const a = elevationSvg(r.room!, "A", r.cabinets, "R", text);
+    const ya = Number(/y="([\d.]+)"[^>]*>B01</.exec(a)![1]);
+    expect(y("B02")).toBe(ya);
+  });
+
+  it("writes the names of vertical walls beside their dimension chains, not across them", () => {
+    const plan = floorPlanSvg(build([]).room!, "R", text);
+    expect(plan).toMatch(/text-anchor="middle">room.wall A</);
+    expect(plan).toMatch(/text-anchor="start">room.wall B</);
+    expect(plan).toMatch(/text-anchor="middle">room.wall C</);
+    expect(plan).toMatch(/text-anchor="end">room.wall D</);
+  });
+
   it("draws a floor plan and elevations", () => {
     const r = build([
       { id: "B01", type: "box", place: { wall: "A" }, options: { "hardware.handle": "generic-bar-128" } },
