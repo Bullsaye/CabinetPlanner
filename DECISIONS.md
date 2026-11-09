@@ -464,3 +464,23 @@ Two shop settings, because they are used for different things:
   sizes or sync need it.
 - Installers are built in CI for Windows, macOS (arm64, x64) and Linux;
   unsigned until certificates exist.
+
+### D35 · 2026-11-09 · Back behind the horizontals, dowel sequence, front gaps, top choice
+
+- `back_extent: behind_horizontals` (groove or rebate backs): the back runs
+  the full carcase height between the sides, grooved/rebated in the sides
+  only; bottom, top, rails and fixed shelves start at the back's front
+  face. Needs `carcase_joint: sides_over` (error otherwise).
+- `dowel_pattern: sequence`: from the joint's front end `dowel_offset_front`,
+  then `dowel_second` behind it, then every `dowel_raster`. The rearmost
+  raster position closer than `dowel_offset_rear` to the rear end moves
+  forward in `sys_pitch` steps and is dropped when that brings it within
+  one pitch of the dowel before. A position blocked by other machining
+  moves forward in pitch steps. `grid` keeps the earlier rule.
+- Vertical front joints: `front_gap_v` (factory = `front_gap`) feeds
+  `front_gap_side` (= half), which feeds `front_gap_left` / `front_gap_right`;
+  `front_gap_middle` (= `front_gap_v`) between doors side by side.
+  `front_gap` stays the horizontal joint between stacked fronts.
+- `top: auto` (new factory value) uses `top.base_unit` (rails or full) for
+  base units and a full top for wall and tall units; the kind presets no
+  longer set `top`, so a shop can choose its base unit top.

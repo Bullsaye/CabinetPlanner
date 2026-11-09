@@ -70,12 +70,18 @@
     "vars": {
       "front_gap": 3,
       "plinth_h": 100,
-      "hinge_end_offset": 80
+      "hinge_end_offset": 80,
+      "dowel_offset_front": 32,
+      "dowel_second": 32,
+      "dowel_raster": 128
     },
     "options": {
       "hardware.hinge": "grass-tiomos-110-screw",
       "hardware.slide": "grass-dynapro-40",
-      "hardware.handle": "generic-bar-160"
+      "hardware.handle": "generic-bar-160",
+      "top.base_unit": "full",
+      "back_extent": "behind_horizontals",
+      "dowel_pattern": "sequence"
     }
   }
 }

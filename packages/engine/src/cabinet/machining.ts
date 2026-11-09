@@ -111,7 +111,9 @@ export function machineBox(
       z1: b.z + b.dz + c,
     };
     const source: OpSource = { kind: "back", ref: backMount };
-    for (const code of ["SL", "SR", "BO", "TO"]) {
+    // Back behind the horizontals: grooves/rebates only in the sides, full height.
+    const behind = opt<string>("back_extent") === "behind_horizontals";
+    for (const code of behind ? ["SL", "SR"] : ["SL", "SR", "BO", "TO"]) {
       const p = byCode.get(code);
       if (p) addPocketFromBox(p, region, source);
     }
@@ -145,6 +147,7 @@ export function machineBox(
           maxSpacing: num("dowel_max_spacing"),
           minCount: num("dowel_min_count"),
           margin: num("bore_min_wall"),
+          ...(opt<string>("dowel_pattern") === "sequence" ? { sequence: { second: num("dowel_second"), spacing: num("dowel_raster") } } : {}),
         });
         if (count.placed === 0) {
           diagnostics.push({ severity: "error", code: "joint_no_dowels", params: { joint: j.ref }, ...at });
@@ -511,10 +514,19 @@ const flip = (d: Direction): Direction => ((d[0] === "+" ? "-" : "+") + d[1]) as
 export function dowelPositions(
   zMin: number,
   zMax: number,
-  o: { pitch: number; offsetFront: number; offsetRear: number; maxSpacing: number; minCount: number },
+  o: {
+    pitch: number;
+    offsetFront: number;
+    offsetRear: number;
+    maxSpacing: number;
+    minCount: number;
+    /** Sequence pattern (D35): first at offsetFront, the next `second` behind it, then every `spacing`. */
+    sequence?: { second: number; spacing: number };
+  },
   /** Candidates rejected here (e.g. because they would hit a groove) are skipped. */
   free: (z: number) => boolean = () => true,
 ): number[] {
+  if (o.sequence) return sequencePositions(zMin, zMax, o, o.sequence, free);
   const candidates: number[] = [];
   for (let z = zMax - o.offsetFront; z >= zMin + o.offsetRear - 1e-9; z -= o.pitch) {
     const zr = roundMm(z);
@@ -538,10 +550,46 @@ export function dowelPositions(
   return chosen;
 }
 
+/**
+ * Sequence pattern, measured from the front end: offsetFront, + second,
+ * then every `spacing` while inside the joint. The rearmost raster position
+ * that comes closer than offsetRear to the rear end moves forward in pitch
+ * steps; it is dropped when it would come within one pitch of the dowel
+ * before it. A blocked position (groove) also moves forward in pitch steps.
+ */
+function sequencePositions(
+  zMin: number,
+  zMax: number,
+  o: { pitch: number; offsetFront: number; offsetRear: number },
+  s: { second: number; spacing: number },
+  free: (z: number) => boolean,
+): number[] {
+  const L = zMax - zMin;
+  const raster: number[] = [o.offsetFront];
+  if (s.second > 0) raster.push(o.offsetFront + s.second);
+  for (let p = raster[raster.length - 1]! + s.spacing; p < L; p += s.spacing) raster.push(p);
+  const out: number[] = [];
+  for (let i = 0; i < raster.length; i++) {
+    let p = raster[i]!;
+    if (p >= L) break;
+    const last = i === raster.length - 1;
+    if (last) while (L - p < o.offsetRear - 1e-9) p -= o.pitch;
+    else if (L - p < o.offsetRear - 1e-9) break;
+    // Move off machining in the way (e.g. a groove), towards the front.
+    let tries = 0;
+    while (!free(roundMm(zMax - p)) && tries++ < 3) p -= o.pitch;
+    if (!free(roundMm(zMax - p))) continue;
+    const prev = out.length ? zMax - out[out.length - 1]! : -Infinity;
+    if (p - prev < o.pitch - 1e-9) continue;
+    out.push(roundMm(zMax - p));
+  }
+  return out;
+}
+
 function dowelJoint(
   j: Joint,
   dowel: { d: number; faceDepth: number; edgeDepth: number },
-  o: { pitch: number; offsetFront: number; offsetRear: number; maxSpacing: number; minCount: number; margin: number },
+  o: Parameters<typeof dowelPositions>[2] & { margin: number },
 ): { placed: number } {
   const zMin = Math.max(j.facePart.box.z, j.edgePart.box.z);
   const zMax = Math.min(j.facePart.box.z + j.facePart.box.dz, j.edgePart.box.z + j.edgePart.box.dz);

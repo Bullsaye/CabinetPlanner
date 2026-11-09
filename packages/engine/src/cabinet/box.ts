@@ -148,7 +148,8 @@ export function buildBox(
   const tFront = num("t_front");
 
   const joint = opt<"sides_over" | "sides_between">("carcase_joint");
-  const top = opt<"full" | "rails">("top");
+  const topOpt = opt<"auto" | "full" | "rails">("top");
+  const top: "full" | "rails" = topOpt !== "auto" ? topOpt : rc.cabinet.kind === "base" ? opt<"full" | "rails">("top.base_unit") : "full";
   const backMount = opt<"groove" | "rebate" | "surface">("back_mount");
   const deduct = opt<boolean>("edge.deduct");
 
@@ -283,10 +284,16 @@ export function buildBox(
 
   add("side_left", undefined, { x: 0, y: sideY, z: carcaseZ0, dx: t, dy: sideH, dz: Dc }, "y", "z", "material.carcase", front(edgeCarcase));
   add("side_right", undefined, { x: W - t, y: sideY, z: carcaseZ0, dx: t, dy: sideH, dz: Dc }, "y", "z", "material.carcase", front(edgeCarcase));
-  add("bottom", undefined, { x: hzX, y: 0, z: carcaseZ0, dx: hzW, dy: t, dz: Dc }, "x", "z", "material.carcase", front(edgeCarcase));
+  // Back behind the horizontals: bottom and top end at the back's front face (D35).
+  const backBehind = opt<string>("back_extent") === "behind_horizontals" && backMount !== "surface";
+  if (backBehind && joint === "sides_between") {
+    diagnostics.push({ severity: "error", code: "back_behind_needs_sides_over", params: {}, cabinet: cab });
+  }
+  const hz0 = backBehind ? backFrontZ : carcaseZ0;
+  add("bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: D - hz0 }, "x", "z", "material.carcase", front(edgeCarcase));
 
   if (top === "full") {
-    add("top", undefined, { x: hzX, y: H - t, z: carcaseZ0, dx: hzW, dy: t, dz: Dc }, "x", "z", "material.carcase", front(edgeCarcase));
+    add("top", undefined, { x: hzX, y: H - t, z: hz0, dx: hzW, dy: t, dz: D - hz0 }, "x", "z", "material.carcase", front(edgeCarcase));
   } else {
     const railW = num("rail_w");
     add("rail_front", undefined, { x: hzX, y: H - t, z: D - railW, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", front(edgeCarcase));
@@ -333,8 +340,10 @@ export function buildBox(
     } else {
       const engage = (backMount === "groove" ? num("back_groove_depth") : num("back_rebate_depth")) - play;
       const z = backMount === "groove" ? num("back_groove_offset") : 0;
-      const y0 = t - engage; // into the bottom
-      const y1 = top === "full" ? H - t + engage : H - play; // into the top, or up to the top edge behind the rails
+      // Inside: into the bottom and top (or up to the top edge behind rails).
+      // Behind the horizontals: the full carcase height, in the sides only.
+      const y0 = backBehind ? 0 : t - engage;
+      const y1 = backBehind ? H : top === "full" ? H - t + engage : H - play;
       box = { x: t - engage, y: y0, z, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
     }
     add("back", undefined, box, "y", "x", "material.back", none);
@@ -492,8 +501,10 @@ export function buildBox(
   const drawers: BoxLayout["drawers"] = [];
   const applianceFronts: BoxLayout["applianceFronts"] = [];
   {
-    const gs = num("front_gap_side");
-    const gap = num("front_gap");
+    // Vertical joints: left and right edge, between doors side by side (D35).
+    const gl = num("front_gap_left");
+    const gr = num("front_gap_right");
+    const gap = num("front_gap_middle");
     const all: PartEdges = { l1: edgeFront, l2: edgeFront, w1: edgeFront, w2: edgeFront };
     let doorNo = 0;
     let drawerNo = 0;
@@ -502,13 +513,13 @@ export function buildBox(
       const h = f.y1 - f.y0;
       if (f.type === "open") continue;
       if (f.type === "panel") {
-        add("blind_panel", fi + 1, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "y", "x", "material.front", all);
+        add("blind_panel", fi + 1, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "y", "x", "material.front", all);
         continue;
       }
       if (f.type === "appliance") {
         if (!f.front) continue;
         applianceNo++;
-        add("appliance_front", applianceNo, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "y", "x", "material.front", all);
+        add("appliance_front", applianceNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "y", "x", "material.front", all);
         applianceFronts.push({ code: `${ROLE_CODES.appliance_front}${applianceNo}`, hinge: opt<"left" | "right">("door_hinge_side") });
         continue;
       }
@@ -516,15 +527,15 @@ export function buildBox(
         const n = f.doors;
         // Blind corner: a fixed panel covers the blind side, doors the rest.
         const corner = opt<"none" | "blind_left" | "blind_right">("corner");
-        let x0 = gs;
-        let x1 = W - gs;
+        let x0 = gl;
+        let x1 = W - gr;
         if (corner !== "none") {
           const bw = num("blind_w");
           if (bw > W - num("door_min_w")) {
             diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
           }
           const split = corner === "blind_right" ? W - bw : bw;
-          const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gs - split - gap / 2 } : { x: gs, dx: split - gap / 2 - gs };
+          const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gr - split - gap / 2 } : { x: gl, dx: split - gap / 2 - gl };
           add("blind_panel", fronts.indexOf(f) + 1, { x: panel.x, y: f.y0, z: D, dx: panel.dx, dy: h, dz: tFront }, "y", "x", "material.front", all);
           if (corner === "blind_right") x1 = split - gap / 2;
           else x0 = split + gap / 2;
@@ -545,7 +556,7 @@ export function buildBox(
         if (opt<string>("corner") !== "none" && drawerNo === 1) {
           diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
         }
-        add("drawer_front", drawerNo, { x: gs, y: f.y0, z: D, dx: W - 2 * gs, dy: h, dz: tFront }, "x", "y", "material.front", all);
+        add("drawer_front", drawerNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
         const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
         if (d) drawers.push(d);
       }

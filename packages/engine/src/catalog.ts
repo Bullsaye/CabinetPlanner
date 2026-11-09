@@ -79,6 +79,8 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "dowel_offset_front", group: "construction", unit: "mm", factory: "sys_row_front", min: 5, max: 200 }),
   v({ name: "dowel_offset_rear", group: "construction", unit: "mm", factory: 20, min: 5, max: 200 }),
   v({ name: "dowel_max_spacing", group: "construction", unit: "mm", factory: 160, min: 32, max: 1000 }),
+  v({ name: "dowel_second", group: "construction", unit: "mm", factory: 32, min: 0, max: 500, step: 1 }),
+  v({ name: "dowel_raster", group: "construction", unit: "mm", factory: 128, min: 16, max: 1000, step: 1 }),
   v({ name: "dowel_min_count", group: "construction", unit: "count", factory: 2, min: 1, max: 20, integer: true, step: 1 }),
 
   // 32 mm system.
@@ -112,7 +114,11 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "front_gap", group: "fronts", unit: "mm", factory: 3, min: 0, max: 20, step: 0.5, quick: true }),
   v({ name: "front_gap_top", group: "fronts", unit: "mm", factory: "front_gap", min: 0, max: 100 }),
   v({ name: "front_gap_bottom", group: "fronts", unit: "mm", factory: 0, min: -50, max: 100 }),
-  v({ name: "front_gap_side", group: "fronts", unit: "mm", factory: "front_gap / 2", min: 0, max: 50 }),
+  v({ name: "front_gap_v", group: "fronts", unit: "mm", factory: "front_gap", min: 0, max: 20, step: 0.5 }),
+  v({ name: "front_gap_side", group: "fronts", unit: "mm", factory: "front_gap_v / 2", min: 0, max: 50 }),
+  v({ name: "front_gap_left", group: "fronts", unit: "mm", factory: "front_gap_side", min: 0, max: 50, step: 0.5 }),
+  v({ name: "front_gap_right", group: "fronts", unit: "mm", factory: "front_gap_side", min: 0, max: 50, step: 0.5 }),
+  v({ name: "front_gap_middle", group: "fronts", unit: "mm", factory: "front_gap_v", min: 0, max: 50, step: 0.5 }),
   v({ name: "blind_w", group: "fronts", unit: "mm", factory: "worktop_d + 50", min: 100, max: 1500, step: 10 }),
   v({ name: "door_min_w", group: "fronts", unit: "mm", factory: 100, min: 20, max: 600, step: 10 }),
 
@@ -183,13 +189,19 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["sides_over", "sides_between"] },
     factory: "sides_over",
   },
-  { key: "top", group: "construction", kind: { type: "enum", values: ["full", "rails"] }, factory: "rails" },
+  /** Top: full panel or two rails; auto = top.base_unit for base units, a full panel otherwise. */
+  { key: "top", group: "construction", kind: { type: "enum", values: ["auto", "full", "rails"] }, factory: "auto" },
+  { key: "top.base_unit", group: "construction", kind: { type: "enum", values: ["rails", "full"] }, factory: "rails" },
   {
     key: "back_mount",
     group: "back",
     kind: { type: "enum", values: ["groove", "rebate", "surface"] },
     factory: "groove",
   },
+  /** Back between the sides and behind bottom and top (horizontals end at the back), or inside them. */
+  { key: "back_extent", group: "back", kind: { type: "enum", values: ["inside", "behind_horizontals"] }, factory: "inside" },
+  /** Dowel positions: on the system grid thinned to dowel_max_spacing, or front offset, second, then every dowel_spacing. */
+  { key: "dowel_pattern", group: "construction", kind: { type: "enum", values: ["grid", "sequence"] }, factory: "grid" },
   { key: "joint_method", group: "construction", kind: { type: "enum", values: ["dowel", "none"] }, factory: "dowel" },
   {
     key: "hardware.connector",
