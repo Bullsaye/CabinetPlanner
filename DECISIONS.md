@@ -453,3 +453,14 @@ Two shop settings, because they are used for different things:
   takes its vars without `W` and its options.
 - Undo/redo works on project snapshots (up to 100), grouped 0.4 s after
   the last change; shop edits are not part of the history.
+
+### D34 · 2026-11-09 · Desktop shell
+
+- Tauri 2 wraps the built web app (`packages/app/dist`); no planner logic
+  in Rust. The app detects Tauri (`__TAURI_INTERNALS__`) and uses native
+  open/save dialogs; the fs permissions only reach files picked in them.
+- Projects live in the webview's IndexedDB inside the app data folder
+  (same code path as the browser). SQLite (PLAN.md) waits until project
+  sizes or sync need it.
+- Installers are built in CI for Windows, macOS (arm64, x64) and Linux;
+  unsigned until certificates exist.

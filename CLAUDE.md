@@ -12,6 +12,9 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 - `packages/i18n` – message catalogues (`en` base, `de` complete) and the
   translator.
 - `packages/cli` – `cabinet-planner` command; the first client of the engine.
+- `packages/app` – Svelte 5 web app (PWA). Talks to its host only through
+  `src/lib/platform.ts` (storage, file dialogs, downloads).
+- `packages/desktop` – Tauri 2 shell around the app (native dialogs only).
 - `reference/` – reference cabinets with golden cutlists (byte-exact tests).
 - `examples/` – example project and shop files.
 - `design/` – UI mockups (visual reference only).
@@ -27,6 +30,9 @@ pnpm check           # typecheck + tests (what CI runs)
 pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --format table --lang de
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + hardware per part
+pnpm app             # web app dev server (http://localhost:5173)
+pnpm desktop         # desktop window (Tauri) around the dev server
+pnpm desktop:build   # desktop installers
 ```
 
 ## Rules
