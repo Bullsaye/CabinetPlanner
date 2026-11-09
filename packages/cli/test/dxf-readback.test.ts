@@ -90,6 +90,9 @@ function polylines(p: Parsed): { layer: string; pts: [number, number][]; bulges:
   return out;
 }
 
+const signedArea = (pts: [number, number][]): number =>
+  pts.reduce((a, [x, y], i) => a + x * pts[(i + 1) % pts.length]![1] - pts[(i + 1) % pts.length]![0] * y, 0) / 2;
+
 function checkPart(part: Part, cabinet: { W: number; H: number; D: number }): void {
   const files = partDxf(part, cabinet, undefined, { project: "P", revision: 1 });
   let circles = 0;
@@ -129,6 +132,8 @@ function checkPart(part: Part, cabinet: { W: number; H: number; D: number }): vo
     expect(polys[0]!.layer).toBe("CONTOUR");
     for (const q of polys) {
       expect(q.pts.length).toBeGreaterThanOrEqual(3);
+      // Outline and pockets run counter-clockwise on every side.
+      expect(signedArea(q.pts), `${f.name} ${q.layer}`).toBeGreaterThan(0);
     }
     pockets += polys.length - 1;
   }
@@ -157,6 +162,10 @@ const load = (file: string, shop?: string): ProjectResult =>
 describe("DXF files read back (D27)", () => {
   it("example kitchen: every part side is a valid file that matches its operations", () => {
     checkProject(load("examples/kitchen-basic.project.json", "examples/shop.json"));
+  });
+
+  it("attic row with outlined fillers (D43)", () => {
+    checkProject(load("examples/attic-row.project.json"));
   });
 });
 

@@ -98,6 +98,11 @@ export function partDxf(
       const q = view.projectLocal({ u, v, w: 0 });
       return [q.X, q.Y] as [number, number];
     });
+    // Seen from the other face the contour runs clockwise; the outline is
+    // written counter-clockwise on every side, like the rectangle and the pockets.
+    if (contour && contour.reduce((a, [x, y], k) => a + x * contour[(k + 1) % contour.length]![1] - contour[(k + 1) % contour.length]![0] * y, 0) < 0) {
+      contour.reverse();
+    }
     const content = writeDxf(part, view.width, view.height, feats, profile, {
       ...(contour ? { contour } : {}),
       ...meta,

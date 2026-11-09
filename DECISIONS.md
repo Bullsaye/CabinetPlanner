@@ -652,3 +652,10 @@ Two shop settings, because they are used for different things:
   every kink. Below `ceiling_filler_min` it is left out (warning).
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
+
+### D45 · 2026-11-09 · DXF and part sheets: contour direction, through pockets
+
+- The outline polyline runs counter-clockwise in every DXF file, also for
+  a non-rectangular part (D43) seen from its t0 face, where the stored
+  contour would come out clockwise. CAMs take the tool side from the
+  direction; rectangle, contour and pockets (D32) now always agree.
