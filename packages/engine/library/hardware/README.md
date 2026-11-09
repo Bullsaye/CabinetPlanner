@@ -23,3 +23,4 @@ Rules (DECISIONS.md D15, D18):
 | hettich-sensys-8645i-flash | Hettich | Press-in (TH 52) + plate 9071615 (press-in Ø10) |
 | hettich-duplo-5 | Hettich | Shelf support 46642 |
 | blum-cliptop-110-inserta | Blum | 71B3590 + 173L6100; count rule generic |
+| grass-tiomos-110-screw | Grass | F028138519 + plate F058139757 (H2, Euro screws) |

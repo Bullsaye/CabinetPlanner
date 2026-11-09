@@ -1,0 +1,773 @@
+{
+  "brand": "Grass + Häfele",
+  "research_status": "Primary sources were read: the Grass Movement Systems 2026/27 online catalogue (mediacenter.grass.eu, page text + vector text layer + page images) and Häfele UK catalogue PDFs (files.hafele.co.uk). Values marked in notes as drawing-derived are medium confidence. Not covered: Häfele Rafix/Maxifix.",
+  "items": [
+    {
+      "id": "grass-tiomos-110",
+      "name": "Grass Tiomos 110 hinge (cranking 0 full overlay / 3 overlay / 9.5 half overlay / 19 inset)",
+      "category": "hinge",
+      "articles": [
+        "Full overlay (cranking 0), with damper: F028138523 (Click-on, press-fit), F028138519 (Click-on, screw-on), F017139414 (Impresso, tool-free)",
+        "Full overlay, spring without damper: F045138461 / F045138457 / F034139385",
+        "Overlay (cranking 3), with damper: F028138524 / F028138520 / F017139415",
+        "Half overlay (cranking 9.5), with damper: F028138525 / F028138521 / F017139416",
+        "Inset (cranking 19), with damper: F028138526 / F028138522 / F017139417"
+      ],
+      "values": {
+        "opening_angle_deg": 110,
+        "door_thickness_max": 24,
+        "cup_d": 35,
+        "cup_d_tolerance_plus": 0.1,
+        "cup_depth_min": 12.6,
+        "cup_distance_TA_min": 3,
+        "cup_distance_TA_max": 7,
+        "cup_centre_from_door_edge": "TA + 17.5 (TA is measured to the cup-hole edge)",
+        "screw_pattern_spacing": 45,
+        "screw_pattern_offset": 9.5,
+        "press_fit_dowel_hole_d": 8,
+        "press_fit_pattern_spacing": 45,
+        "press_fit_pattern_offset": 9.5,
+        "impresso_patterns": [
+          {
+            "spacing": 42,
+            "offset": 11,
+            "hole_d": 8
+          },
+          {
+            "spacing": 45,
+            "offset": 9.5,
+            "hole_d": 8
+          }
+        ],
+        "overlay_full_K0": "A = 15 + TA - H",
+        "overlay_K3": "A = 12 + TA - H",
+        "overlay_half_K9_5": "A = 5.5 + TA - H",
+        "inset_K19_reveal": "F = 4 - TA + H",
+        "mounting_plate_heights_in_table": [
+          -2,
+          0,
+          2,
+          3,
+          3.5
+        ],
+        "adjust_side": 2,
+        "adjust_depth_plus": 3,
+        "adjust_depth_minus": 2,
+        "adjust_height_via_plate": 2,
+        "min_gap_full_overlay_by_door_thickness": {
+          "16-20": {
+            "TA3-7": 1.0
+          },
+          "21": {
+            "TA3-6": 1.0,
+            "TA7": 1.2
+          },
+          "22": {
+            "TA3-6": 1.0,
+            "TA7": 1.5
+          },
+          "24": {
+            "TA3-5": 1.0,
+            "TA6": 1.2,
+            "TA7": 2.1
+          }
+        }
+      },
+      "drilling": [
+        {
+          "on": "door",
+          "d": 35,
+          "depth": 12.6,
+          "position": "Cup hole Ø35 (+0.1), depth min. 12.6. Cup distance TA is 3-7, measured from the door edge to the EDGE of the cup hole, so the cup centre is TA + 17.5 from the door edge."
+        },
+        {
+          "on": "door",
+          "d": null,
+          "depth": null,
+          "position": "Screw-on (Click-on): 2 screw positions 45 apart, symmetric about the cup centre, on a line 9.5 from the cup centre, away from the door edge. Screw Ø and pilot depth not given on the page."
+        },
+        {
+          "on": "door",
+          "d": 8,
+          "depth": null,
+          "position": "Press-fit (Click-on): 2 dowel holes Ø8, 45 apart, on a line 9.5 from the cup centre. Dowel hole depth not given on this page."
+        },
+        {
+          "on": "door",
+          "d": 8,
+          "depth": null,
+          "position": "Impresso combination pattern: Ø8 holes, 42 apart at 11 offset, or 45 apart at 9.5 offset."
+        }
+      ],
+      "rules": [
+        "Door overlay A depends on the cranking K, the cup distance TA (3-7) and the mounting plate height H. Grass gives this as tables on p.509, and the linear forms in 'values' reproduce every cell (full overlay K0: A = 15 + TA - H). Manufacturer's worked example (p.596): cranking 3, plate height 2 and TA 4 give A = 14.",
+        "Inset (K19): set the mounting plate back by door thickness + 1.5 mm.",
+        "Minimum gap (cabinet front edge to the closed door) per door thickness and TA, from the table in 'values'. The factory setting gap is 1.5 mm. A trial fitting is recommended for doors from 24 mm.",
+        "Number of hinges per door (door width 600 mm; door height and weight both limit): 2 hinges up to 900 mm / 6 kg, 3 up to 1600 mm / 10 kg, 4 up to 2000 mm / 17 kg, 5 up to 2500 mm / 22 kg. Manufacturer's example: a 2000 x 600 mm door of 13 kg needs 4 hinges. If in doubt, do a trial fitting. Applies to hinges with and without damper."
+      ],
+      "sources": [
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/508/",
+          "what": "articles and fixing columns, door thickness up to 24"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/509/",
+          "what": "cup Ø35+0.1, min. 12.6 depth, fixing patterns 45/9.5, Ø8, 42/11; TA 3-7; overlay tables K0/K3/K9.5/K19; plate set-back for inset; min gap table (page vector text layer files-2607-3/assets/common/page-vectorlayers/0509.svg)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/594/",
+          "what": "number of hinges per door chart (2/3/4/5 hinges; 900/1600/2000/2500 mm; 6/10/17/22 kg)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/595/",
+          "what": "adjustment ranges: side ±2, depth +3/-2, height via plate ±2"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/596/",
+          "what": "definition of cup distance TA to cup-hole edge; min gap factory setting 1.5; overlay example"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Grass Movement Systems catalogue 2026/27 (EN). Tables were read from the page's SVG text layer with glyph positions, so column assignment comes from position. Overlay formulas are derived from the tables. The page shows 'Mounting plate height 2' as the factory setting under each drawing. Dowel/screw hole depths on the door are not on the catalogue page. The cup-dimension box also shows '3 (8)', '39 (40.5)' and '62 (64.5)' ('( ) Impresso'), which are not interpreted here."
+    },
+    {
+      "id": "grass-tiomos-plate-37-32",
+      "name": "Grass Tiomos 1D cross mounting plates 37/32 (2-point and 4-point)",
+      "category": "hinge",
+      "articles": [
+        "4-point, pre-assembled Euro screws 6.3x13.5: H0 F058139761, H2 F058139762, H3 F058139763 (Nickel)",
+        "4-point, Euro screws 6.3: H0 F058139756, H2 F058139757, H3 F058139758",
+        "4-point, wood screws 3.5x15: H0 F058139746, H2 F058139747, H3 F058139748",
+        "4-point Quick, Ø5 dowels: H0 F058139766, H2 F058139767, H3 F058139768",
+        "4-point, Ø10 dowels: H0 F058139751, H2 F058139752, H3 F058139753"
+      ],
+      "values": {
+        "row_from_front_edge": 37,
+        "hole_spacing_vertical": 32,
+        "euro_screw_hole_d": 5,
+        "euro_screw": "6.3 x 13.5 (or 6.3 x 10 for twin application)",
+        "wood_screw": "3.5 x 15",
+        "dowel_variants_d": [
+          5,
+          10
+        ],
+        "four_point_extra_holes_from_front_edge": [
+          20,
+          52
+        ],
+        "plate_heights": [
+          0,
+          2,
+          3
+        ],
+        "adjust_height": 2,
+        "adjust_side": 2,
+        "adjust_depth_plus": 3,
+        "adjust_depth_minus": 2
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "2 holes on a line 37 from the carcase front edge, 32 apart (±16 about the hinge axis), i.e. on the 37 mm system row. For Euro screws or Ø5 dowels; the Ø10-dowel version uses Ø10 holes in the same 37/32 pattern."
+        },
+        {
+          "on": "side",
+          "d": null,
+          "depth": null,
+          "position": "4-point plates only: 2 additional small fixing points on the hinge axis, 20 from the front edge and 32 apart (at 20 and 52). Their Ø is not dimensioned."
+        }
+      ],
+      "rules": [
+        "The plate height (0/2/3, and -2 on ECO plates) is the H in the Tiomos overlay formulas.",
+        "Quick/dowel plates: do not strike the mounting plate with a hammer (Grass note)."
+      ],
+      "sources": [
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/580/",
+          "what": "4-point 37/32 plates, Ø5, 37, 32, 20, 32; articles; adjustments"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/581/",
+          "what": "Quick (Ø5 dowel) and Ø10 dowel plates"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/582/",
+          "what": "2-point 37/32 plates (Euro screw / wood screw 3.5x15)"
+        }
+      ],
+      "confidence": "high",
+      "notes": "The positions of the 4-point extra holes (20 and 52) come from reading the drawing dimensions 20 and 32 (front edge to first hole, then hole to hole); medium confidence for those two. Hole depth is not given (Euro screw 13.5 long)."
+    },
+    {
+      "id": "grass-dynapro-eb21-40",
+      "name": "Grass Dynapro Soft-close EB 21 full-extension concealed slide, 40 kg (wooden drawers)",
+      "category": "slide",
+      "articles": [
+        "40 kg L+R sets e.g. NL 500 F130107820, NL 600 F130107829 (full list on p.434); 50 kg NL 700 F130107856, NL 750 F130107859"
+      ],
+      "values": {
+        "nominal_lengths_40kg": [
+          250,
+          270,
+          300,
+          320,
+          350,
+          380,
+          400,
+          420,
+          450,
+          480,
+          500,
+          520,
+          550,
+          600
+        ],
+        "nominal_lengths_50kg": [
+          700,
+          750
+        ],
+        "min_inside_depth_overlay": "MET = NL + 3",
+        "min_inside_depth_inset": "MET = NL + 21",
+        "drawer_length": "SKL = NL - 10 (±0.5)",
+        "drawer_inner_width": "LWS = LWK - 42 (+0/-1.5)",
+        "drawer_side_thickness_min": 10,
+        "drawer_side_thickness_max": 16,
+        "drawer_inner_width_min_3D": 180,
+        "first_fixing_from_front_edge_KV": 37,
+        "screw_axis_above_carcase_bottom_min": 38,
+        "screw_axis_above_drawer_bottom_underside": 10,
+        "adjust_height": 3.5,
+        "adjust_side": 1.5,
+        "adjust_tilt": 4,
+        "adjust_depth": 3.5
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "Cabinet rail fixing positions, measured from position 0 = 37 from the carcase front edge KV (system row): NL 250-320: 0, 32, 128, 160; NL 350-450: 0, 32, 192, 224; NL 480-520: 0, 32, 256, 288; NL 550: 0, 32, 224, 288, 352; NL 600: 0, 32, 224, 352, 384. Euro screw Ø6.3x14 (Ø5 system hole) or chipboard screw Ø4x16, head Ø7."
+        },
+        {
+          "on": "side",
+          "d": null,
+          "depth": null,
+          "position": "Height: rail screw axis at min. 38 above the top face of the carcase bottom (lowest position)."
+        }
+      ],
+      "rules": [
+        "LWS = LWK - 42, tolerance +0/-1.5; drawer sides 10-16 thick.",
+        "Drawer length SKL = NL - 10 ±0.5.",
+        "MET = NL + 3 for an overlay drawer, NL + 21 for an inset drawer.",
+        "Minimum LWS 180 mm with the 3D front locking device.",
+        "Screw recommendations are for reference; the assembler must ensure the substrate is thick enough (Grass notice)."
+      ],
+      "sources": [
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/434/",
+          "what": "articles, NL list 250-600, adjustment ranges"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/435/",
+          "what": "LWS = LWK-42, side 10-16, SKL, MET table, fixing positions per NL group, 37 from KV, screws, min. 38 / 10 heights (vector layer 0435.svg + page image)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/436/",
+          "what": "50 kg NL 700/750"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/456/",
+          "what": "screw-head Ø7 notice"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Fixing positions per NL group were read by matching screw symbols in the drawing to ordinate dimension lines; the dimension values and 37/KV are high confidence, while the group-to-screw assignment is medium. The drawing also shows a rail hole at 28 from KV and a '4' at the front; their meaning is not stated in the text. Front locking device: screwed under the drawer bottom with chipboard screws Ø3.5 (head Ø7). The drawing labels 7.5, 19, 23, min. 55, 90 and min. 35 are not fully assigned, so they are not encoded as positions. No back notch or rear bore is shown on the planning page. Other labels on the front-view drawing (min. 7, min. 53, max. 13, min. 10) are not assigned."
+    },
+    {
+      "id": "grass-nova-pro-scala",
+      "name": "Grass Nova Pro Scala double-wall drawer on Nova Pro full-extension slide (S16/S19 or S18)",
+      "category": "slide",
+      "articles": [
+        "Slides 40 kg S16/S19 NL 270-600 (e.g. NL 500 F101108276); 70 kg S16/S19 NL 450-650 (e.g. NL 500 F101108288); H90 drawer sides e.g. NL 500 Stone F100103123"
+      ],
+      "values": {
+        "nominal_lengths_40kg": [
+          270,
+          300,
+          350,
+          400,
+          450,
+          500,
+          550,
+          600
+        ],
+        "nominal_lengths_70kg": [
+          450,
+          500,
+          550,
+          600,
+          650
+        ],
+        "drawer_sides_H90_NL": [
+          270,
+          300,
+          350,
+          400,
+          450,
+          500,
+          550,
+          600,
+          650
+        ],
+        "min_inside_depth": "MET = NL + 3",
+        "installation_width_EB_S16_S19": 29,
+        "installation_width_EB_S18": 30,
+        "bottom_width": "BB = LWK - 2 x EB",
+        "back_width": "RWB = BB",
+        "bottom_length": "BL = NL - 19",
+        "back_height_RWH": {
+          "H63": 57,
+          "H90": 84,
+          "H122": 116,
+          "H186": 185,
+          "H250": 249
+        },
+        "back_panel_thickness": 16,
+        "min_LWK": 261,
+        "first_fixing_from_front_edge_KV": 37,
+        "screw_axis_above_slide_underside": 42.5,
+        "slide_underside_above_carcase_bottom": 9.5,
+        "screw_axis_above_carcase_bottom_recommended_min": 49.5,
+        "screw_axis_above_carcase_bottom_tipmatic": 58,
+        "front_hook_dowel_d": 10,
+        "front_hook_dowel_depth": 12,
+        "front_hook_dowel_spacing_BLA": [
+          32,
+          50
+        ],
+        "front_hook_A_S16_S19": 21.5,
+        "front_hook_A_S18": 22.5
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "Rail fixing, from position 0 = 37 from KV. 40 kg: NL 270: 0, 32, 160, 192; NL 300-400: 0, 32, 224, 256; NL 450-600: 0, 32, 288, 320. 70 kg: NL 450-600: 0, 32, 288, 320; NL 650: 0, 32, 352, 384. Euro screw Ø6x13."
+        },
+        {
+          "on": "side",
+          "d": null,
+          "depth": null,
+          "position": "Height: screw axis 42.5 above the slide underside. The drawing shows the slide underside 9.5 above the carcase bottom (total 52). Recommended minimum 49.5; Tipmatic Soft-close 58."
+        },
+        {
+          "on": "front",
+          "d": 10,
+          "depth": 12,
+          "position": "Front installation hook: 2 dowel holes Ø10x12 on the back of the front, BLA = 32 or 50 apart vertically. Horizontal position A = 21.5 (S16/S19) or 22.5 (S18) from the carcase side inner face line (front overlay FAS measured outward from it). The lower hole is labelled 40.5 above the line from which the front overhang FST is measured."
+        },
+        {
+          "on": "panel_face",
+          "d": 10,
+          "depth": 13,
+          "position": "Back panel (16 mm, H90): Ø10x13 hole about 10 from the back panel end, 73 above its lower edge; Ø3.5x15 screw position 55 above the lower edge; back panel height 84."
+        }
+      ],
+      "rules": [
+        "BB = LWK - 2 x EB (EB 29 for S16/S19 slide, 30 for S18); RWB = BB; BL = NL - 19 (16 mm chipboard).",
+        "MET = NL + 3.",
+        "Minimum LWK 261 mm.",
+        "Front-bottom panel connector recommended for KB 800 mm and above.",
+        "No need to machine the bottom panel (Grass)."
+      ],
+      "sources": [
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/30/",
+          "what": "H90 sides NL list, installation hook BLA 32/50, notices"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/31/",
+          "what": "BB/RWB/BL formulas, EB 29/30, A 21.5/22.5, Ø10x12 / Ø10x13 / Ø3.5x15, 40.5, 84/73/55, 42.5/9.5/52 (vector layer 0031.svg)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/29/",
+          "what": "RWH 57 (H63)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/33/",
+          "what": "RWH 116 (H122)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/35/",
+          "what": "RWH 185 (H186)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/37/",
+          "what": "RWH 249 (H250)"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/44/",
+          "what": "slide articles, NL lists, installation width 29, for S16/S19"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/45/",
+          "what": "fixing positions per NL, 37/KV, MET = NL+3, 42.5/(9.5)/52*, min LWK 261"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Formulas, NL lists, EB, RWH and the fixing ordinates are read directly (high). The rail-group screw assignment and the front/back hole reference lines come from reading the drawing (medium). The drawing also shows dims 28 and 9.5 at KV that are not explained in the text. RWH values are per side height for the 16 mm back panel."
+    },
+    {
+      "id": "grass-vionaro-v8",
+      "name": "Grass Vionaro V8 slim drawer on Dynapro slides",
+      "category": "slide",
+      "articles": [
+        "H89 drawer sides F138140179.. (p.228); slides Dynapro 40/70 kg (p.238)"
+      ],
+      "values": {
+        "bottom_width": "BB = LWK - 22 (+0/-0.5)",
+        "back_width": "RWB = LWK - 32 (+0.5/-0)",
+        "bottom_length_16mm_back_on_bottom": "BL = NL - 11 (+0/-1)",
+        "bottom_length_8mm_back": "BL = NL - 19",
+        "bottom_length_16mm_back_continuous": "BL = NL - 27",
+        "back_height_RWH_16mm_back_H89": 59,
+        "back_height_RWH_8mm_back": {
+          "H72": 58,
+          "H89": 75,
+          "H121": 107,
+          "H200": 186,
+          "H250": 236
+        },
+        "min_back_width_plastic_lock": 148,
+        "min_back_width_zamak_lock": 180,
+        "min_inside_depth": "MET = NL + 3",
+        "min_inside_depth_inset_concealed": "MET = NL + 12",
+        "screw_axis_above_carcase_bottom_min": 38,
+        "clearance_above_screw_axis_min": {
+          "H72": 56,
+          "H89": 73,
+          "H121": 105,
+          "H200": 184,
+          "H250": 234
+        },
+        "front_holder_bore": "Ø5 x 13",
+        "front_holder_bore_spacing": 32,
+        "back_screw_end_distance": 47
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "Same Dynapro rail fixing pattern as grass-dynapro-eb21-40 (p.239 repeats it: position 0 = 37 from KV)."
+        },
+        {
+          "on": "front",
+          "d": 5,
+          "depth": 13,
+          "position": "Front holder: 2 bores Ø5x13 per side, 32 apart vertically (drawing also labels 51 and 12 for the lower bore and the lateral position; reference lines not verified)."
+        },
+        {
+          "on": "panel_face",
+          "d": null,
+          "depth": null,
+          "position": "Back panel screw joint through the bottom, Ø3.5x15 chipboard screws (16 mm back): 47 from each end; more screws equally spaced for KB ≥ 600 and KB ≥ 1000."
+        }
+      ],
+      "rules": [
+        "BB = LWK - 22; RWB = LWK - 32; BL = NL - 11 (16 mm back on bottom), NL - 19 (8 mm back), NL - 27 (16 mm continuous back).",
+        "MET = NL + 3; inset/concealed drawer NL + 12.",
+        "Minimum back panel width 148 (plastic front locking device) or 180 (Zamak)."
+      ],
+      "sources": [
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/229/",
+          "what": "H89 formulas, RWH 59, BL=NL-11, Ø5x13, 32, min. 38/73/111, back screw 47"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/239/",
+          "what": "rail fixing positions, MET NL+3 / NL+12"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/272/",
+          "what": "8 mm back panel dims per height, min clearances"
+        },
+        {
+          "url": "https://mediacenter.grass.eu/Katalog/EN/273/",
+          "what": "RWH per height, BL = NL-19 / NL-27"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "The V8 is the current Vionaro (the catalogue also has V13). Formulas are high confidence. The front bore position references are not resolved."
+    },
+    {
+      "id": "hafele-minifix-15",
+      "name": "Häfele Minifix 15 cam connector housing (zinc, without rim) + bolts",
+      "category": "connector",
+      "articles": [
+        "Housing 19 mm: 262.26.035 (bright), 262.26.535 (nickel), 262.26.335 (black), 262.26.135 (nickel col.)",
+        "Housing with rim 19 mm: 262.25.221 / 262.25.623 / 262.25.829",
+        "Bolt S100 B, Ø5 hole, thread 8: 262.27.020 (B24) / 262.28.020 (B34)",
+        "Bolt S200 B, Ø5 hole: 262.27.670 (B24) / 262.28.670 (B34)",
+        "Spreading bolt C100 Ø8: 262.09.202 (B24) / 262.09.302 (B34)"
+      ],
+      "values": {
+        "housing_d": 15,
+        "housing_depth_by_thickness": {
+          "12": 9.5,
+          "13": 11.0,
+          "15": 12.0,
+          "16": 12.5,
+          "18": 13.5,
+          "19": 14.0,
+          "23": 16.5,
+          "26": 18.0,
+          "29": 19.5
+        },
+        "housing_depth_19_with_rim": 14.5,
+        "housing_depth_tolerance_plus": 0.5,
+        "dim_A_by_thickness": {
+          "15": 7.5,
+          "16": 8.0,
+          "18": 9.0,
+          "19": 9.5
+        },
+        "B_options": [
+          24,
+          34
+        ],
+        "bolt_edge_hole_d": [
+          7,
+          8
+        ],
+        "bolt_hole_d_screw_in": 5,
+        "bolt_hole_d_S100_A": 3,
+        "bolt_hole_d_spreading": [
+          8,
+          10
+        ],
+        "bolt_thread_length_S100_B": [
+          8,
+          10,
+          11,
+          15
+        ],
+        "spreading_bolt_length_in_hole": 11.5
+      },
+      "drilling": [
+        {
+          "on": "panel_face",
+          "d": 15,
+          "depth": 14.0,
+          "position": "Housing in the face of the 19 mm panel (e.g. top/bottom): centre at B = 24 or 34 from the panel end (front edge of the joint), centred on the panel's mid-thickness (A = 9.5 for 19 mm = half the thickness). Depth 14.0 +0.5 (with-rim version 14.5)."
+        },
+        {
+          "on": "panel_edge",
+          "d": 8,
+          "depth": null,
+          "position": "Bolt hole in the end edge of the same panel, Ø7 or Ø8 depending on bolt, on the housing axis at mid-thickness."
+        },
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "Bolt in the side panel face: Ø5 hole for screw-in bolts (M100/M200/S100 B/S200), Ø3 for S100 A, Ø8 or Ø10 for C100 spreading bolts. Hole depth not stated; S100 B thread lengths 8/10/11/15, C100 spreading dowel 11.5."
+        }
+      ],
+      "rules": [
+        "A = half the panel thickness (stated on the C100 page: 'Distance A = 1/2 wood thickness').",
+        "Choose B 24 or 34 to match the bolt; the bolt sets the distance."
+      ],
+      "sources": [
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/14CFC294.pdf",
+          "what": "housing Ø15, depth X and dim A per thickness incl. 19 mm = 14.0+0.5 / A 9.5; B 24/34; bolt hole Ø7/Ø8 in edge"
+        },
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/14CFC295.pdf",
+          "what": "with-rim housing 19 mm depth 14.5"
+        },
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/14CFC297.pdf",
+          "what": "M100/M200 bolts for Ø5 holes"
+        },
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/14CFC298.pdf",
+          "what": "C100 spreading bolts Ø8/Ø10, A = 1/2 wood thickness"
+        },
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/14CFC299.pdf",
+          "what": "S100 bolts Ø3/Ø5, thread lengths"
+        },
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/14CFC301.pdf",
+          "what": "S200 bolts Ø5"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Häfele UK Components, Fixings and Consumables Directory 2014. The depth of the Ø5 bolt hole is not stated (null). Combination with dowels is not covered on these pages."
+    },
+    {
+      "id": "hafele-symo-3000-cam-lock",
+      "name": "Häfele Symo 3000 cam lock case (straight cam), for cylinder cores",
+      "category": "lock",
+      "articles": [
+        "235.88.600 / 235.88.610 (max. thread 17)",
+        "235.88.620 / 235.88.630 (max. thread 22)",
+        "cranked cam 235.88.820 / 235.88.830"
+      ],
+      "values": {
+        "hole_d": 19,
+        "hole_flats": 16,
+        "cam_length": 35,
+        "cam_width": 15,
+        "rosette_d": 29,
+        "max_thread_short": 17,
+        "max_thread_long": 22
+      },
+      "drilling": [
+        {
+          "on": "door",
+          "d": 19,
+          "depth": null,
+          "position": "Through hole Ø19 with two parallel flats 16 apart (anti-rotation). Distance from the door edge is not given; it depends on the cam (35 long straight cam)."
+        }
+      ],
+      "rules": [
+        "Panel thickness is limited by the thread: max. 17 (235.88.600/610) or 22 (235.88.620/630)."
+      ],
+      "sources": [
+        {
+          "url": "https://files.hafele.co.uk/CatalogFiles/www/23T8-20.pdf",
+          "what": "drilling diagram 19/16, cam 35x15, Ø29, thread 17/22, articles"
+        }
+      ],
+      "confidence": "high",
+      "notes": "The position rule from the edge was not found."
+    },
+    {
+      "id": "hafele-axilo-78",
+      "name": "Häfele AXILO 78 plinth foot (rectangular top section + foot/shaft)",
+      "category": "leg",
+      "articles": [
+        "Top section rectangular press-fit 637.76.335, screw fixing 637.76.333; triangular 637.38.340 / 637.38.341",
+        "Foot+shaft: 60 637.76.351, 80 .352, 100 .353, 125 .354, 150 .355, 180 .356, 200 .357"
+      ],
+      "values": {
+        "height_ranges": {
+          "60": [
+            53,
+            70
+          ],
+          "80": [
+            70,
+            100
+          ],
+          "100": [
+            90,
+            120
+          ],
+          "125": [
+            115,
+            145
+          ],
+          "150": [
+            140,
+            170
+          ],
+          "180": [
+            170,
+            198
+          ],
+          "200": [
+            190,
+            220
+          ]
+        },
+        "adjust_minus": 10,
+        "adjust_plus": 20,
+        "fixing_screw_d": 4.0,
+        "top_section_size": [
+          92,
+          79
+        ],
+        "top_section_height": 25,
+        "fixing_pattern": [
+          64,
+          64
+        ],
+        "press_fit_peg_d": 10.4,
+        "press_fit_peg_length": 11,
+        "foot_axis_to_hook_edge": 39.5,
+        "hook_projection": 5,
+        "load_per_foot_kg": 250,
+        "adjust_load_kg": 80
+      },
+      "drilling": [
+        {
+          "on": "panel_face",
+          "d": null,
+          "depth": null,
+          "position": "Underside of the bottom panel: rectangular top section with 4 fixing points on a 64 x 64 square. Screw version uses Ø4.0 screws; press-fit version has Ø10.4 x 11 pegs (bore Ø not stated). The foot axis is 39.5 from the plate edge carrying the 5 mm hook."
+        }
+      ],
+      "rules": [
+        "Adjustment -10/+20 using the AXILO adjusting tool.",
+        "Plinth panel clips from installation height 80 mm."
+      ],
+      "sources": [
+        {
+          "url": "https://files.hafele.co.uk/CatalogFiles/www/23T11-45.pdf",
+          "what": "articles, height ranges, Ø4.0 fixing, 92/79/64/39.5/5/Ø10.4/11/25 drawing"
+        },
+        {
+          "url": "https://files.hafele.co.uk/CatalogFiles/www/23T11-46.pdf",
+          "what": "plinth clips from 80 mm"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Correction to my first draft: the 60 mm shaft is 53-70 (not 53-80) and the 180 mm shaft is 170-198. The press-fit peg bore Ø and the setback from the carcase edges are not given."
+    },
+    {
+      "id": "hafele-shelf-support-5",
+      "name": "Häfele plug-in shelf supports for Ø5 holes (steel)",
+      "category": "shelf_support",
+      "articles": [
+        "E with stop: 282.38.502 (brass), 282.38.708 (nickel)",
+        "F with collar: 282.43.101 (bronzed), 282.43.905 (galvanized)"
+      ],
+      "values": {
+        "hole_d": 5,
+        "pin_length_in_hole": 8,
+        "E_total_length": 15,
+        "E_head_d": 7,
+        "E_load_kg_4pcs": 100,
+        "F_support_length": 8,
+        "F_collar": 0.5,
+        "F_load_kg_4pcs": 80
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "Ø5 system hole; the support pin enters 8 mm, so hole depth must be ≥ 8 (depth not stated)."
+        }
+      ],
+      "rules": [
+        "Load capacity is for 4 supports with evenly distributed load, tested to DIN EN 1727."
+      ],
+      "sources": [
+        {
+          "url": "https://files.hafele.co.uk/catalogfiles/www/105-85.pdf",
+          "what": "E and F drawings (15/8/Ø5/7; 8/8/0.5), loads, articles"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "This is an older Häfele UK catalogue page (105 series). The articles may have been superseded. The current shop page is behind a bot challenge and was not read."
+    }
+  ]
+}

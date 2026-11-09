@@ -1,6 +1,7 @@
 import blumClipTop from "../../library/hardware/blum-cliptop-110-inserta.json" with { type: "json" };
 import dowel from "../../library/hardware/dowel-8x35.json" with { type: "json" };
 import hinge from "../../library/hardware/generic-hinge-110.json" with { type: "json" };
+import grassTiomos from "../../library/hardware/grass-tiomos-110-screw.json" with { type: "json" };
 import hettichDuplo from "../../library/hardware/hettich-duplo-5.json" with { type: "json" };
 import hettichSensysFlash from "../../library/hardware/hettich-sensys-8645i-flash.json" with { type: "json" };
 import hettichSensysScrew from "../../library/hardware/hettich-sensys-8645i-screw.json" with { type: "json" };
@@ -21,6 +22,7 @@ const RAW: readonly unknown[] = [
   hettichSensysFlash,
   hettichDuplo,
   blumClipTop,
+  grassTiomos,
 ];
 
 export const FACTORY_HARDWARE: readonly HardwareItem[] = RAW.map((raw) => HardwareItem.parse(raw));

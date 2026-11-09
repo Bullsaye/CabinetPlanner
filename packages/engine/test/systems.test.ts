@@ -281,6 +281,13 @@ describe("brand hinges (values from manufacturer sources, see item files)", () =
     ]);
   });
 
+  it("Grass Tiomos: TA = A − 15 + plate height (H2)", () => {
+    const r = buildOne({ options: { "hardware.hinge": "grass-tiomos-110-screw" } });
+    expect(r.diagnostics).toEqual([]);
+    // A = 17.5, H = 2 → TA = 4.5 → cup centre 22.
+    expect(bores(partsByCode(r).DO1!).map((b) => b.v)).toEqual([22, 22]);
+  });
+
   it("rejects a door the hinge cannot reach", () => {
     const r = buildOne({ vars: { front_gap: 14 }, options: { "hardware.hinge": "blum-cliptop-110-inserta" } });
     expect(r.diagnostics).toContainEqual(
