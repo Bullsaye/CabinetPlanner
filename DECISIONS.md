@@ -427,3 +427,16 @@ Two shop settings, because they are used for different things:
   face t1. A cutout that does not fit warns.
 - Worktops and plinth panels have part sheets and DXF like cabinet parts;
   the project DXF export includes them.
+
+### D32 · 2026-11-09 · Corner radii on pockets
+
+- A pocket may carry a corner radius `r` in its face plane (worktop
+  cutouts: `cutout_r`, factory 10 mm, 0 = square). The outline stays the
+  bounding rectangle; dimensions refer to it.
+- Part sheets draw the rounded rectangle and add `R<r>` to the legend
+  entry. DXF: the pocket polyline gets eight vertices, quarter arcs as
+  bulges (tan 22.5° = 0.414214, written with six decimals whatever the
+  profile's coordinate decimals), counter-clockwise.
+- A radius over half the cutout's smaller side is an error
+  (`worktop_cutout_radius`); the cutout is then left out.
+- Not yet: radii in the 3D view; CAM tool radius checks.

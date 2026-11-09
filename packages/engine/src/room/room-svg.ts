@@ -147,7 +147,24 @@ export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText
     o.push(poly(sh, "rm-top", wt.outline));
     const w = room.walls.find((x) => x.id === wt.wall)!;
     const at = (u: number, v: number): [number, number] => [w.start[0] + w.d[0] * (wt.x0 + u) + w.n[0] * v, w.start[1] + w.d[1] * (wt.x0 + u) + w.n[1] * v];
-    for (const c of wt.cutouts) o.push(poly(sh, "rm-cut", [at(c.u0, c.v0), at(c.u1, c.v0), at(c.u1, c.v1), at(c.u0, c.v1)]));
+    for (const c of wt.cutouts) {
+      if (!c.r) {
+        o.push(poly(sh, "rm-cut", [at(c.u0, c.v0), at(c.u1, c.v0), at(c.u1, c.v1), at(c.u0, c.v1)]));
+        continue;
+      }
+      // Rounded corners: lines between the corner tangent points, quarter arcs at the corners.
+      const r = c.r;
+      const pts: [number, number][] = [
+        at(c.u0 + r, c.v0), at(c.u1 - r, c.v0), at(c.u1, c.v0 + r), at(c.u1, c.v1 - r),
+        at(c.u1 - r, c.v1), at(c.u0 + r, c.v1), at(c.u0, c.v1 - r), at(c.u0, c.v0 + r),
+      ].map(([x, y]) => sh.P(x, y));
+      const rr = r3(r / sh.den);
+      // The outline turns with d × n in the plan; paper flips Y, and SVG's sweep flag 1 is clockwise on paper.
+      const sweep = w.d[0] * w.n[1] - w.d[1] * w.n[0] > 0 ? 0 : 1;
+      const arc = (p: [number, number]): string => `A ${rr} ${rr} 0 0 ${sweep} ${p[0]} ${p[1]}`;
+      const [p0, p1, p2, p3, p4, p5, p6, p7] = pts;
+      o.push(`<path class="rm-cut" d="M ${p0![0]} ${p0![1]} L ${p1![0]} ${p1![1]} ${arc(p2!)} L ${p3![0]} ${p3![1]} ${arc(p4!)} L ${p5![0]} ${p5![1]} ${arc(p6!)} L ${p7![0]} ${p7![1]} ${arc(p0!)} Z"/>`);
+    }
   }
   // Cabinets: wall units dashed over floor units.
   const order = [...room.placements].sort((a, b) => (a.kind === "wall" ? 1 : 0) - (b.kind === "wall" ? 1 : 0));

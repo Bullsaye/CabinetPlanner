@@ -62,7 +62,7 @@ export const DRAWING_CSS = `
 
 type Prim =
   | { t: "line"; x1: number; y1: number; x2: number; y2: number; cls: string }
-  | { t: "rect"; x: number; y: number; w: number; h: number; cls: string }
+  | { t: "rect"; x: number; y: number; w: number; h: number; cls: string; rx?: number }
   | { t: "circle"; cx: number; cy: number; r: number; cls: string }
   | { t: "poly"; pts: [number, number][]; cls: string }
   | { t: "text"; x: number; y: number; s: string; cls: string; size: number; anchor: "start" | "middle" | "end"; rot?: -90 };
@@ -454,7 +454,7 @@ function emit(p: Prim, X: (x: number) => number, Y: (y: number) => number): stri
     case "line":
       return `<line class="${p.cls}" x1="${X(p.x1)}" y1="${Y(p.y1)}" x2="${X(p.x2)}" y2="${Y(p.y2)}"/>`;
     case "rect":
-      return `<rect class="${p.cls}" x="${X(p.x)}" y="${Y(p.y + p.h)}" width="${r3(p.w)}" height="${r3(p.h)}"/>`;
+      return `<rect class="${p.cls}" x="${X(p.x)}" y="${Y(p.y + p.h)}" width="${r3(p.w)}" height="${r3(p.h)}"${p.rx ? ` rx="${r3(p.rx)}"` : ""}/>`;
     case "circle":
       return `<circle class="${p.cls}" cx="${X(p.cx)}" cy="${Y(p.cy)}" r="${r3(p.r)}"/>`;
     case "poly":
@@ -472,7 +472,7 @@ function emit(p: Prim, X: (x: number) => number, Y: (y: number) => number): stri
 function drawFeature(f: DFeature, s: number, centre: boolean, add: (p: Prim) => void): void {
   if (f.op === "pocket" && f.rect) {
     const cls = f.where === "far" ? "pd-pocket-far" : "pd-pocket";
-    add({ t: "rect", x: f.rect.x0 * s, y: f.rect.y0 * s, w: (f.rect.x1 - f.rect.x0) * s, h: (f.rect.y1 - f.rect.y0) * s, cls });
+    add({ t: "rect", x: f.rect.x0 * s, y: f.rect.y0 * s, w: (f.rect.x1 - f.rect.x0) * s, h: (f.rect.y1 - f.rect.y0) * s, cls, ...(f.r ? { rx: f.r * s } : {}) });
     return;
   }
   const r = (f.d / 2) * s;
@@ -734,7 +734,8 @@ function legendRows(groups: FeatureGroup[], view: PartView, text: DrawingText, n
           : `${g.features.length}× Ø${num(g.d)} × ${num(g.depth)}${g.split ? ` (${t("drawing.split")})` : ""}`;
       } else {
         const r = g.features[0]!.rect!;
-        spec = `${t("drawing.pocket")} ${num(r.x1 - r.x0)} × ${num(r.y1 - r.y0)} × ${num(g.depth)}`;
+        const rad = g.features[0]!.r;
+        spec = `${t("drawing.pocket")} ${num(r.x1 - r.x0)} × ${num(r.y1 - r.y0)} × ${num(g.depth)}${rad ? ` R${num(rad)}` : ""}`;
       }
       const pats = g.patterns.map((p) =>
         t(p.axis === "x" ? "drawing.pattern.row" : "drawing.pattern.col", {

@@ -94,7 +94,7 @@ export interface CabinetPlacement {
   /** Carcase depth without fronts. */
   carcaseD: number;
   /** Sink or hob cutout in the worktop above (D31). */
-  cutout?: { kind: "sink" | "hob"; w: number; d: number; front: number; offset: number };
+  cutout?: { kind: "sink" | "hob"; w: number; d: number; front: number; offset: number; r: number };
 }
 
 /** Plinth panel along a run of floor units (D31). */
@@ -125,7 +125,7 @@ export interface WorktopLayout {
   /** Plan outline: rear-left, rear-right, front-right, front-left. */
   outline: Vec2[];
   /** Sink/hob cutouts: u along the wall from x0, v from the wall. */
-  cutouts: { kind: string; u0: number; u1: number; v0: number; v1: number }[];
+  cutouts: { kind: string; u0: number; u1: number; v0: number; v1: number; r: number }[];
 }
 
 /** Worktop and plinth settings, resolved from the project/shop layers. */
@@ -259,7 +259,7 @@ export function layoutRoom(
       wall: wall.id,
       carcaseD: v("D"),
       ...(kind === "base" && (cut === "sink" || cut === "hob")
-        ? { cutout: { kind: cut, w: v("cutout_w"), d: v("cutout_d"), front: v("cutout_front"), offset: v("cutout_offset") } }
+        ? { cutout: { kind: cut, w: v("cutout_w"), d: v("cutout_d"), front: v("cutout_front"), offset: v("cutout_offset"), r: v("cutout_r") } }
         : {}),
       x: roundMm(x),
       origin: [roundMm(wall.start[0] + wall.d[0] * x), roundMm(wall.start[1] + wall.d[1] * x)],
@@ -395,6 +395,10 @@ function layoutWorktops(
         const u0 = q.x + q.W / 2 + c.offset - c.w / 2 - x0;
         const v1 = s.depth - c.front;
         const v0 = v1 - c.d;
+        if (c.r > Math.min(c.w, c.d) / 2) {
+          diagnostics.push({ severity: "error", code: "worktop_cutout_radius", params: { r: c.r, max: Math.min(c.w, c.d) / 2 }, cabinet: q.cabinet });
+          continue;
+        }
         if (u0 < 0 || u0 + c.w > x1 - x0 || v0 < 0) {
           diagnostics.push({ severity: "warning", code: "worktop_cutout_outside", params: { kind: c.kind, worktop: id }, cabinet: q.cabinet });
           continue;
@@ -408,13 +412,14 @@ function layoutWorktops(
           v1: roundMm(v1),
           w0: 0,
           w1: s.thickness,
+          ...(c.r > 0 ? { r: c.r } : {}),
           sources: [{ kind: "hardware", ref: `cutout:${c.kind}:${q.cabinet}` }],
         });
       }
       cutouts.set(id, ops);
       worktops[worktops.length - 1]!.cutouts = ops.map((o) => {
         const q = o as Extract<Operation, { kind: "pocket" }>;
-        return { kind: q.sources[0]!.ref.split(":")[1]!, u0: q.u0, u1: q.u1, v0: q.v0, v1: q.v1 };
+        return { kind: q.sources[0]!.ref.split(":")[1]!, u0: q.u0, u1: q.u1, v0: q.v0, v1: q.v1, r: q.r ?? 0 };
       });
     }
   }

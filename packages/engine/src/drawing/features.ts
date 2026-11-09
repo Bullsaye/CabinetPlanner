@@ -17,6 +17,8 @@ export interface DFeature {
   depth: number;
   /** Pockets: rectangle in drawing coordinates. */
   rect?: { x0: number; y0: number; x1: number; y1: number };
+  /** Pockets: corner radius. */
+  r?: number;
   sources: OpSource[];
   through?: boolean;
   split?: boolean;
@@ -111,6 +113,7 @@ export function extractFeatures(view: PartView): DFeature[] {
         d: 0,
         depth: r2(ext),
         rect,
+        ...(op.r ? { r: op.r } : {}),
         sources: op.sources,
       });
     }
@@ -159,7 +162,7 @@ const sourceKey = (s: OpSource[]): string => s.map((x) => `${x.kind}:${x.ref}`).
 export function groupFeatures(features: DFeature[], part: Part, style: ResolvedStyle): FeatureGroup[] {
   const groups = new Map<string, FeatureGroup>();
   for (const f of features) {
-    const key = [sourceKey(f.sources), f.op, f.where, f.side ?? "", f.d, f.depth, f.through ? "T" : "", f.split ? "S" : ""].join("|");
+    const key = [sourceKey(f.sources), f.op, f.where, f.side ?? "", f.d, f.depth, f.through ? "T" : "", f.split ? "S" : "", f.r ?? ""].join("|");
     let g = groups.get(key);
     if (!g) {
       g = {

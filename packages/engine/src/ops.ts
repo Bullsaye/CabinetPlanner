@@ -44,6 +44,8 @@ export interface Pocket {
   v1: number;
   w0: number;
   w1: number;
+  /** Corner radius in the face plane (cutouts); square corners when absent. */
+  r?: number;
   sources: OpSource[];
 }
 

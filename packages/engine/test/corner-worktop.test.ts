@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProject, cutlistRows, loadProject } from "../src/index.ts";
+import { FACTORY_STYLES, buildProject, cutlistRows, drawPartSheets, floorPlanSvg, loadProject, partDxf, resolveStyle, stackSheets } from "../src/index.ts";
 
 const room = {
   walls: [
@@ -116,5 +116,27 @@ describe("plinths and cutouts (D31)", () => {
       [2490 - 1200, 97, 16, "mel-white-16"],
       [p.T01!.x + 600 - 510, 97, 16, "mel-white-16"],
     ]);
+  });
+});
+
+describe("cutout corner radius (D32)", () => {
+  const mk = (vars: Record<string, number>) =>
+    build([{ id: "B01", type: "box", vars: { W: 800, ...vars }, options: { worktop_cutout: "sink" }, place: { wall: "A", x: 1000 } }]);
+
+  it("carries the radius into the pocket, the part sheet and the DXF as arcs", () => {
+    const r = mk({ cutout_r: 12 });
+    const top = r.parts.find((q) => q.role === "worktop")!;
+    expect(top.operations[0]).toMatchObject({ kind: "pocket", r: 12 });
+    const svg = stackSheets(drawPartSheets({ part: top, cabinet: { W: top.box.dx, H: top.box.dy, D: top.box.dz }, style: resolveStyle(FACTORY_STYLES[0]!.id, FACTORY_STYLES), text: { t: (k) => k } }));
+    expect(svg).toMatch(/class="pd-pocket"[^>]* rx="/);
+    expect(svg).toContain("R12");
+    const dxf = partDxf(top, { W: top.box.dx, H: top.box.dy, D: top.box.dz })[0]!.content;
+    expect(dxf.match(/\r\n42\r\n0\.414214\r\n/g)).toHaveLength(4);
+    expect(floorPlanSvg(r.room!, "R", { t: (k) => k })).toMatch(/<path class="rm-cut" d="M [^"]* A /);
+  });
+
+  it("keeps square corners at radius 0 and rejects a radius over half the cutout", () => {
+    expect(mk({ cutout_r: 0 }).parts.find((q) => q.role === "worktop")!.operations[0]).not.toHaveProperty("r");
+    expect(mk({ cutout_r: 100, cutout_d: 150 }).diagnostics.map((d) => d.code)).toContain("worktop_cutout_radius");
   });
 });

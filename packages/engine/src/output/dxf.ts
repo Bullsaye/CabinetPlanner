@@ -126,7 +126,8 @@ function writeDxf(
   const vals = (o: Record<string, number | string>): Record<string, string> =>
     Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === "number" ? f(v) : v]));
 
-  const poly = (layer: string, pts: [number, number][], thickness?: number): void => {
+  /** Closed polyline; a third value is the bulge of the segment to the next vertex (tan of a quarter of the arc angle). */
+  const poly = (layer: string, pts: ([number, number] | [number, number, number])[], thickness?: number): void => {
     layers.add(layer);
     e(0, "POLYLINE");
     e(8, layer);
@@ -136,12 +137,13 @@ function writeDxf(
     e(30, 0);
     if (thickness !== undefined && profile.thickness) e(39, -thickness);
     e(70, "1");
-    for (const [x, y] of pts) {
+    for (const [x, y, bulge] of pts) {
       e(0, "VERTEX");
       e(8, layer);
       e(10, x);
       e(20, y);
       e(30, 0);
+      if (bulge) e(42, bulge.toFixed(6));
     }
     e(0, "SEQEND");
     e(8, layer);
@@ -159,12 +161,28 @@ function writeDxf(
     if (ft.op === "pocket" && ft.rect) {
       const layer = layerName(L.pocket, vals({ depth: ft.depth, t }));
       const r = ft.rect;
-      poly(layer, [
-        [r.x0, r.y0],
-        [r.x1, r.y0],
-        [r.x1, r.y1],
-        [r.x0, r.y1],
-      ], ft.depth);
+      const rad = Math.min(ft.r ?? 0, (r.x1 - r.x0) / 2, (r.y1 - r.y0) / 2);
+      if (rad > 0) {
+        // Counter-clockwise; quarter arcs at the corners (bulge tan(22.5°)).
+        const b = Math.tan(Math.PI / 8);
+        poly(layer, [
+          [r.x0 + rad, r.y0],
+          [r.x1 - rad, r.y0, b],
+          [r.x1, r.y0 + rad],
+          [r.x1, r.y1 - rad, b],
+          [r.x1 - rad, r.y1],
+          [r.x0 + rad, r.y1, b],
+          [r.x0, r.y1 - rad],
+          [r.x0, r.y0 + rad, b],
+        ], ft.depth);
+      } else {
+        poly(layer, [
+          [r.x0, r.y0],
+          [r.x1, r.y0],
+          [r.x1, r.y1],
+          [r.x0, r.y1],
+        ], ft.depth);
+      }
       continue;
     }
     if (ft.where === "face") {
