@@ -16,7 +16,7 @@
   const res = $derived(store.cabinet?.resolved);
   const lib = $derived(store.result?.library);
 
-  const GROUPS = ["dimensions", "fronts", "shelves", "drawers", "construction", "back", "board", "system", "hardware", "machining"] as const;
+  const GROUPS = ["dimensions", "room", "fronts", "shelves", "drawers", "construction", "back", "board", "system", "hardware", "machining"] as const;
   const OPEN = new Set(["dimensions", "fronts", "shelves"]);
   const OPTION_GROUP: Record<string, string> = { materials: "materials", edges: "edges" };
 

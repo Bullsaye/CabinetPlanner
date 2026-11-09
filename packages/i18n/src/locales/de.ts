@@ -6,6 +6,7 @@ import type { MessageKey } from "./en.ts";
  */
 export const de: Record<MessageKey, string> = {
   "group.dimensions": "Abmessungen",
+  "group.room": "Raum, Arbeitsplatte & Sockel",
   "group.board": "Plattenstärken",
   "group.construction": "Konstruktion",
   "group.back": "Rückwand",

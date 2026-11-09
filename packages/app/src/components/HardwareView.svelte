@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { localName } from "@cabinet-planner/engine";
+  import { formatNumber, localName } from "@cabinet-planner/engine";
   import { store } from "../lib/store.svelte.ts";
 
   const t = $derived(store.tr.t);
   const lib = $derived(store.result?.library);
   const totals = $derived.by(() => {
-    const m = new Map<string, { qty: number; unit: string }>();
+    const m = new Map<string, { qty: number; unit: string; lengths: number[] }>();
     for (const c of store.result?.cabinets ?? []) {
       for (const h of c.hardware) {
-        const x = m.get(h.item) ?? { qty: 0, unit: h.unit };
+        const x = m.get(h.item) ?? { qty: 0, unit: h.unit, lengths: [] };
         x.qty += h.qty;
+        x.lengths.push(...(h.lengths ?? []));
         m.set(h.item, x);
       }
     }
@@ -28,7 +29,10 @@
         {@const h = lib?.hardware.get(id)}
         <tr>
           <td class="n">{x.qty} {unit(x.unit)}</td>
-          <td>{h ? localName(h.name, store.tr.locale) : id}</td>
+          <td>
+            {h ? localName(h.name, store.tr.locale) : id}
+            {#if x.lengths.length}<span class="mono muted"> · {x.lengths.map((l) => formatNumber(l)).join(", ")} mm</span>{/if}
+          </td>
           <td class="mono">{h?.articles.map((a) => a.code).join(", ") ?? ""}</td>
         </tr>
       {/each}

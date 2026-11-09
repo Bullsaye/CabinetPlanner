@@ -16,6 +16,7 @@
 export const en = {
   // Groups
   "group.dimensions": "Dimensions",
+  "group.room": "Room, worktop & plinth",
   "group.board": "Board",
   "group.construction": "Construction",
   "group.back": "Back panel",

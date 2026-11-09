@@ -9,6 +9,7 @@ import type { VarInput } from "./graph.ts";
 
 export type VarGroup =
   | "dimensions"
+  | "room"
   | "board"
   | "construction"
   | "system"
@@ -50,19 +51,19 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "wall_d", group: "dimensions", unit: "mm", factory: 320, min: 100, max: 800, step: 10 }),
   v({ name: "wall_bottom", group: "dimensions", unit: "mm", factory: 1450, min: 0, max: 2500, step: 10 }),
   v({ name: "tall_h", group: "dimensions", unit: "mm", factory: 2100, min: 300, max: 2800, step: 10 }),
-  v({ name: "room_height", group: "dimensions", unit: "mm", factory: 2500, min: 1800, max: 6000, step: 10 }),
-  v({ name: "worktop_t", group: "dimensions", unit: "mm", factory: "mat_worktop_t", min: 10, max: 100 }),
-  v({ name: "worktop_overhang_end", group: "dimensions", unit: "mm", factory: 20, min: 0, max: 600, step: 5 }),
-  v({ name: "plinth_setback", group: "dimensions", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
-  v({ name: "plinth_floor_gap", group: "dimensions", unit: "mm", factory: 3, min: 0, max: 30, step: 0.5 }),
-  v({ name: "cutout_w", group: "dimensions", unit: "mm", factory: 560, min: 50, max: 2000, step: 10 }),
-  v({ name: "cutout_d", group: "dimensions", unit: "mm", factory: 490, min: 50, max: 1000, step: 10 }),
-  v({ name: "cutout_front", group: "dimensions", unit: "mm", factory: 50, min: 0, max: 500, step: 5 }),
-  v({ name: "cutout_offset", group: "dimensions", unit: "mm", factory: 0, min: -1000, max: 1000, step: 5 }),
-  v({ name: "oven_h", group: "dimensions", unit: "mm", factory: 600, min: 300, max: 1200, step: 1 }),
-  v({ name: "fridge_h", group: "dimensions", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
-  v({ name: "wardrobe_h", group: "dimensions", unit: "mm", factory: "tall_h", min: 500, max: 2800, step: 10 }),
-  v({ name: "wardrobe_d", group: "dimensions", unit: "mm", factory: 580, min: 300, max: 900, step: 10 }),
+  v({ name: "room_height", group: "room", unit: "mm", factory: 2500, min: 1800, max: 6000, step: 10 }),
+  v({ name: "worktop_t", group: "room", unit: "mm", factory: "mat_worktop_t", min: 10, max: 100 }),
+  v({ name: "worktop_overhang_end", group: "room", unit: "mm", factory: 20, min: 0, max: 600, step: 5 }),
+  v({ name: "plinth_setback", group: "room", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
+  v({ name: "plinth_floor_gap", group: "room", unit: "mm", factory: 3, min: 0, max: 30, step: 0.5 }),
+  v({ name: "cutout_w", group: "room", unit: "mm", factory: 560, min: 50, max: 2000, step: 10 }),
+  v({ name: "cutout_d", group: "room", unit: "mm", factory: 490, min: 50, max: 1000, step: 10 }),
+  v({ name: "cutout_front", group: "room", unit: "mm", factory: 50, min: 0, max: 500, step: 5 }),
+  v({ name: "cutout_offset", group: "room", unit: "mm", factory: 0, min: -1000, max: 1000, step: 5 }),
+  v({ name: "oven_h", group: "room", unit: "mm", factory: 600, min: 300, max: 1200, step: 1 }),
+  v({ name: "fridge_h", group: "room", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
+  v({ name: "wardrobe_h", group: "room", unit: "mm", factory: "tall_h", min: 500, max: 2800, step: 10 }),
+  v({ name: "wardrobe_d", group: "room", unit: "mm", factory: 580, min: 300, max: 900, step: 10 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),
@@ -221,7 +222,7 @@ export const OPTIONS: readonly OptionDef[] = [
   /** Corner unit: which side is blind (hidden behind the perpendicular run). */
   { key: "corner", group: "fronts", kind: { type: "enum", values: ["none", "blind_left", "blind_right"] }, factory: "none" },
   /** Cutout in the worktop above a base unit (sink or hob), sized by cutout_* variables. */
-  { key: "worktop_cutout", group: "construction", kind: { type: "enum", values: ["none", "sink", "hob"] }, factory: "none" },
+  { key: "worktop_cutout", group: "room", kind: { type: "enum", values: ["none", "sink", "hob"] }, factory: "none" },
   /** Wardrobe interior: hat shelf and hanging rail in all, the first or the last section; else shelves. */
   {
     key: "interior",
