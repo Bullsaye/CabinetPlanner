@@ -12,6 +12,9 @@
   "dependencies": {
     "@cabinet-planner/engine": "workspace:*",
     "@cabinet-planner/i18n": "workspace:*",
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-fs": "^2.7.1",
     "three": "^0.187.0"
   },
   "devDependencies": {

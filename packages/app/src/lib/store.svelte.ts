@@ -11,15 +11,25 @@ import {
   type Shop,
 } from "@cabinet-planner/engine";
 import { createTranslator, matchLocale, type Translator } from "@cabinet-planner/i18n";
+import { copyText, kv, saveFile, type SaveResult } from "./platform.ts";
 import exampleProject from "../../../../examples/kitchen-basic.project.json";
 import exampleShop from "../../../../examples/shop.json";
 
 /** Raw, editable documents (JSON as stored in files). */
 type Doc = Record<string, any>;
 
+// Pre-1.0 single-project storage, migrated into the project list on first start.
 const KEY_PROJECT = "cabinet-planner.project.v1";
 const KEY_SHOP = "cabinet-planner.shop.v1";
 const KEY_UI = "cabinet-planner.ui.v1";
+
+/** Entry of the local project list. */
+export interface ProjectMeta {
+  id: string;
+  name: string;
+  updated: number;
+  cabinets: number;
+}
 
 function read(key: string): Doc | undefined {
   try {
@@ -29,17 +39,32 @@ function read(key: string): Doc | undefined {
     return undefined;
   }
 }
-export function write(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable: the app still works for this session */
-  }
+const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+const newId = (): string =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/** A new, empty project with a rectangular room. */
+export function blankProject(name: string): Doc {
+  return {
+    schemaVersion: 1,
+    name,
+    revision: 1,
+    vars: {},
+    room: {
+      walls: [
+        { id: "A", length: 3600 },
+        { id: "B", length: 2400 },
+        { id: "C", length: 3600 },
+        { id: "D", length: 2400 },
+      ],
+      openings: [],
+    },
+    cabinets: [],
+  };
 }
 
-const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
-
-export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware";
+export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware" | "library";
+export type Screen = "home" | "project";
 export type Layer = "cabinet" | "project" | "shop";
 
 export interface BuildState {
@@ -59,8 +84,13 @@ function build(project: Doc, shop: Doc): BuildState {
 }
 
 class Store {
-  project = $state<Doc>(read(KEY_PROJECT) ?? clone(exampleProject));
-  shop = $state<Doc>(read(KEY_SHOP) ?? clone(exampleShop));
+  project = $state<Doc>(clone(exampleProject));
+  shop = $state<Doc>(clone(exampleShop));
+  /** Local project list, newest first. */
+  projects = $state<ProjectMeta[]>([]);
+  projectId = $state<string | null>(null);
+  screen = $state<Screen>("home");
+  ready = $state(false);
   ui = $state({
     lang: matchLocale(typeof navigator !== "undefined" ? navigator.language : "en"),
     tab: "view" as Tab,
@@ -71,6 +101,7 @@ class Store {
     ops: true,
     fronts: true,
     style: "machine",
+    panel: null as null | "list" | "inspector",
     ...(read(KEY_UI) ?? {}),
   });
 
@@ -107,17 +138,173 @@ class Store {
     return this.shop.defaults;
   }
 
-  save(): void {
-    write(KEY_PROJECT, $state.snapshot(this.project));
-    write(KEY_SHOP, $state.snapshot(this.shop));
-    write(KEY_UI, { lang: this.ui.lang, style: this.ui.style, ops: this.ui.ops });
+  // --- Persistence --------------------------------------------------------
+
+  /** Loads the shop, preferences and project list; reopens the last project. */
+  async boot(): Promise<void> {
+    const db = await kv();
+    // One-time migration of the single-project storage.
+    let index = (await db.get<ProjectMeta[]>("index")) ?? [];
+    const legacy = read(KEY_PROJECT);
+    if (!index.length && legacy) {
+      const id = newId();
+      await db.set(`project:${id}`, legacy);
+      index = [{ id, name: legacy.name ?? "Project", updated: Date.now(), cabinets: legacy.cabinets?.length ?? 0 }];
+      await db.set("index", index);
+      const legacyShop = read(KEY_SHOP);
+      if (legacyShop) await db.set("shop", legacyShop);
+      await db.set("last", id);
+      try {
+        localStorage.removeItem(KEY_PROJECT);
+        localStorage.removeItem(KEY_SHOP);
+      } catch {
+        /* ignore */
+      }
+    }
+    // First start: the example kitchen as a project to look at.
+    if (!index.length) {
+      const id = newId();
+      await db.set(`project:${id}`, clone(exampleProject));
+      index = [{ id, name: exampleProject.name, updated: Date.now(), cabinets: exampleProject.cabinets.length }];
+      await db.set("index", index);
+      await db.set("last", id);
+    }
+    this.shop = (await db.get<Doc>("shop")) ?? clone(exampleShop);
+    const prefs = await db.get<Record<string, unknown>>("ui");
+    if (prefs) Object.assign(this.ui, prefs);
+    this.projects = index.sort((a, b) => b.updated - a.updated);
+    const last = await db.get<string>("last");
+    if (last && index.some((p) => p.id === last)) await this.openProject(last);
+    this.ready = true;
   }
 
-  resetToExample(): void {
-    this.project = clone(exampleProject);
-    this.shop = clone(exampleShop);
-    this.ui.selected = "B01";
+  /** Writes the open project, the shop and preferences (called on every change, debounced). */
+  async persist(): Promise<void> {
+    if (!this.ready) return;
+    const db = await kv();
+    await db.set("shop", $state.snapshot(this.shop));
+    await db.set("ui", { lang: this.ui.lang, style: this.ui.style, ops: this.ui.ops, fronts: this.ui.fronts });
+    if (!this.projectId) return;
+    const doc = $state.snapshot(this.project);
+    await db.set(`project:${this.projectId}`, doc);
+    const meta: ProjectMeta = { id: this.projectId, name: doc.name ?? "", updated: Date.now(), cabinets: doc.cabinets?.length ?? 0 };
+    this.projects = [meta, ...this.projects.filter((p) => p.id !== meta.id)];
+    await db.set("index", $state.snapshot(this.projects));
+  }
+
+  async openProject(id: string): Promise<void> {
+    const db = await kv();
+    const doc = await db.get<Doc>(`project:${id}`);
+    if (!doc) return;
+    this.project = doc;
+    this.projectId = id;
+    this.history = [JSON.stringify(doc)];
+    this.historyAt = 0;
+    this.ui.selected = doc.cabinets?.[0]?.id ?? null;
     this.ui.part = null;
+    this.screen = "project";
+    await db.set("last", id);
+  }
+
+  /** Adds a project document to the list and opens it. */
+  async addProject(doc: Doc): Promise<string> {
+    const id = newId();
+    const db = await kv();
+    await db.set(`project:${id}`, doc);
+    this.projects = [{ id, name: doc.name ?? "", updated: Date.now(), cabinets: doc.cabinets?.length ?? 0 }, ...this.projects];
+    await db.set("index", $state.snapshot(this.projects));
+    await this.openProject(id);
+    return id;
+  }
+
+  async duplicateProject(id: string, suffix: string): Promise<void> {
+    const doc = await (await kv()).get<Doc>(`project:${id}`);
+    if (doc) await this.addProject({ ...doc, name: `${doc.name ?? ""} ${suffix}`.trim() });
+  }
+
+  async renameProject(id: string, name: string): Promise<void> {
+    const db = await kv();
+    const doc = id === this.projectId ? this.project : await db.get<Doc>(`project:${id}`);
+    if (!doc) return;
+    doc.name = name;
+    if (id !== this.projectId) await db.set(`project:${id}`, doc);
+    this.projects = this.projects.map((p) => (p.id === id ? { ...p, name } : p));
+    await db.set("index", $state.snapshot(this.projects));
+    if (id === this.projectId) await this.persist();
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    const db = await kv();
+    await db.del(`project:${id}`);
+    this.projects = this.projects.filter((p) => p.id !== id);
+    await db.set("index", $state.snapshot(this.projects));
+    if (id === this.projectId) {
+      this.projectId = null;
+      this.screen = "home";
+      await db.del("last");
+    }
+  }
+
+  async projectDoc(id: string): Promise<Doc | undefined> {
+    return id === this.projectId ? $state.snapshot(this.project) : (await kv()).get<Doc>(`project:${id}`);
+  }
+
+  closeProject(): void {
+    void this.persist();
+    this.screen = "home";
+  }
+
+  resetShop(): void {
+    this.shop = clone(exampleShop);
+  }
+
+  // --- Undo / redo ---------------------------------------------------------
+  // Snapshots of the project document; edits in quick succession (typing)
+  // are grouped by the caller's debounce.
+
+  history: string[] = [];
+  historyAt = 0;
+  historyVersion = $state(0);
+  private restoring = false;
+
+  /** Records the current project state if it differs from the last snapshot. */
+  record(): void {
+    if (this.restoring) {
+      this.restoring = false;
+      return;
+    }
+    const snap = JSON.stringify($state.snapshot(this.project));
+    if (snap === this.history[this.historyAt]) return;
+    this.history = [...this.history.slice(0, this.historyAt + 1), snap].slice(-100);
+    this.historyAt = this.history.length - 1;
+    this.historyVersion++;
+  }
+
+  get canUndo(): boolean {
+    void this.historyVersion;
+    return this.historyAt > 0;
+  }
+  get canRedo(): boolean {
+    void this.historyVersion;
+    return this.historyAt < this.history.length - 1;
+  }
+
+  undo(): void {
+    if (!this.canUndo) return;
+    this.historyAt--;
+    this.restore();
+  }
+  redo(): void {
+    if (!this.canRedo) return;
+    this.historyAt++;
+    this.restore();
+  }
+  private restore(): void {
+    this.restoring = true;
+    const doc = JSON.parse(this.history[this.historyAt]!);
+    this.project = doc;
+    if (this.ui.selected && !doc.cabinets?.some((c: Doc) => c.id === this.ui.selected)) this.ui.selected = doc.cabinets?.[0]?.id ?? null;
+    this.historyVersion++;
   }
 }
 
@@ -233,52 +420,30 @@ export function setOption(layer: Layer, key: string, value: string | boolean | n
 // ---------------------------------------------------------------------------
 // Files
 
-type DownloadsApi = { save(r: { filename: string; data: string | Uint8Array }): Promise<unknown> };
-let downloadsApi: Promise<DownloadsApi | null> | undefined;
+export type DownloadResult = SaveResult;
 
-/** Inside a claude.ai artifact the viewer grants saves; elsewhere a plain download. */
-function hostDownloads(): Promise<DownloadsApi | null> {
-  const c = (globalThis as { claude?: { use?: (n: string) => Promise<unknown> } }).claude;
-  if (!c?.use) return Promise.resolve(null);
-  downloadsApi ??= c.use("downloads").then((d) => (d as DownloadsApi | null) ?? null).catch(() => null);
-  return downloadsApi;
-}
-
-export type DownloadResult = "saved" | "declined" | "failed";
-
-export async function download(name: string, content: string | Uint8Array, type: string): Promise<DownloadResult> {
-  const host = await hostDownloads();
-  if (host) {
-    try {
-      await host.save({ filename: name, data: content });
-      return "saved";
-    } catch (e) {
-      return (e as { code?: string })?.code === "declined" ? "declined" : "failed";
-    }
-  }
-  try {
-    const url = URL.createObjectURL(new Blob([content as BlobPart], { type }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return "saved";
-  } catch {
-    return "failed";
-  }
+/** Saves a file through the platform (native dialog, save picker, host save or download). */
+export function download(name: string, content: string | Uint8Array, type: string): Promise<DownloadResult> {
+  return saveFile(name, content, type);
 }
 
 /** Status line for a download outcome. */
 export function downloadNote(r: DownloadResult, file: string, t: (k: string, p?: Record<string, string>) => string): string {
-  return r === "saved" ? t("ui.saved", { file }) : r === "declined" ? t("ui.download_declined") : t("ui.download_blocked");
+  return r === "saved" ? t("ui.saved", { file }) : r === "cancelled" ? "" : r === "declined" ? t("ui.download_declined") : t("ui.download_blocked");
 }
 
-export async function copy(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
+export const copy = copyText;
+
+/** The bundled example kitchen, as a fresh document. */
+export const exampleProjectDoc = (): Doc => clone(exampleProject);
+
+/** Reads a project or shop file; throws with the engine's message when it is not valid. */
+export function parseDocument(text: string): { kind: "project" | "shop"; doc: Doc } {
+  const doc = JSON.parse(text) as Doc;
+  if (doc.kind === "shop") {
+    loadShop(doc);
+    return { kind: "shop", doc };
   }
+  loadProject(doc);
+  return { kind: "project", doc };
 }

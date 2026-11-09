@@ -1,56 +1,64 @@
 <script lang="ts">
-  import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
+  import { blankProject, copy, download, downloadNote, parseDocument, store } from "../lib/store.svelte.ts";
+  import { openFile } from "../lib/platform.ts";
 
   const t = $derived(store.tr.t);
   let open = $state(false);
   let note = $state("");
-  let input: HTMLInputElement;
 
   const fileName = (s: string): string => (s || "project").replace(/[^\w.-]+/g, "-").toLowerCase();
 
-  async function onFile(e: Event): Promise<void> {
-    const f = (e.target as HTMLInputElement).files?.[0];
+  async function openDoc(): Promise<void> {
+    const f = await openFile(["json"]);
     if (!f) return;
     try {
-      const doc = JSON.parse(await f.text());
-      if (doc.kind === "shop") store.shop = doc;
-      else store.project = doc;
-      store.ui.selected = store.project.cabinets?.[0]?.id ?? null;
-      note = t("ui.loaded", { file: f.name });
+      const { kind, doc } = parseDocument(f.text);
+      if (kind === "shop") {
+        store.shop = doc;
+        note = t("ui.shop_loaded", { file: f.name });
+      } else {
+        await store.addProject(doc);
+        note = t("ui.loaded", { file: f.name });
+      }
     } catch (err) {
       note = t("ui.load_failed", { file: f.name, error: String((err as Error).message) });
     }
-    input.value = "";
   }
   async function save(kind: "project" | "shop"): Promise<void> {
     const doc = $state.snapshot(kind === "project" ? store.project : store.shop);
     const name = kind === "project" ? `${fileName(store.project.name)}.project.json` : "shop.json";
     note = downloadNote(await download(name, JSON.stringify(doc, null, 2) + "\n", "application/json"), name, t);
   }
-  async function copyDoc(kind: "project" | "shop"): Promise<void> {
-    const doc = $state.snapshot(kind === "project" ? store.project : store.shop);
-    note = (await copy(JSON.stringify(doc, null, 2))) ? t("ui.copied") : t("ui.copy_failed");
+  async function copyDoc(): Promise<void> {
+    note = (await copy(JSON.stringify($state.snapshot(store.project), null, 2))) ? t("ui.copied") : t("ui.copy_failed");
   }
+  const run = (f: () => unknown) => () => {
+    note = "";
+    void f();
+  };
 </script>
 
 <div class="menu">
-  <button aria-expanded={open} onclick={() => (open = !open)}>{t("ui.file")}</button>
+  <button aria-expanded={open} aria-haspopup="menu" onclick={() => (open = !open)}>{t("ui.file")}</button>
   {#if open}
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="scrim" onclick={() => (open = false)}></div>
     <div class="pop panel" role="menu">
-      <button class="quiet" role="menuitem" onclick={() => input.click()}>{t("ui.open_file")}</button>
-      <button class="quiet" role="menuitem" onclick={() => save("project")}>{t("ui.save_project")}</button>
-      <button class="quiet" role="menuitem" onclick={() => save("shop")}>{t("ui.save_shop")}</button>
-      <button class="quiet" role="menuitem" onclick={() => copyDoc("project")}>{t("ui.copy_project")}</button>
+      <button class="quiet" role="menuitem" onclick={run(() => { open = false; store.closeProject(); })}>{t("ui.all_projects")}</button>
+      <button class="quiet" role="menuitem" onclick={run(() => { open = false; return store.addProject(blankProject(t("ui.new_project_name"))); })}>{t("ui.new_project")}</button>
+      <button class="quiet" role="menuitem" onclick={run(openDoc)}>{t("ui.open_file")}</button>
       <hr />
-      <button class="quiet" role="menuitem" onclick={() => { store.resetToExample(); note = t("ui.example_loaded"); }}>{t("ui.reset_example")}</button>
-      {#if note}<p class="note">{note}</p>{/if}
+      <button class="quiet" role="menuitem" onclick={run(() => save("project"))}>{t("ui.save_project")}</button>
+      <button class="quiet" role="menuitem" onclick={run(() => save("shop"))}>{t("ui.save_shop")}</button>
+      <button class="quiet" role="menuitem" onclick={run(copyDoc)}>{t("ui.copy_project")}</button>
+      {#if note}<p class="note" role="status">{note}</p>{/if}
     </div>
   {/if}
-  <input bind:this={input} id="file-input" type="file" accept=".json,application/json" hidden onchange={onFile} />
 </div>
 
 <style>
   .menu { position: relative; }
+  .scrim { position: fixed; inset: 0; z-index: 19; }
   .pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; padding: 6px; display: flex; flex-direction: column; min-width: 230px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
   .pop button { text-align: left; }
   hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
