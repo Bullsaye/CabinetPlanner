@@ -4,7 +4,7 @@ import { evaluateItemParams } from "../hardware/evaluate.ts";
 import type { Library } from "../library.ts";
 import { addThroughBore, boreWouldCollide, type ThroughMode } from "../ops.ts";
 import { roundMm } from "../part.ts";
-import type { CabinetPlacement, RoomLayout } from "./room.ts";
+import { ceilingAlong, ceilingAt, type CabinetPlacement, type RoomLayout } from "./room.ts";
 
 /**
  * Neighbours in the room (D37). A carcase side is hidden when another unit
@@ -109,4 +109,32 @@ export function linkCabinets(room: RoomLayout, cabinets: readonly CabinetResult[
     }
   }
   return diagnostics;
+}
+
+/**
+ * The ceiling over each placed cabinet (D44): the lowest point over its
+ * carcase (for `ceiling_h`) and the ceiling line along its front plane, as
+ * (x in cabinet coordinates, height above the floor) points, for fillers.
+ */
+export function cabinetCeilings(room: RoomLayout): Map<string, { min: number; front: [number, number][] }> {
+  const out = new Map<string, { min: number; front: [number, number][] }>();
+  for (const q of room.placements) {
+    const at = (x: number, z: number): [number, number] => [q.origin[0] + q.d[0] * x + q.n[0] * z, q.origin[1] + q.d[1] * x + q.n[1] * z];
+    const min = Math.min(...[0, q.W].flatMap((x) => [0, q.carcaseD].map((z) => ceilingAt(room.ceiling, at(x, z)))));
+    const front = ceilingAlong(room.ceiling, at(0, q.depth), at(q.W, q.depth));
+    out.set(q.cabinet, { min: roundMm(min), front });
+  }
+  return out;
+}
+
+/** Cabinets reaching above the ceiling (warning). */
+export function aboveCeiling(room: RoomLayout): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  for (const q of room.placements) {
+    const at = (x: number, z: number): [number, number] => [q.origin[0] + q.d[0] * x + q.n[0] * z, q.origin[1] + q.d[1] * x + q.n[1] * z];
+    const min = Math.min(...[0, q.W].flatMap((x) => [0, q.carcaseD].map((z) => ceilingAt(room.ceiling, at(x, z)))));
+    const over = q.baseY + q.H - min;
+    if (over > 0.5) out.push({ severity: "warning", code: "room_above_ceiling", params: { over: roundMm(over) }, cabinet: q.cabinet });
+  }
+  return out;
 }

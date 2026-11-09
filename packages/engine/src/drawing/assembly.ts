@@ -90,6 +90,7 @@ function offset(role: PartRole, c: { W: number; H: number; D: number }, e: numbe
     case "blind_panel":
     case "appliance_front":
     case "flap":
+    case "ceiling_filler":
     case "drawer_front":
       return [0, -0.08 * c.H * k, 1.25 * fwd * k];
     case "drawer_side_left":

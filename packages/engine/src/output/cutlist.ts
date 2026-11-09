@@ -25,6 +25,8 @@ export interface CutlistRow {
   /** Edgeband codes per edge, "" for none: [l1, l2, w1, w2]. */
   edges: [string, string, string, string];
   note: string;
+  /** Not a rectangle: cut from the bounding size to the part's outline (D43). */
+  outline: boolean;
 }
 
 export interface CutlistOptions {
@@ -49,6 +51,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     grain: p.grain,
     edges: [code(p.edges.l1), code(p.edges.l2), code(p.edges.w1), code(p.edges.w2)],
     note: p.note ?? "",
+    outline: !!p.outline,
   }));
   if (!opts.group) return rows;
 
@@ -67,6 +70,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.grain,
       r.edges,
       r.note,
+      r.outline,
       groupRole(r.role),
     ]);
     const g = groups.get(key);

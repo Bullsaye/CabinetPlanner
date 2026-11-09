@@ -42,7 +42,7 @@ export interface DrawingInput {
 export const DRAWING_CSS = `
 .pd{font-family:"Inter",system-ui,sans-serif}.pd-sheet{fill:#fff}
 .pd-part{fill:#f5f6f8;stroke:#1b1f24;stroke-width:.35}
-.pd-band{stroke:#1f5fd1;stroke-width:.9}
+.pd-band-outline{fill:none}.pd-band{stroke:#1f5fd1;stroke-width:.9}
 .pd-edge{fill:#7a828d;font-family:"Inter",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
 .pd-hole{fill:#fff;stroke:#1b1f24;stroke-width:.25}.pd-hole-far{fill:none;stroke:#5b6470;stroke-width:.2;stroke-dasharray:.8 .5}
 .pd-hidden{fill:none;stroke:#5b6470;stroke-width:.2;stroke-dasharray:.8 .5}
@@ -218,7 +218,12 @@ export function drawPart(input: DrawingInput): PartDrawing {
   let edgeNameStart = -1;
 
   // --- Part outline, banding, edge names ---------------------------------------
-  add({ t: "rect", x: 0, y: 0, w: W, h: H, cls: "pd-part" });
+  const contour = part.outline?.map(([u, v]) => {
+    const q = view.projectLocal({ u, v, w: 0 });
+    return [q.X, q.Y] as [number, number];
+  });
+  if (contour) add({ t: "poly", pts: contour.map(([x, y]) => [x * s, y * s] as [number, number]), cls: "pd-part" });
+  else add({ t: "rect", x: 0, y: 0, w: W, h: H, cls: "pd-part" });
   const sideOf = (d: Dir): Side | undefined => (Object.keys(view.sides) as Side[]).find((k) => view.sides[k] === d);
   const bandBySide: Partial<Record<Side, string>> = {};
   for (const e of ["l1", "l2", "w1", "w2"] as (keyof PartEdges)[]) {
@@ -227,10 +232,15 @@ export function drawPart(input: DrawingInput): PartDrawing {
     if (!side || !band) continue;
     bandBySide[side] = text.edgeCode?.(band) ?? band;
     const o = 0.7;
+    if (contour) continue; // outline parts: banding drawn along the contour below
     if (side === "bottom") add({ t: "line", x1: 0, y1: -o, x2: W, y2: -o, cls: "pd-band" });
     if (side === "top") add({ t: "line", x1: 0, y1: H + o, x2: W, y2: H + o, cls: "pd-band" });
     if (side === "left") add({ t: "line", x1: -o, y1: 0, x2: -o, y2: H, cls: "pd-band" });
     if (side === "right") add({ t: "line", x1: W + o, y1: 0, x2: W + o, y2: H, cls: "pd-band" });
+  }
+  // Outline parts (D43): banded edges follow the contour.
+  if (contour && Object.keys(bandBySide).length) {
+    add({ t: "poly", pts: contour.map(([x, y]) => [x * s, y * s] as [number, number]), cls: "pd-band pd-band-outline" });
   }
   if (style.show.edgeNames) {
     const en = h * 0.8;
@@ -335,6 +345,16 @@ export function drawPart(input: DrawingInput): PartDrawing {
       const label = num(view.height);
       add({ t: "rect", x: lx - textW(label, h * 1.1) / 2 - 0.6, y: H / 2 - h * 0.6, w: textW(label, h * 1.1) + 1.2, h: h * 1.3, cls: "pd-textbg" });
       add({ t: "text", x: lx, y: H / 2 - h * 0.35, s: label, cls: "pd-dimtext pd-overall", size: h * 1.1, anchor: "middle" });
+    }
+  }
+
+  // Outline corners off the bounding rectangle: their coordinates from the origin (D43).
+  if (contour) {
+    for (const [x, y] of contour) {
+      const onCorner = (Math.abs(x) < 0.01 || Math.abs(x - view.width) < 0.01) && (Math.abs(y) < 0.01 || Math.abs(y - view.height) < 0.01);
+      if (onCorner) continue;
+      add({ t: "circle", cx: x * s, cy: y * s, r: 0.5, cls: "pd-origin" });
+      add({ t: "text", x: x * s + 1.2, y: y * s + 1.2, s: `${num(x)} / ${num(y)}`, cls: "pd-dimtext", size: h * 0.9, anchor: "start" });
     }
   }
 

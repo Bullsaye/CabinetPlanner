@@ -6,7 +6,7 @@ import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
 import { presetRegistry, resolveCabinet, type ResolvedCabinet } from "./resolve.ts";
 import { layoutRoom, type RoomLayout } from "./room/room.ts";
-import { linkCabinets, neighbours } from "./room/links.ts";
+import { aboveCeiling, cabinetCeilings, linkCabinets, neighbours } from "./room/links.ts";
 import type { CabinetContext } from "./cabinet/machining.ts";
 import { CabinetSchema, ProjectSchema, SCHEMA_VERSION, ShopSchema, type CabinetInput, type Project, type Shop } from "./schema.ts";
 
@@ -100,8 +100,14 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
   // A shop file wins over an inline `shop` block in the project.
   const shopLayer = shop?.defaults ?? project.shop;
 
+  // Project-level values (room height, …) through the same layers, without a cabinet's own values.
+  const probe = resolveCabinet(project, CabinetSchema.parse({ id: "ROOM", type: "box" }), { library, presets, shop: shopLayer });
+  const flatCeiling = probe.values.get("room_height") ?? 2500;
+
   const build = (cabinet: CabinetInput, context: CabinetContext = {}): CabinetResult => {
-    const resolved = resolveCabinet(project, cabinet, { library, presets, shop: shopLayer });
+    // ceiling_h (D44): the lowest ceiling over the cabinet; flat ceiling until the room says more.
+    const constants = new Map([["ceiling_h", context.ceiling?.min ?? flatCeiling]]);
+    const resolved = resolveCabinet(project, cabinet, { library, presets, shop: shopLayer, constants });
     const diagnostics = [...resolved.diagnostics];
     let parts: Part[] = [];
     let hardware: HardwareUse[] = [];
@@ -109,7 +115,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     let fittings: Fitting[] = [];
     let layout: BoxLayout | undefined;
     if (!hasErrors(diagnostics)) {
-      const built = buildBox(resolved, library);
+      const built = buildBox(resolved, library, context);
       parts = sortParts(built.parts);
       layout = built.layout;
       diagnostics.push(...built.diagnostics);
@@ -128,31 +134,37 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
   let room: RoomLayout | undefined;
   const roomDiagnostics: Diagnostic[] = [];
   if (project.room) {
-    // Project-level values (room height, …) through the same layers, without a cabinet's own values.
-    const probe = resolveCabinet(project, CabinetSchema.parse({ id: "ROOM", type: "box" }), { library, presets, shop: shopLayer });
-    room = layoutRoom(
-      project.room,
-      cabinets.filter((c) => c.parts.length > 0),
-      new Map(project.cabinets.map((c) => [c.id, c.place])),
-      probe.values,
-      {
-        material: probe.options.get("material.worktop")?.value as string,
-        depth: probe.values.get("worktop_d") ?? 600,
-        thickness: probe.values.get("worktop_t") ?? 38,
-        overhangEnd: probe.values.get("worktop_overhang_end") ?? 0,
-        plinth: {
-          material: probe.options.get("material.plinth")?.value as string,
-          thickness: library.materials.get(probe.options.get("material.plinth")?.value as string)?.thickness ?? 16,
-          setback: probe.values.get("plinth_setback") ?? 50,
-          floorGap: probe.values.get("plinth_floor_gap") ?? 0,
+    const lay = (cs: CabinetResult[]): RoomLayout =>
+      layoutRoom(
+        project.room!,
+        cs.filter((c) => c.parts.length > 0),
+        new Map(project.cabinets.map((c) => [c.id, c.place])),
+        probe.values,
+        {
+          material: probe.options.get("material.worktop")?.value as string,
+          depth: probe.values.get("worktop_d") ?? 600,
+          thickness: probe.values.get("worktop_t") ?? 38,
+          overhangEnd: probe.values.get("worktop_overhang_end") ?? 0,
+          plinth: {
+            material: probe.options.get("material.plinth")?.value as string,
+            thickness: library.materials.get(probe.options.get("material.plinth")?.value as string)?.thickness ?? 16,
+            setback: probe.values.get("plinth_setback") ?? 50,
+            floorGap: probe.values.get("plinth_floor_gap") ?? 0,
+          },
         },
-      },
-    );
-    // Second pass: what each cabinet stands next to (visible sides), then
-    // screws between neighbours (D37).
-    const near = neighbours(room);
-    cabinets = project.cabinets.map((c, i) => (near.has(c.id) ? build(c, { visible: near.get(c.id)!.visible }) : cabinets[i]!));
-    roomDiagnostics.push(...room.diagnostics, ...linkCabinets(room, cabinets, library));
+      );
+    const first = lay(cabinets);
+    // Second pass: what each cabinet stands next to (visible sides, D37) and
+    // the ceiling over it (D44); positions along the walls do not change.
+    const near = neighbours(first);
+    const ceilings = cabinetCeilings(first);
+    cabinets = project.cabinets.map((c, i) => {
+      const n = near.get(c.id);
+      const ceiling = ceilings.get(c.id);
+      return n || ceiling ? build(c, { ...(n ? { visible: n.visible } : {}), ...(ceiling ? { ceiling } : {}) }) : cabinets[i]!;
+    });
+    room = lay(cabinets);
+    roomDiagnostics.push(...room.diagnostics, ...linkCabinets(room, cabinets, library), ...aboveCeiling(room));
   }
   const diagnostics = [...cabinets.flatMap((c) => c.diagnostics), ...roomDiagnostics];
   const ok = !hasErrors(cabinets.flatMap((c) => c.diagnostics));

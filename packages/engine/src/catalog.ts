@@ -62,6 +62,9 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "cutout_r", group: "room", unit: "mm", factory: 10, min: 0, max: 100, step: 1 }),
   v({ name: "cutout_offset", group: "room", unit: "mm", factory: 0, min: -1000, max: 1000, step: 5 }),
   v({ name: "oven_h", group: "room", unit: "mm", factory: 600, min: 300, max: 1200, step: 1 }),
+  v({ name: "ceiling_gap", group: "room", unit: "mm", factory: 30, min: 0, max: 500, step: 5 }),
+  v({ name: "ceiling_filler_gap", group: "room", unit: "mm", factory: 0, min: -20, max: 50, step: 0.5 }),
+  v({ name: "ceiling_filler_min", group: "room", unit: "mm", factory: 10, min: 0, max: 200, step: 1 }),
   v({ name: "fridge_vent", group: "room", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
   v({ name: "fridge_vent_rear", group: "room", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
   v({ name: "fridge_h", group: "room", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
@@ -268,6 +271,8 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   /** Corner unit: which side is blind (hidden behind the perpendicular run). */
   { key: "corner", group: "fronts", kind: { type: "enum", values: ["none", "blind_left", "blind_right"] }, factory: "none" },
+  /** Passblende above the fronts up to the ceiling (D44). */
+  { key: "ceiling_filler", group: "room", kind: { type: "enum", values: ["none", "front"] }, factory: "none" },
   /** Cutout in the worktop above a base unit (sink or hob), sized by cutout_* variables. */
   { key: "worktop_cutout", group: "room", kind: { type: "enum", values: ["none", "sink", "hob"] }, factory: "none" },
   /** Wardrobe interior: hat shelf and hanging rail in all, the first or the last section; else shelves. */

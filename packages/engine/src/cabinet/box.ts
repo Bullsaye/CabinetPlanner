@@ -15,6 +15,7 @@ import type { ResolvedCabinet } from "../resolve.ts";
 import type { FrontZone } from "../schema.ts";
 import { evaluateGraph } from "../graph.ts";
 import { buildDrawer } from "./drawer.ts";
+import type { CabinetContext } from "./machining.ts";
 
 /**
  * Rule for the parametric box cabinet: two sides, bottom, top (full panel or
@@ -136,6 +137,7 @@ export type AddPart = (
 export function buildBox(
   rc: ResolvedCabinet,
   library: Library,
+  context: CabinetContext = {},
 ): { parts: Part[]; diagnostics: Diagnostic[]; layout: BoxLayout } {
   const diagnostics: Diagnostic[] = [];
   const cab = rc.cabinet.id;
@@ -675,6 +677,44 @@ export function buildBox(
         add("drawer_front", drawerNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
         const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
         if (d) drawers.push(d);
+      }
+    }
+  }
+
+  // --- Ceiling filler (Passblende, D44) -----------------------------------------------
+  // Flush with the fronts, one horizontal gap above the top front, up to the
+  // ceiling line minus ceiling_filler_gap; cut to the slope where the ceiling slopes.
+  if (opt<string>("ceiling_filler") === "front") {
+    const gl = num("front_gap_left");
+    const gr = num("front_gap_right");
+    const baseY = rc.cabinet.kind === "wall" ? num("wall_bottom") : num("plinth_h");
+    const y0 = H - num("front_gap_top") + num("front_gap");
+    const line = context.ceiling?.front ?? [[0, num("ceiling_h")], [W, num("ceiling_h")]];
+    const hAt = (x: number): number => {
+      for (let k = 0; k + 1 < line.length; k++) {
+        const [xa, ha] = line[k]!;
+        const [xb, hb] = line[k + 1]!;
+        if (x >= xa - 1e-9 && x <= xb + 1e-9) return xb - xa < 1e-9 ? ha : ha + ((hb - ha) * (x - xa)) / (xb - xa);
+      }
+      return line[line.length - 1]![1];
+    };
+    const top = (x: number): number => hAt(x) - baseY - num("ceiling_filler_gap");
+    const xs = [gl, ...line.map(([x]) => x).filter((x) => x > gl + 1e-6 && x < W - gr - 1e-6), W - gr];
+    const heights = xs.map((x) => roundMm(top(x) - y0));
+    const hMax = Math.max(...heights);
+    if (Math.min(...heights) < num("ceiling_filler_min")) {
+      diagnostics.push({ severity: "warning", code: "ceiling_filler_too_low", params: { h: roundMm(Math.min(...heights)) }, cabinet: cab });
+    } else {
+      add("ceiling_filler", undefined, { x: gl, y: y0, z: D, dx: W - gl - gr, dy: hMax, dz: tFront }, "x", "y", "material.front", {
+        l1: edgeFront,
+        l2: edgeFront,
+        w1: edgeFront,
+        w2: edgeFront,
+      });
+      const pb = parts[parts.length - 1]!;
+      // Outline in part-local (u along X from gl, v up from y0), counter-clockwise.
+      if (heights.some((h) => Math.abs(h - hMax) > 0.01)) {
+        pb.outline = [[0, 0], [roundMm(W - gl - gr), 0], ...xs.map((x, k) => [roundMm(x - gl), heights[k]!] as [number, number]).reverse()];
       }
     }
   }

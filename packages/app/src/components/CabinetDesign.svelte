@@ -8,6 +8,11 @@
   const t = $derived(store.tr.t);
   const c = $derived(store.cabinetDoc);
   const kind = $derived((c?.kind ?? "base") as "base" | "wall" | "tall");
+  /** Height as a formula under the (sloped) ceiling: the lowest point over the carcase minus base and gap. */
+  function fitToCeiling(): void {
+    if (!c) return;
+    c.vars = { ...(c.vars ?? {}), H: kind === "wall" ? "ceiling_h - wall_bottom - ceiling_gap" : "ceiling_h - plinth_h - ceiling_gap" };
+  }
   const template = $derived.by(() => {
     const id = c?.template;
     if (!id) return undefined;
@@ -36,6 +41,7 @@
       <VarRow name="H" steppers />
       <VarRow name="D" steppers />
       <VarRow name="t_carcase" label={t("ui.material_thickness")} />
+      <button class="quiet link" onclick={fitToCeiling} title={t("ui.fit_to_ceiling_hint")}>{t("ui.fit_to_ceiling")}</button>
     </section>
 
     <section>
@@ -74,6 +80,15 @@
     </section>
 
     <section>
+      <h3 class="label">{t("ui.ceiling")}</h3>
+      <OptRow key="ceiling_filler" />
+      {#if store.cabinet?.resolved.options.get("ceiling_filler")?.value === "front"}
+        <VarRow name="ceiling_filler_gap" />
+      {/if}
+      <VarRow name="ceiling_gap" />
+    </section>
+
+    <section>
       <h3 class="label">{t("ui.shelves")}</h3>
       <VarRow name="shelf_count" steppers />
       {#if kind === "tall"}<OptRow key="interior" />{/if}
@@ -97,5 +112,6 @@
   details[open] { display: flex; flex-direction: column; gap: 4px; }
   .small { font-size: 12px; margin: 0; }
   .construct { margin-top: 4px; }
+  .link { align-self: flex-start; color: var(--accent-fg); font-size: 12px; padding: 2px 4px; }
   .pad { padding: 12px; }
 </style>

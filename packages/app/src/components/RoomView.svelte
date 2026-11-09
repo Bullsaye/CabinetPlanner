@@ -98,6 +98,35 @@
           <button onclick={() => room.openings.push({ wall: room.walls[0].id, kind: "door", x: 300, width: 900, sill: 0, height: 2100 })}>{t("ui.add_door")}</button>
         </div>
 
+        <h2 class="label">{t("ui.ceiling")}</h2>
+        <p class="hint muted">{t("ui.ceiling_hint")}</p>
+        <div class="row">
+          <label for="ceil-h">{t("ui.ceiling_height")}</label>
+          <input id="ceil-h" class="mono" type="text" placeholder={String(store.result?.room?.ceiling.height ?? "")} value={room.ceiling?.height ?? ""} onchange={(e) => { room.ceiling ??= { slopes: [] }; setNum(room.ceiling, "height", (e.target as HTMLInputElement).value); }} />
+        </div>
+        {#if room.ceiling?.slopes?.length}
+          <table class="grid">
+            <thead><tr><th>{t("ui.slope_from_wall")}</th><th>{t("ui.knee_height")}</th><th>{t("ui.angle")}</th><th></th></tr></thead>
+            <tbody>
+              {#each room.ceiling.slopes as sl, i}
+                <tr>
+                  <td>
+                    <select id={`sl-wall-${i}`} value={sl.wall} onchange={(e) => (sl.wall = (e.target as HTMLSelectElement).value)}>
+                      {#each room.walls as w}<option value={w.id}>{w.id}</option>{/each}
+                    </select>
+                  </td>
+                  <td><input id={`sl-knee-${i}`} class="mono" type="text" value={sl.knee} onchange={(e) => setNum(sl, "knee", (e.target as HTMLInputElement).value, true)} /></td>
+                  <td><input id={`sl-angle-${i}`} class="mono" type="text" value={sl.angle} onchange={(e) => setNum(sl, "angle", (e.target as HTMLInputElement).value, true)} /></td>
+                  <td><button class="quiet" aria-label={t("ui.delete")} onclick={() => room.ceiling.slopes.splice(i, 1)}>×</button></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        {/if}
+        <div class="row">
+          <button onclick={() => { room.ceiling ??= { slopes: [] }; room.ceiling.slopes ??= []; room.ceiling.slopes.push({ wall: room.walls[room.walls.length - 1].id, knee: 1000, angle: 45 }); }}>{t("ui.add_slope")}</button>
+        </div>
+
         <h2 class="label">{t("ui.placement")}</h2>
         <p class="hint muted">{t("ui.placement_hint")}</p>
         <table class="grid">

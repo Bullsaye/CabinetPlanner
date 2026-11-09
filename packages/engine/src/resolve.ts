@@ -53,7 +53,12 @@ export interface ResolveContext {
   library: Library;
   presets: ReadonlyMap<string, Preset>;
   shop: Layer | undefined;
+  /** Read-only inputs from the room (D44), e.g. ceiling_h. */
+  constants?: ReadonlyMap<string, number>;
 }
+
+/** Constants the room provides; expressions may use them, layers may not set them. */
+export const ROOM_CONSTANTS = ["ceiling_h"] as const;
 
 /** Builds the preset registry: shop presets, then project presets (later ids win). */
 export function presetRegistry(shop: Shop | undefined, project: Project): Map<string, Preset> {
@@ -96,7 +101,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     source: Source,
   ): void => {
     for (const [k, val] of Object.entries(vars)) {
-      if (Object.hasOwn(MATERIAL_CONSTANTS, k)) {
+      if (Object.hasOwn(MATERIAL_CONSTANTS, k) || (ROOM_CONSTANTS as readonly string[]).includes(k)) {
         diagnostics.push({ severity: "error", code: "var_shadows_constant", params: { name: k }, variable: k, ...at });
         continue;
       }
@@ -149,6 +154,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     const mat = typeof id === "string" ? ctx.library.materials.get(id) : undefined;
     if (mat) constants.set(name, mat.thickness);
   }
+  for (const [k, v] of ctx.constants ?? []) constants.set(k, v);
 
   // Variables.
   const defs = new Map<string, VarInput>();

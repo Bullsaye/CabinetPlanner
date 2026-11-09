@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "name": "Attic row",
+  "revision": 1,
+  "vars": {
+    "room_height": 2500
+  },
+  "room": {
+    "walls": [
+      {
+        "id": "A",
+        "length": 3600
+      },
+      {
+        "id": "B",
+        "length": 3000
+      },
+      {
+        "id": "C",
+        "length": 3600
+      },
+      {
+        "id": "D",
+        "length": 3000
+      }
+    ],
+    "openings": [
+      {
+        "wall": "C",
+        "kind": "door",
+        "x": 2400,
+        "width": 900,
+        "sill": 0,
+        "height": 2100,
+        "hinge": "right"
+      }
+    ],
+    "ceiling": {
+      "slopes": [
+        {
+          "wall": "D",
+          "knee": 1000,
+          "angle": 45
+        }
+      ]
+    }
+  },
+  "cabinets": [
+    {
+      "id": "T01",
+      "type": "box",
+      "kind": "tall",
+      "name": "Tall under roof 1",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "H": "ceiling_h - plinth_h - ceiling_gap",
+        "door_count": 1,
+        "shelf_count": 3
+      },
+      "options": {
+        "ceiling_filler": "front"
+      },
+      "place": {
+        "wall": "A"
+      }
+    },
+    {
+      "id": "T02",
+      "type": "box",
+      "kind": "tall",
+      "name": "Tall under roof 2",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "H": "ceiling_h - plinth_h - ceiling_gap",
+        "door_count": 1,
+        "shelf_count": 3
+      },
+      "options": {
+        "ceiling_filler": "front"
+      },
+      "place": {
+        "wall": "A"
+      }
+    },
+    {
+      "id": "T03",
+      "type": "box",
+      "kind": "tall",
+      "name": "Tall under roof 3",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "H": "ceiling_h - plinth_h - ceiling_gap",
+        "door_count": 1,
+        "shelf_count": 3
+      },
+      "options": {
+        "ceiling_filler": "front"
+      },
+      "place": {
+        "wall": "A"
+      }
+    },
+    {
+      "id": "T04",
+      "type": "box",
+      "kind": "tall",
+      "name": "Tall under roof 4",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "H": "ceiling_h - plinth_h - ceiling_gap",
+        "door_count": 1,
+        "shelf_count": 3
+      },
+      "options": {
+        "ceiling_filler": "front"
+      },
+      "place": {
+        "wall": "A"
+      }
+    },
+    {
+      "id": "T05",
+      "type": "box",
+      "kind": "tall",
+      "name": "Tall under roof 5",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "H": "ceiling_h - plinth_h - ceiling_gap",
+        "door_count": 1,
+        "shelf_count": 3
+      },
+      "options": {
+        "ceiling_filler": "front"
+      },
+      "place": {
+        "wall": "A"
+      }
+    }
+  ]
+}

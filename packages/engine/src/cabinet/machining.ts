@@ -44,6 +44,8 @@ export interface HardwareUse {
 /** What the room knows about a cabinet (D37): which carcase sides can be seen. */
 export interface CabinetContext {
   visible?: { left: boolean; right: boolean };
+  /** Ceiling over the cabinet (D44): lowest point, and the line along the front as (x, height above floor). */
+  ceiling?: { min: number; front: [number, number][] };
 }
 
 /**

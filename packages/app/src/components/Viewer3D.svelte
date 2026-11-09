@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { sceneOf, type CabinetResult, type HandlePlacement } from "@cabinet-planner/engine";
+  import { sceneOf, type CabinetResult, type HandlePlacement, type ScenePart } from "@cabinet-planner/engine";
   import { store } from "../lib/store.svelte.ts";
 
   const t = $derived(store.tr.t);
@@ -85,7 +85,7 @@
       const selected = store.ui.selected === id;
       const centre = new THREE.Vector3(sc.size.W / 2, sc.size.H / 2, sc.size.D / 2);
       for (const p of sc.parts) {
-        const isFront = p.role === "door" || p.role === "drawer_front" || p.role === "blind_panel" || p.role === "appliance_front";
+        const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
         if (isFront && !store.ui.fronts) continue;
         const b = p.box;
         const pg = new THREE.Group();
@@ -93,8 +93,8 @@
         const base =
           p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : isFront ? partColor.clone().lerp(accent, 0.12) : partColor;
         const color = isPart ? partColor.clone().lerp(accent, 0.45) : selected ? base.clone().lerp(accent, 0.1) : base;
-        const geo = new THREE.BoxGeometry(b.dx, b.dy, b.dz);
-        const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color, flatShading: true }));
+        const geo = p.outline ? outlineGeometry(p.outline, b) : new THREE.BoxGeometry(b.dx, b.dy, b.dz);
+        const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color, flatShading: true, side: p.outline ? THREE.DoubleSide : THREE.FrontSide }));
         mesh.userData = { cabinet: id, part: p.id };
         pg.add(mesh);
         pg.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: isPart || selected ? accent : edgeColor })));
@@ -212,6 +212,22 @@
         parent.add(cm);
       }
     }
+    // Roof slopes (D44): from the knee line on their wall up to the flat ceiling.
+    const roofMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--shade-top")), transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
+    for (const s of room.ceiling.slopes) {
+      const w = room.walls.find((x) => x.id === s.wall);
+      if (!w) continue;
+      const dist = (room.ceiling.height - s.knee) / s.rise;
+      const p3 = (x: number, y: number, h: number) => new THREE.Vector3(x, h, -y);
+      const a = p3(w.start[0], w.start[1], s.knee);
+      const b = p3(w.end[0], w.end[1], s.knee);
+      const c = p3(w.end[0] + w.n[0] * dist, w.end[1] + w.n[1] * dist, room.ceiling.height);
+      const d = p3(w.start[0] + w.n[0] * dist, w.start[1] + w.n[1] * dist, room.ceiling.height);
+      const geo = new THREE.BufferGeometry().setFromPoints([a, b, c, a, c, d]);
+      geo.computeVertexNormals();
+      parent.add(new THREE.Mesh(geo, roofMat));
+      parent.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge));
+    }
     // Plinth panels.
     const plMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--shade-side")), flatShading: true });
     for (const p of room.plinths) {
@@ -234,6 +250,24 @@
       floor.position.y = -0.5;
       parent.add(floor);
     }
+  }
+
+  /**
+   * Non-rectangular part: its contour extruded through the thickness, in
+   * coordinates relative to the part's bounding-box centre (D43).
+   */
+  function outlineGeometry(o: NonNullable<ScenePart["outline"]>, b: { x: number; y: number; z: number; dx: number; dy: number; dz: number }): THREE.BufferGeometry {
+    const axes = (["x", "y", "z"] as const).filter((a) => a !== o.normal);
+    const [A, B] = axes as ["x" | "y" | "z", "x" | "y" | "z"];
+    const shape = new THREE.Shape(o.points.map((q) => new THREE.Vector2(q[A], q[B])));
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: o.thickness, bevelEnabled: false });
+    const unit = (a: "x" | "y" | "z") => new THREE.Vector3(a === "x" ? 1 : 0, a === "y" ? 1 : 0, a === "z" ? 1 : 0);
+    const m = new THREE.Matrix4().makeBasis(unit(A), unit(B), unit(o.normal));
+    const centre = new THREE.Vector3(b.x + b.dx / 2, b.y + b.dy / 2, b.z + b.dz / 2);
+    const start = unit(o.normal).multiplyScalar(b[o.normal]);
+    m.setPosition(start.sub(centre));
+    geo.applyMatrix4(m);
+    return geo;
   }
 
   const metal = (): THREE.Material =>

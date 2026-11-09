@@ -95,6 +95,7 @@ body { overscroll-behavior: none; }
 .pd { font-family: var(--font-ui); }
 .pd-part { fill: var(--surface-2); stroke: var(--fg); stroke-width: .35; }
 .pd-band { stroke: var(--accent); stroke-width: .9; }
+.pd-band-outline { fill: none; }
 .pd-edge { fill: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
 .pd-namebg { fill: var(--surface-2); opacity: .85; }
 .pd-hole { fill: var(--surface); stroke: var(--fg); stroke-width: .25; }
@@ -147,6 +148,7 @@ body { overscroll-behavior: none; }
 .rm-front { fill: color-mix(in srgb, var(--surface) 80%, var(--accent)); stroke: var(--fg); stroke-width: .2; }
 .rm-top { fill: color-mix(in srgb, var(--surface) 60%, #b08a4a); stroke: var(--fg); stroke-width: .3; }
 .rm-cut { fill: var(--surface); stroke: var(--fg); stroke-width: .25; }
+.rm-ceil { stroke: var(--err); stroke-width: .35; }
 .rm-plinth { fill: var(--fg); opacity: .75; }
 .rm-handle { stroke: var(--fg); stroke-width: .5; }
 .rm-id, .rm-num { fill: var(--fg); font-family: var(--font-mono); }

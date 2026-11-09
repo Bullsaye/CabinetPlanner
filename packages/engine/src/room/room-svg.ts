@@ -1,7 +1,7 @@
 import type { CabinetResult } from "../project.ts";
 import { formatNumber } from "../output/format.ts";
 import type { DrawingText } from "../drawing/render.ts";
-import { toPlan, type CabinetPlacement, type RoomLayout, type WallLayout } from "./room.ts";
+import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout } from "./room.ts";
 
 /**
  * Room drawings (DECISIONS.md D28) on A3 landscape sheets, to scale, mm:
@@ -23,7 +23,7 @@ export const ROOM_CSS = `
 .rm-open{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-glass{stroke:#1f5fd1;stroke-width:.3}
 .rm-swing{fill:none;stroke:#5b6470;stroke-width:.2;stroke-dasharray:1 .8}
 .rm-cab{fill:#e4e7eb;stroke:#1b1f24;stroke-width:.3}.rm-cab-wall{fill:none;stroke:#1b1f24;stroke-width:.25;stroke-dasharray:1.6 .9}
-.rm-front{fill:#eef3fb;stroke:#1b1f24;stroke-width:.2}.rm-top{fill:#d8cbb4;stroke:#1b1f24;stroke-width:.3}.rm-cut{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-plinth{fill:#3a4048}.rm-handle{stroke:#1b1f24;stroke-width:.5}
+.rm-front{fill:#eef3fb;stroke:#1b1f24;stroke-width:.2}.rm-top{fill:#d8cbb4;stroke:#1b1f24;stroke-width:.3}.rm-cut{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-ceil{stroke:#a32020;stroke-width:.35}.rm-plinth{fill:#3a4048}.rm-handle{stroke:#1b1f24;stroke-width:.5}
 .rm-id{fill:#1b1f24;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600}
 .rm-dim{stroke:#5b6470;stroke-width:.15;fill:none}.rm-tick{stroke:#1b1f24;stroke-width:.3}
 .rm-num{fill:#1b1f24;font-family:"JetBrains Mono",ui-monospace,monospace}
@@ -142,6 +142,16 @@ export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText
       o.push(`<path class="rm-swing" d="M ${px} ${py} A ${r} ${r} 0 0 ${sweep} ${fx} ${fy}"/>`);
     }
   }
+  // Roof slopes: dashed line where each slope reaches the flat ceiling (D44).
+  for (const s of room.ceiling.slopes) {
+    const w = room.walls.find((x) => x.id === s.wall);
+    if (!w) continue;
+    const dist = (room.ceiling.height - s.knee) / s.rise;
+    const a: [number, number] = [w.start[0] + w.n[0] * dist, w.start[1] + w.n[1] * dist];
+    const b: [number, number] = [w.end[0] + w.n[0] * dist, w.end[1] + w.n[1] * dist];
+    o.push(line(sh, "rm-swing", a, b));
+    o.push(text(sh, "rm-num", mid(a, b), `${num(s.angle)}° · ${num(s.knee)}`, TH * 0.8, "middle", 0, -TH * 0.4));
+  }
   // Worktops under the cabinets' ids, wall units dashed on top.
   for (const wt of room.worktops) {
     o.push(poly(sh, "rm-top", wt.outline));
@@ -219,7 +229,12 @@ export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonl
   const sh = sheet(title, "", bounds, { l: 0, r: 0, t: 0, b: 0 }, css);
   sh.out[sh.out.length - 2] = `<text class="rm-sub" x="${M}" y="${M + 11}" font-size="${TH}">${esc(`${t("room.elevation")} ${t("room.wall")} ${w.id} · ${t("drawing.scale", { n: sh.den })} · mm`)}</text>`;
   const o = sh.out;
-  o.push(poly(sh, "rm-floor", [[0, 0], [w.length, 0], [w.length, w.height], [0, w.height]]));
+  // Wall face up to the ceiling line (sloped where a roof slope meets this wall, D44).
+  const ceil = ceilingAlong(room.ceiling, w.start, w.end);
+  o.push(poly(sh, "rm-floor", [[0, 0], [w.length, 0], ...ceil.map(([x, h]) => [x, Math.min(h, w.height)] as [number, number]).reverse()]));
+  if (room.ceiling.slopes.length) {
+    for (let k = 0; k + 1 < ceil.length; k++) o.push(line(sh, "rm-ceil", [ceil[k]![0], ceil[k]![1]], [ceil[k + 1]![0], ceil[k + 1]![1]]));
+  }
   o.push(line(sh, "rm-dim", [0, 0], [w.length, 0]));
   for (const op of room.openings.filter((x) => x.wall === w.id)) {
     o.push(poly(sh, "rm-open", [[op.x, op.sill], [op.x + op.width, op.sill], [op.x + op.width, op.sill + op.height], [op.x, op.sill + op.height]]));
@@ -235,9 +250,14 @@ export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonl
     if (q.kind !== "wall" && q.baseY > 0 && !room.plinths.length) {
       o.push(poly(sh, "rm-plinth", [[X(0), 0], [X(q.W), 0], [X(q.W), q.baseY], [X(0), q.baseY]]));
     }
-    for (const f of c.parts.filter((p) => p.role === "door" || p.role === "drawer_front" || p.role === "blind_panel")) {
+    const fronts = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"];
+    for (const f of c.parts.filter((p) => fronts.includes(p.role))) {
       const b = f.box;
-      o.push(poly(sh, "rm-front", [[X(b.x), q.baseY + b.y], [X(b.x + b.dx), q.baseY + b.y], [X(b.x + b.dx), q.baseY + b.y + b.dy], [X(b.x), q.baseY + b.y + b.dy]]));
+      // Fillers cut to a slope carry their outline (u along X, v up).
+      const pts: [number, number][] = f.outline
+        ? f.outline.map(([u, v]) => [X(b.x + u), q.baseY + b.y + v])
+        : [[X(b.x), q.baseY + b.y], [X(b.x + b.dx), q.baseY + b.y], [X(b.x + b.dx), q.baseY + b.y + b.dy], [X(b.x), q.baseY + b.y + b.dy]];
+      o.push(poly(sh, "rm-front", pts));
     }
     for (const h of c.handles) {
       const pts = h.points.map((p) => [X(p.x), q.baseY + p.y] as [number, number]);

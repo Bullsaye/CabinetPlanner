@@ -617,3 +617,38 @@ Two shop settings, because they are used for different things:
 - Hettich Lift Advanced HK item: gas spring by inside height and flap
   weight (47 table cells). Side holes from the drawing; the front sleeve
   positions (B + 158 / B + 190) come from a sketch and must be checked.
+
+### D43 · 2026-11-09 · Non-rectangular parts
+
+- A part may carry `outline`: its contour in part-local (u, v), counter-
+  clockwise, inside the bounding rectangle. Sizes, cut sizes and the box
+  stay the bounding rectangle; the cutlist row is flagged (`outline`) and
+  only groups with parts of the same shape.
+- DXF: the contour replaces the rectangle on the outline layer. Part
+  sheets draw the contour, band along it, and label every corner off the
+  bounding rectangle with its coordinates from the origin (X / Y). 3D:
+  the contour extruded through the thickness. Assembly drawings still
+  show the bounding box.
+
+### D44 · 2026-11-09 · Ceilings, roof slopes, fillers
+
+- Room `ceiling`: flat `height` (default room_height) and `slopes`, each
+  starting at a wall's inner face at `knee` height and rising into the
+  room at `angle`°. The ceiling at a point is the lowest of these planes.
+- Constant `ceiling_h` (room constants like material constants: usable in
+  expressions, not settable): the lowest ceiling over the cabinet's carcase
+  (its four plan corners). Without a room, or in the first pass, the flat
+  ceiling. A height under the roof is a formula, e.g.
+  `ceiling_h - plinth_h - ceiling_gap`; the app's "fit height to the
+  ceiling" writes it.
+- The build runs: pass 1, room layout, per cabinet the ceiling and visible
+  sides, pass 2, final room layout (heights changed), then links and room
+  checks. Cabinets reaching above the ceiling warn.
+- `ceiling_filler: front` (Passblende): flush with the fronts (front
+  material, front edgeband all round), from one horizontal gap above the
+  top front up to the ceiling line along the front plane minus
+  `ceiling_filler_gap` (negative = oversize to scribe), across the fronts'
+  width. Where the ceiling slopes it gets an outline with a corner at
+  every kink. Below `ceiling_filler_min` it is left out (warning).
+- Elevations draw the wall up to the ceiling line; the plan marks where
+  each slope meets the flat ceiling; 3D shows the slopes.

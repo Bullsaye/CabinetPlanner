@@ -24,6 +24,8 @@ export interface ScenePart {
   role: PartRole;
   material: string;
   box: Box;
+  /** Non-rectangular parts: contour on the t0 face (cabinet coordinates) and the thickness axis. */
+  outline?: { points: { x: number; y: number; z: number }[]; normal: Axis; thickness: number };
   bores: SceneBore[];
   pockets: Box[];
 }
@@ -55,6 +57,9 @@ export function sceneOf(c: CabinetResult): Scene {
       role: p.role,
       material: p.material,
       box: p.box,
+      ...(p.outline
+        ? { outline: { points: p.outline.map(([u, v]) => toCabinet(p, { u, v, w: 0 })), normal: cabinetAxisOf(p, "w"), thickness: p.thickness } }
+        : {}),
       bores: p.operations.flatMap((o) => {
         if (o.kind !== "bore") return [];
         const { normal } = faceAxes(o.face);

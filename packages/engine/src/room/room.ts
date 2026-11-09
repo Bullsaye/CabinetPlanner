@@ -36,9 +36,20 @@ export const OpeningSchema = z.object({
   hinge: z.enum(["left", "right"]).default("left"),
 });
 
+/**
+ * Ceiling (D44): flat at `height` (default room_height), lowered by roof
+ * slopes. A slope starts at a wall's inner face at `knee` height and rises
+ * into the room at `angle` degrees.
+ */
+export const CeilingSchema = z.object({
+  height: VarInput.optional(),
+  slopes: z.array(z.object({ wall: z.string().min(1), knee: VarInput, angle: VarInput })).default([]),
+});
+
 export const RoomSchema = z.object({
   walls: z.array(WallSchema).min(1).max(24),
   openings: z.array(OpeningSchema).default([]),
+  ceiling: CeilingSchema.optional(),
 });
 export type RoomInput = z.infer<typeof RoomSchema>;
 
@@ -138,7 +149,50 @@ export interface WorktopSettings {
   plinth?: { material: string; thickness: number; setback: number; floorGap: number };
 }
 
+/** Ceiling as planes: flat height, and per slope the line on its wall and the rise per mm into the room. */
+export interface CeilingLayout {
+  height: number;
+  slopes: { wall: string; knee: number; angle: number; at: Vec2; n: Vec2; rise: number }[];
+}
+
+/** Ceiling height above the floor at a plan point. */
+export function ceilingAt(c: CeilingLayout, p: Vec2): number {
+  let h = c.height;
+  for (const s of c.slopes) {
+    const dist = (p[0] - s.at[0]) * s.n[0] + (p[1] - s.at[1]) * s.n[1];
+    h = Math.min(h, s.knee + Math.max(0, dist) * s.rise);
+  }
+  return h;
+}
+
+/**
+ * The ceiling along a straight plan segment a→b, as (t, height) points with
+ * t in mm from a: exact, since the ceiling is the minimum of planes.
+ */
+export function ceilingAlong(c: CeilingLayout, a: Vec2, b: Vec2): [number, number][] {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (len < 1e-9) return [[0, ceilingAt(c, a)]];
+  const dir: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+  // Each plane as h(t) = c0 + k t (slopes clamped at their wall are lines too, inside the room).
+  const lines: [number, number][] = [[c.height, 0]];
+  for (const s of c.slopes) {
+    const d0 = (a[0] - s.at[0]) * s.n[0] + (a[1] - s.at[1]) * s.n[1];
+    lines.push([s.knee + d0 * s.rise, (dir[0] * s.n[0] + dir[1] * s.n[1]) * s.rise]);
+  }
+  const ts = new Set<number>([0, len]);
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const dk = lines[i]![1] - lines[j]![1];
+      if (Math.abs(dk) < 1e-12) continue;
+      const t = (lines[j]![0] - lines[i]![0]) / dk;
+      if (t > 1e-6 && t < len - 1e-6) ts.add(t);
+    }
+  }
+  return [...ts].sort((x, y) => x - y).map((t) => [roundMm(t), roundMm(ceilingAt(c, [a[0] + dir[0] * t, a[1] + dir[1] * t]))]);
+}
+
 export interface RoomLayout {
+  ceiling: CeilingLayout;
   walls: WallLayout[];
   openings: OpeningLayout[];
   placements: CabinetPlacement[];
@@ -199,6 +253,24 @@ export function layoutRoom(
   });
   const closed = walls.length >= 3 && Math.hypot(p[0], p[1]) < 1;
   const wallById = new Map(walls.map((w) => [w.id, w]));
+
+  // Ceiling.
+  const ceiling: CeilingLayout = {
+    height: room.ceiling?.height === undefined ? roomH : num(room.ceiling.height, "ceiling height"),
+    slopes: (room.ceiling?.slopes ?? []).flatMap((s) => {
+      const w = wallById.get(s.wall);
+      if (!w) {
+        diagnostics.push({ severity: "error", code: "room_unknown_wall", params: { wall: s.wall } });
+        return [];
+      }
+      const angle = num(s.angle, `slope ${s.wall} angle`);
+      if (!(angle > 0 && angle < 90)) {
+        diagnostics.push({ severity: "error", code: "room_value_invalid", params: { what: `slope ${s.wall} angle`, expr: String(s.angle) } });
+        return [];
+      }
+      return [{ wall: w.id, knee: num(s.knee, `slope ${s.wall} knee`), angle, at: w.start, n: w.n, rise: Math.tan((angle * Math.PI) / 180) }];
+    }),
+  };
 
   // Openings.
   const openings: OpeningLayout[] = room.openings.map((o) => {
@@ -311,7 +383,7 @@ export function layoutRoom(
   }
 
   const { worktops, plinths, parts } = worktop ? layoutWorktops(walls, out, worktop, diagnostics) : { worktops: [], plinths: [], parts: [] };
-  return { walls, openings, placements: out, worktops, plinths, parts, closed, diagnostics };
+  return { ceiling, walls, openings, placements: out, worktops, plinths, parts, closed, diagnostics };
 }
 
 /**

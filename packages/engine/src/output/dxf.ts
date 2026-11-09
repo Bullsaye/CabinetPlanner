@@ -92,7 +92,12 @@ export function partDxf(
     const view = partView(part, spec, cabinet, face);
     // Edge features belong to the first side's program only.
     const feats = extractFeatures(view).filter((f) => f.where === "face" || (f.where === "edge" && i === 0));
+    const contour = part.outline?.map(([u, v]) => {
+      const q = view.projectLocal({ u, v, w: 0 });
+      return [q.X, q.Y] as [number, number];
+    });
     const content = writeDxf(part, view.width, view.height, feats, profile, {
+      ...(contour ? { contour } : {}),
       ...meta,
       side: i + 1,
       sides: faces.length,
@@ -109,7 +114,7 @@ function writeDxf(
   height: number,
   feats: DFeature[],
   profile: DxfProfile,
-  meta: DxfMeta & { side: number; sides: number; face: string },
+  meta: DxfMeta & { side: number; sides: number; face: string; contour?: [number, number][] },
 ): string {
   const f = fmtFactory(profile.decimals);
   const L = profile.layers;
@@ -150,12 +155,16 @@ function writeDxf(
   };
 
   // Outline (panel thickness as entity thickness).
-  poly(L.outline, [
-    [0, 0],
-    [width, 0],
-    [width, height],
-    [0, height],
-  ], t);
+  poly(
+    L.outline,
+    meta.contour ?? [
+      [0, 0],
+      [width, 0],
+      [width, height],
+      [0, height],
+    ],
+    t,
+  );
 
   for (const ft of feats) {
     if (ft.op === "pocket" && ft.rect) {

@@ -22,6 +22,7 @@ export type PartRole =
   | "blind_panel"
   | "appliance_front"
   | "flap"
+  | "ceiling_filler"
   | "worktop"
   | "plinth"
   | "drawer_front"
@@ -52,6 +53,7 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   blind_panel: "BP",
   appliance_front: "AF",
   flap: "FL",
+  ceiling_filler: "PB",
   worktop: "WT",
   plinth: "PL",
   drawer_front: "DF",
@@ -79,6 +81,7 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "blind_panel",
   "appliance_front",
   "flap",
+  "ceiling_filler",
   "drawer_front",
   "drawer_side_left",
   "drawer_side_right",
@@ -136,6 +139,12 @@ export interface Part {
   box: Box;
   /** Machining in part-local coordinates (see ops.ts). */
   operations: Operation[];
+  /**
+   * Non-rectangular parts (D43): the contour in part-local (u, v), counter-
+   * clockwise, inside 0…length × 0…width. Sizes and cut sizes stay the
+   * bounding rectangle.
+   */
+  outline?: [number, number][];
   note?: string;
 }
 
