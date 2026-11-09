@@ -348,14 +348,16 @@ export function buildBox(
   const LW = W - 2 * t;
   const sw = (LW - nPart * t) / (nPart + 1);
   const sections: [number, number][] = [];
-  for (let k = 0; k <= nPart; k++) sections.push([t + k * (sw + t), t + k * (sw + t) + sw]);
+  // Sections end on the panels' faces as the parts are made (rounded), so shelves and joints meet them exactly.
+  const partitionX = (i: number): number => roundMm(t + i * sw + (i - 1) * t);
+  for (let k = 0; k <= nPart; k++) sections.push([k === 0 ? t : partitionX(k) + t, k === nPart ? W - t : partitionX(k + 1)]);
   if (nPart > 0) {
     const z0 = backFrontZ;
     for (let i = 1; i <= nPart; i++) {
       add(
         "partition",
         i,
-        { x: t + i * sw + (i - 1) * t, y: t, z: z0, dx: t, dy: H - 2 * t, dz: D - num("partition_setback") - z0 },
+        { x: partitionX(i), y: t, z: z0, dx: t, dy: H - 2 * t, dz: D - num("partition_setback") - z0 },
         "y",
         "z",
         "material.carcase",
