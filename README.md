@@ -20,6 +20,8 @@ pnpm install
 pnpm check                      # typecheck + tests
 pnpm cp cutlist examples/kitchen-basic.project.json --format table
 pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --group --lang de --delimiter ";" --out cutlist.csv
+pnpm cp bom examples/kitchen-basic.project.json --shop examples/shop.json --format table --per-cabinet   # bill of materials with prices
+pnpm cp sheets examples/kitchen-basic.project.json --zip sheets.zip   # all drawing sheets (SVG): plan, elevations, assembly, parts
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01   # every value and where it came from
 pnpm cp check examples/kitchen-basic.project.json
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01      # machining and hardware per part
@@ -28,7 +30,7 @@ pnpm cp dxf examples/kitchen-basic.project.json --zip kitchen.zip  # CNC DXF per
 
 ## Repository
 
-- `packages/engine` — TypeScript engine: expression language, variable graph, preset layers, box cabinet rule, machining (32 mm system, dowels, hardware), checks, cutlist writer.
+- `packages/engine` — TypeScript engine: expression language, variable graph, preset layers, box cabinet rule, machining (32 mm system, dowels, hardware), checks, writers for cutlist, bill of materials, drawings and DXF.
 - `packages/engine/library/hardware` — factory hardware items as JSON (generic, untested).
 - `packages/i18n` — English and German texts for UI and CLI.
 - `packages/cli` — `cabinet-planner` command.

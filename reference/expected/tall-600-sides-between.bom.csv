@@ -1,0 +1,13 @@
+Section,Item,Name,Article no.,Count,Net,Qty,Unit,Unit price,Cost,Note
+Board,hdf-white-8,HDF white 8,,1,1.14,1.31,m²,,,
+Board,mdf-lacquer-19,Lacquer MDF 19,,1,1.19,1.37,m²,,,
+Board,mel-white-19,Melamine white 19,,8,4.06,4.67,m²,,,
+Edgeband,abs-white-1,ABS white 1 mm,,12,12.55,13.15,m,,,
+Hardware,dowel-8x35,Dowel Ø8 × 35,,,,16,pcs,,,
+Hardware,generic-hinge-110,Cup hinge 110° (generic),,,,4,pcs,,,
+Hardware,shelf-pin-5,Shelf support pin Ø5,,,,16,pcs,,,
+Hardware,generic-leg-100,Adjustable leg 100 (generic),,,,4,pcs,,,
+Total,,Board material,,,,,,,,3 without price
+Total,,Edgebands,,,,,,,,1 without price
+Total,,Hardware,,,,,,,,4 without price
+Total,,Total,,,,,,,,8 without price

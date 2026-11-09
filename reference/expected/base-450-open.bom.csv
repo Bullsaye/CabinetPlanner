@@ -1,0 +1,10 @@
+Section,Item,Name,Article no.,Count,Net,Qty,Unit,Unit price,Cost,Note
+Board,hdf-white-8,HDF white 8,,1,0.3,0.35,m²,,,
+Board,mel-white-19,Melamine white 19,,5,1.12,1.29,m²,,,
+Edgeband,abs-white-1,ABS white 1 mm,,4,2.26,2.46,m,,,
+Hardware,dowel-8x35,Dowel Ø8 × 35,,,,16,pcs,,,
+Hardware,generic-leg-100,Adjustable leg 100 (generic),,,,4,pcs,,,
+Total,,Board material,,,,,,,,2 without price
+Total,,Edgebands,,,,,,,,1 without price
+Total,,Hardware,,,,,,,,2 without price
+Total,,Total,,,,,,,,5 without price

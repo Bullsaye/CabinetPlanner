@@ -1,9 +1,12 @@
 # Reference cabinets
 
 Each `cabinets/<name>.project.json` must produce exactly
-`expected/<name>.cutlist.csv` and `expected/<name>.ops.txt` (machining and
-hardware, part-local mm, byte for byte). The test is
-`packages/cli/test/reference.test.ts`.
+`expected/<name>.cutlist.csv`, `expected/<name>.bom.csv` (bill of materials)
+and `expected/<name>.ops.txt` (machining and hardware, part-local mm, byte for
+byte). The test is `packages/cli/test/reference.test.ts`.
+`expected/example-kitchen.bom.*` is the bill of materials of
+`examples/kitchen-basic.project.json` with the prices of `examples/shop.json`
+(`packages/cli/test/cli.test.ts`).
 
 **Status: unverified.** The expected values are derived from the rules in
 `DECISIONS.md` and checked by hand for the base 600 (see

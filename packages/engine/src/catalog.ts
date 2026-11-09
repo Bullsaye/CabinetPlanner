@@ -18,8 +18,9 @@ export type VarGroup =
   | "fronts"
   | "hardware"
   | "drawers"
-  | "machining";
-export type VarUnit = "mm" | "count" | "kg";
+  | "machining"
+  | "costing";
+export type VarUnit = "mm" | "count" | "kg" | "percent";
 
 export interface VarDef {
   name: string;
@@ -164,6 +165,10 @@ export const VARIABLES: readonly VarDef[] = [
   // Machining limits.
   v({ name: "bore_min_wall", group: "machining", unit: "mm", factory: 2, min: 0, max: 20, step: 0.5 }),
   v({ name: "through_overlap", group: "machining", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
+
+  // Bill of materials: what is ordered beyond the net quantities (output/bom.ts).
+  v({ name: "waste_pct", group: "costing", unit: "percent", factory: 15, min: 0, max: 100, step: 1 }),
+  v({ name: "edge_allowance", group: "costing", unit: "mm", factory: 50, min: 0, max: 500, step: 5 }),
 ];
 
 export const VARIABLE_BY_NAME: ReadonlyMap<string, VarDef> = new Map(VARIABLES.map((d) => [d.name, d]));

@@ -1,0 +1,13 @@
+Section,Item,Name,Article no.,Count,Net,Qty,Unit,Unit price,Cost,Note
+Board,hdf-white-8,HDF white 8,,1,0.55,0.63,m²,,,
+Board,mdf-lacquer-19,Lacquer MDF 19,,3,0.57,0.65,m²,,,
+Board,mel-white-16,Melamine white 16,,6,1.35,1.56,m²,,,
+Board,mel-white-19,Melamine white 19,,5,1.39,1.59,m²,,,
+Edgeband,abs-white-1,ABS white 1 mm,,19,11.28,12.23,m,,,
+Hardware,dowel-8x35,Dowel Ø8 × 35,,,,16,pcs,,,
+Hardware,grass-nova-pro-scala-40,"Grass Nova Pro Scala, double-wall drawer, 40 kg","F101108276, F100103123",,,3,sets,,,
+Hardware,generic-leg-100,Adjustable leg 100 (generic),,,,4,pcs,,,
+Total,,Board material,,,,,,,,4 without price
+Total,,Edgebands,,,,,,,,1 without price
+Total,,Hardware,,,,,,,,3 without price
+Total,,Total,,,,,,,,8 without price

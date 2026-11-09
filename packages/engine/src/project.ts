@@ -88,6 +88,8 @@ export interface ProjectResult {
   /** Cabinets without errors: parts, cutlists and CNC files can be made. Room findings do not count. */
   ok: boolean;
   room?: RoomLayout;
+  /** Project-level values (no cabinet layer), e.g. for room parts in the BOM. */
+  values: ReadonlyMap<string, number>;
 }
 
 /**
@@ -176,6 +178,7 @@ export function buildProject(project: Project, shop?: Shop): ProjectResult {
     diagnostics,
     ok,
     ...(room ? { room } : {}),
+    values: probe.values,
   };
 }
 

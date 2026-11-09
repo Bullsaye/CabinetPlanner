@@ -652,3 +652,34 @@ Two shop settings, because they are used for different things:
   every kink. Below `ceiling_filler_min` it is left out (warning).
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
+
+### D45 · 2026-11-09 · Bill of materials and costing
+
+- The BOM (`output/bom.ts`) is computed from the project result only:
+  board per material, edgeband per type, hardware and consumables per
+  library item, with section totals and the cost share per cabinet
+  (worktops and plinth panels under "ROOM").
+- Board: net area = finished length × width of every part (D4);
+  non-rectangular parts (D43) count with their bounding rectangle, which
+  is what is cut from the board. Gross area = net × (1 + `waste_pct` / 100).
+- Edgeband: finished length of every banded edge (l1, l2 = length; w1, w2
+  = width) plus `edge_allowance` per banded edge.
+- `waste_pct` (15) and `edge_allowance` (50 mm) are catalogue variables
+  (group costing). Each part uses the values of its cabinet, room parts
+  those of the project.
+- Hardware: `CabinetResult.hardware` summed per item and chosen variant
+  article (two variants of one item are two rows); the article column is
+  the variant's number, else all article numbers of the item. Rows are
+  ordered connectors and consumables first, then by item id (plain
+  code-unit order, like materials and edgebands).
+- Prices live on the library items: `pricePerM2`, `pricePerM`, `bom.price`
+  (per unit of the item), without a currency (the shop's). Quantities are
+  rounded to 0.01 (m², m) first; a row's cost is that quantity × unit
+  price, rounded to 0.01; section totals are the sums of the row costs.
+  Rows without a price are left out of the totals and counted
+  ("n without price"); a sum without any priced row stays empty. The cost
+  per cabinet comes from unrounded quantities and may differ from the
+  totals by rounding.
+- One table for CSV and text: section, item id, name, article no., count
+  (parts or edges), net, quantity to order, unit, unit price, cost, note
+  (cut lengths of rails). Numbers per D10.

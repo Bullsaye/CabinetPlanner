@@ -8,7 +8,7 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 - `packages/engine` – pure TypeScript engine. No DOM, no Node APIs, no UI
   text. Pipeline: presets → variables (expression graph) → cabinet rules →
   parts → machining (back pockets, joints, system holes, hardware) → checks
-  → output writers. Hardware seed items are JSON in `packages/engine/library/hardware/`.
+  → output writers (`src/output`: cutlist, BOM D45, DXF, sheets). Hardware seed items are JSON in `packages/engine/library/hardware/`.
 - `packages/i18n` – message catalogues (`en` base, `de` complete) and the
   translator.
 - `packages/cli` – `cabinet-planner` command; the first client of the engine.
@@ -28,6 +28,8 @@ pnpm test -u         # regenerate golden files after an intended change; review 
 pnpm typecheck
 pnpm check           # typecheck + tests (what CI runs)
 pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --format table --lang de
+pnpm cp bom examples/kitchen-basic.project.json --shop examples/shop.json --format table --per-cabinet   # board m², edgeband m, hardware, prices
+pnpm cp sheets examples/kitchen-basic.project.json --zip sheets.zip   # every drawing sheet as SVG
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + hardware per part
 pnpm app             # web app dev server (http://localhost:5173)
