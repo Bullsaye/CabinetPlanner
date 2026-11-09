@@ -248,6 +248,19 @@ export const en = {
   "cli.op.pocket": "Pocket",
   "cli.hardware": "Hardware",
   "unit.pcs": "pcs",
+  "cli.part_not_found": "Part “{part}” not found. Use the part id, e.g. B01-SL.",
+  "face.t0": "face t0",
+  "face.t1": "face t1",
+  "face.l1": "edge l1",
+  "face.l2": "edge l2",
+  "face.w1": "edge w1",
+  "face.w2": "edge w2",
+  "drawing.viewed": "Bore on viewed face",
+  "drawing.opposite": "Bore on opposite face",
+  "drawing.edge": "Bore in an edge (depth to scale)",
+  "drawing.banded": "Banded edge",
+  "drawing.table": "Machining",
+  "drawing.count": "pcs",
 } as const;
 
 export type MessageKey = keyof typeof en;

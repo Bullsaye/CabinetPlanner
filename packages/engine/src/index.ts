@@ -19,3 +19,5 @@ export { HardwareItem, DrillOp } from "./hardware/schema.ts";
 export { FACTORY_HARDWARE } from "./hardware/factory.ts";
 export * from "./output/format.ts";
 export * from "./output/cutlist.ts";
+export * from "./output/scene.ts";
+export * from "./output/part-svg.ts";

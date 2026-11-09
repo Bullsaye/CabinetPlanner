@@ -1,0 +1,319 @@
+<title>Cabinet Planner Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: workshop tool — cabinet tabs, 3D view beside the part list, part drawing below. Tokens follow design/ mockups. */
+:root {
+  --bg: #eef0f3;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --line: #dde0e5;
+  --fg: #1b1f24;
+  --muted: #5b6470;
+  --accent: #1f5fd1;
+  --accent-soft: #e3ecfb;
+  --accent-fg: #1d4fae;
+  --view: #f4f5f7;
+  --part: #e4e7eb;
+  --part-edge: #7d8692;
+  --drill: #2b3138;
+  --pocket: #c9d6ef;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181c; --surface: #1c2025; --surface-2: #20252b; --line: #2e343c; --fg: #e6e9ed; --muted: #9aa3ae;
+    --accent: #6d9cf0; --accent-soft: #1f2d45; --accent-fg: #a9c4f6; --view: #191c21; --part: #3a414a;
+    --part-edge: #8a93a0; --drill: #0c0e11; --pocket: #33476b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181c; --surface: #1c2025; --surface-2: #20252b; --line: #2e343c; --fg: #e6e9ed; --muted: #9aa3ae;
+  --accent: #6d9cf0; --accent-soft: #1f2d45; --accent-fg: #a9c4f6; --view: #191c21; --part: #3a414a;
+  --part-edge: #8a93a0; --drill: #0c0e11; --pocket: #33476b; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 13px/1.45 var(--font-ui); }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 32px; max-width: 1360px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+h1 { font-size: 18px; font-weight: 600; margin: 0; text-wrap: balance; }
+.note { color: var(--muted); font-size: 12px; margin: 0; max-width: 70ch; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-fg); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+@media (max-width: 860px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.view { position: relative; overflow: hidden; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); align-items: center; }
+.toolbar .spacer { flex: 1; }
+#canvas { display: block; width: 100%; height: 520px; background: var(--view); touch-action: none; }
+@media (max-width: 600px) { #canvas { height: 380px; } }
+.hint { position: absolute; left: 10px; bottom: 8px; color: var(--muted); font-size: 11px; pointer-events: none; }
+.side h2 { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; padding: 12px 12px 6px; }
+.parts { display: grid; gap: 2px; padding: 0 6px 6px; }
+.parts button { display: grid; grid-template-columns: 64px 1fr; gap: 2px 8px; text-align: left; border-color: transparent; background: transparent; padding: 6px; }
+.parts button:hover { background: var(--surface-2); }
+.parts button[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; }
+.parts .id { font-family: var(--font-mono); font-size: 12px; }
+.parts .size { grid-column: 2; color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.hw { border-top: 1px solid var(--line); padding-bottom: 8px; }
+.hw table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hw td { padding: 4px 12px; vertical-align: top; }
+.hw td.n { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
+.drawing { padding: 12px; }
+.drawing .scroll { overflow-x: auto; }
+.drawing svg { display: block; width: 100%; max-width: 980px; min-width: 640px; height: auto; margin: 0 auto; }
+.pd-part { fill: var(--surface-2); stroke: var(--fg); stroke-width: 1.2; }
+.pd-band { stroke: var(--accent); stroke-width: 4; }
+.pd-op { fill: var(--surface); stroke: var(--fg); stroke-width: 1; }
+.pd-op-far { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.pd-pocket { fill: var(--pocket); stroke: var(--fg); stroke-width: 1; }
+.pd-pocket-far { fill: none; stroke: var(--muted); stroke-dasharray: 4 3; }
+.pd-dim { stroke: var(--muted); stroke-width: .75; fill: none; opacity: .7; }
+.pd-dimtext { fill: var(--muted); font: 10px var(--font-mono); }
+.pd-text { fill: var(--fg); font: 12px var(--font-ui); }
+.pd-title { fill: var(--fg); font: 600 15px var(--font-ui); }
+.pd-mono { fill: var(--fg); font: 11px var(--font-mono); }
+.pd-axis { fill: var(--muted); font: 10px var(--font-mono); }
+.err { padding: 24px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Cabinet Planner Preview</h1>
+    <p class="note">Computed by the engine from the example project and reference cabinets. Flat-shaded boxes, all machining shown. Hardware values are generic placeholders, not datasheet values yet.</p>
+  </header>
+
+  <div class="tabs" id="tabs" role="group" aria-label="Cabinet"></div>
+
+  <div class="main">
+    <section class="panel view" aria-label="3D view">
+      <div class="toolbar">
+        <button id="t-explode" aria-pressed="false">Explode</button>
+        <button id="t-bores" aria-pressed="true">Machining</button>
+        <button id="t-fronts" aria-pressed="true">Fronts</button>
+        <span class="spacer"></span>
+        <span class="mono note" id="dims"></span>
+        <button id="t-reset">Reset view</button>
+      </div>
+      <canvas id="canvas"></canvas>
+      <span class="hint">Drag to orbit · scroll or pinch to zoom · click a part</span>
+    </section>
+
+    <aside class="panel side">
+      <h2>Parts</h2>
+      <div class="parts" id="parts"></div>
+      <div class="hw">
+        <h2>Hardware</h2>
+        <table><tbody id="hw"></tbody></table>
+      </div>
+    </aside>
+  </div>
+
+  <section class="panel drawing" aria-label="Part drawing">
+    <div class="scroll" id="drawing"></div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const DATA = /*DATA*/null;
+
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const state = { cab: 0, part: null, explode: false, bores: true, fronts: true };
+
+function pressed(btn, on) { btn.setAttribute("aria-pressed", on ? "true" : "false"); }
+
+// ---------- 3D ----------
+let renderer, scene, camera, controls, group, meshes = [];
+const canvas = $("canvas");
+
+function init3d() {
+  if (!window.THREE) {
+    canvas.replaceWith(Object.assign(document.createElement("p"), { className: "err", textContent: "The 3D library did not load. The part drawing below still works." }));
+    return false;
+  }
+  AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(35, 1, 10, 20000);
+  controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.55);
+  sun.position.set(-0.6, 1, 0.8);
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.18);
+  fill.position.set(1, 0.3, -0.5);
+  scene.add(fill);
+  canvas.addEventListener("pointerdown", onDown);
+  canvas.addEventListener("pointerup", onUp);
+  new ResizeObserver(resize).observe(canvas);
+  renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+  return true;
+}
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+let AX;
+
+function build() {
+  if (!scene) return;
+  if (group) scene.remove(group);
+  group = new THREE.Group();
+  meshes = [];
+  const cab = DATA[state.cab];
+  const { W, H, D } = cab.size;
+  const centre = new THREE.Vector3(W / 2, H / 2, D / 2);
+  const partColor = new THREE.Color(css("--part"));
+  const edgeColor = new THREE.Color(css("--part-edge"));
+  const accent = new THREE.Color(css("--accent"));
+  const drill = new THREE.Color(css("--drill"));
+  const pocketColor = new THREE.Color(css("--pocket"));
+  scene.background = new THREE.Color(css("--view"));
+
+  for (const p of cab.parts) {
+    const isFront = p.role === "door";
+    if (isFront && !state.fronts) continue;
+    const b = p.box;
+    const g = new THREE.Group();
+    const selected = state.part === p.id;
+    const tint = p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : isFront ? partColor.clone().lerp(accent, 0.12) : partColor;
+    const mat = new THREE.MeshLambertMaterial({ color: selected ? partColor.clone().lerp(accent, 0.28) : tint, flatShading: true });
+    const geo = new THREE.BoxGeometry(b.dx, b.dy, b.dz);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.id = p.id;
+    g.add(mesh);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: selected ? accent : edgeColor }));
+    g.add(edges);
+    g.position.set(b.x + b.dx / 2, b.y + b.dy / 2, b.z + b.dz / 2);
+
+    if (state.bores) {
+      const boreMat = new THREE.MeshBasicMaterial({ color: drill });
+      for (const o of p.bores) {
+        // Show the bore as a short dark cylinder standing 0.4 mm proud of the surface.
+        const len = Math.min(o.depth, 3) + 0.4;
+        const cyl = new THREE.Mesh(new THREE.CylinderGeometry(o.d / 2, o.d / 2, len, 20), boreMat);
+        const dir = AX[o.dir.axis].clone().multiplyScalar(o.dir.sign);
+        cyl.quaternion.setFromUnitVectors(AX.y, dir);
+        const c = new THREE.Vector3(o.at.x, o.at.y, o.at.z).addScaledVector(dir, len / 2 - 0.4);
+        cyl.position.copy(c).sub(g.position);
+        g.add(cyl);
+      }
+      const pocketMat = new THREE.MeshBasicMaterial({ color: pocketColor });
+      for (const q of p.pockets) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(q.dx + 0.6, q.dy + 0.6, q.dz + 0.6), pocketMat);
+        m.position.set(q.x + q.dx / 2, q.y + q.dy / 2, q.z + q.dz / 2).sub(g.position);
+        g.add(m);
+      }
+    }
+
+    if (state.explode) {
+      const off = g.position.clone().sub(centre);
+      const scale = p.role === "back" ? 0.9 : p.role === "door" ? 1.4 : 0.45;
+      g.position.add(new THREE.Vector3(off.x * scale, off.y * scale * 0.6, off.z * scale + (p.role === "back" ? -120 : p.role === "door" ? 140 : 0)));
+    }
+    group.add(g);
+    meshes.push(mesh);
+  }
+  group.position.copy(centre).negate();
+  scene.add(group);
+}
+
+function resetView() {
+  if (!camera) return;
+  const { W, H, D } = DATA[state.cab].size;
+  const r = Math.hypot(W, H, D);
+  camera.position.set(r * 1.15, r * 0.75, r * 1.7);
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
+
+let down = null;
+function onDown(e) { down = { x: e.clientX, y: e.clientY }; }
+function onUp(e) {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) return;
+  const r = canvas.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(meshes)[0];
+  if (hit) selectPart(hit.object.userData.id);
+}
+
+// ---------- panels ----------
+function renderTabs() {
+  $("tabs").innerHTML = "";
+  DATA.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.id = "cab-" + c.id;
+    b.innerHTML = `<span class="mono">${c.id}</span> ${c.name}`;
+    pressed(b, i === state.cab);
+    b.onclick = () => selectCabinet(i);
+    $("tabs").append(b);
+  });
+}
+
+function renderParts() {
+  const cab = DATA[state.cab];
+  $("parts").innerHTML = "";
+  for (const p of cab.parts) {
+    const b = document.createElement("button");
+    b.id = "part-" + p.id;
+    b.innerHTML = `<span class="id">${p.id}</span><span>${p.name}</span><span class="size">${p.size} · ${p.ops} ops</span>`;
+    pressed(b, p.id === state.part);
+    b.onclick = () => selectPart(p.id);
+    $("parts").append(b);
+  }
+  $("hw").innerHTML = cab.hardware.map((h) => `<tr><td>${h.name}</td><td class="n">${h.qty} pcs</td></tr>`).join("");
+  const s = cab.size;
+  $("dims").textContent = `W ${s.W} · H ${s.H} · D ${s.D}`;
+}
+
+function renderDrawing() {
+  const p = DATA[state.cab].parts.find((x) => x.id === state.part);
+  $("drawing").innerHTML = p ? p.svg : "";
+}
+
+function selectCabinet(i) {
+  state.cab = i;
+  const parts = DATA[i].parts;
+  state.part = (parts.find((p) => p.code === "SL") || parts[0]).id;
+  renderTabs(); renderParts(); renderDrawing(); build(); resetView();
+}
+
+function selectPart(id) {
+  state.part = id;
+  for (const b of $("parts").children) pressed(b, b.id === "part-" + id);
+  renderDrawing(); build();
+}
+
+function toggle(id, key) {
+  $(id).onclick = () => { state[key] = !state[key]; pressed($(id), state[key]); build(); };
+}
+
+toggle("t-explode", "explode");
+toggle("t-bores", "bores");
+toggle("t-fronts", "fronts");
+$("t-reset").onclick = resetView;
+const ok = init3d();
+selectCabinet(0);
+if (ok) {
+  resize();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", build);
+  new MutationObserver(build).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+</script>

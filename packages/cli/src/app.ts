@@ -6,6 +6,7 @@ import {
   FileFormatError,
   formatNumber,
   localName,
+  partSvg,
   loadProject,
   loadShop,
   VARIABLE_BY_NAME,
@@ -39,6 +40,7 @@ Commands:
   resolve   Show every variable with its value and where it came from
   check     Validate the project and list errors and warnings
   ops       Show machining operations and hardware per part (part-local mm)
+  drawing   Write an SVG drawing of one part (--part <id>, e.g. B01-SL)
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
@@ -48,6 +50,8 @@ Options:
   --delimiter <char>     CSV delimiter (default: ",")
   --out <file>           Write to a file instead of stdout
   --cabinet <id>         resolve, ops: only this cabinet
+  --part <id>            drawing: the part to draw
+  --face <t0|t1>         drawing: the face to look at (default: the one with most machining)
   -h, --help             Show this help
 `;
 
@@ -65,6 +69,8 @@ export function run(argv: readonly string[], io: Io): number {
         delimiter: { type: "string", default: "," },
         out: { type: "string" },
         cabinet: { type: "string" },
+        part: { type: "string" },
+        face: { type: "string" },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -78,7 +84,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
-  if (!["cutlist", "resolve", "check", "ops"].includes(command) || !file) {
+  if (!["cutlist", "resolve", "check", "ops", "drawing"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
   }
@@ -202,6 +208,36 @@ export function run(argv: readonly string[], io: Io): number {
         }
       }
       emit(out.join("\n"));
+      printDiagnostics(result.diagnostics, tr, io);
+      return result.ok ? 0 : 1;
+    }
+    case "drawing": {
+      const part = result.parts.find((p) => p.id === opts.part);
+      if (!part) {
+        io.stderr(tr.t("cli.part_not_found", { part: opts.part ?? "" }) + "\n");
+        printDiagnostics(result.diagnostics, tr, io);
+        return opts.part ? 1 : 2;
+      }
+      if (opts.face !== undefined && opts.face !== "t0" && opts.face !== "t1") {
+        io.stderr(`--face must be t0 or t1\n`);
+        return 2;
+      }
+      const mat = result.library.materials.get(part.material);
+      emit(
+        partSvg(part, {
+          title: `${part.id} · ${tr.t(`role.${part.role}`)}`,
+          subtitle: `${formatNumber(part.length)} × ${formatNumber(part.width)} × ${formatNumber(part.thickness)} mm · ${mat ? localName(mat.name, tr.locale) : part.material}`,
+          face: (f) => tr.t(`face.${f}`),
+          legend: {
+            viewed: tr.t("drawing.viewed"),
+            opposite: tr.t("drawing.opposite"),
+            edge: tr.t("drawing.edge"),
+            banded: tr.t("drawing.banded"),
+            table: tr.t("drawing.table"),
+            count: tr.t("drawing.count"),
+          },
+        }, opts.face ? { face: opts.face } : {}),
+      );
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
     }

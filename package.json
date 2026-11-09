@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p packages/engine && tsc -p packages/i18n && tsc -p packages/cli",
     "check": "pnpm typecheck && pnpm test",
-    "cp": "tsx packages/cli/src/main.ts"
+    "cp": "tsx packages/cli/src/main.ts",
+    "preview": "tsx tools/preview/gen.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

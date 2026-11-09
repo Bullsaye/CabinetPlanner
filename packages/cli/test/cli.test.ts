@@ -90,3 +90,15 @@ describe("cli", () => {
     expect(io.err).toContain("Written: x.csv");
   });
 });
+
+describe("cli drawing", () => {
+  it("writes an SVG for a part and rejects unknown parts", () => {
+    const io = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--lang", "de"], io)).toBe(0);
+    expect(io.out).toMatch(/^<svg /);
+    expect(io.out).toContain("Seite links");
+    const bad = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "X99-SL"], bad)).toBe(1);
+    expect(bad.err).toContain("not found");
+  });
+});
