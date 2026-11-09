@@ -71,6 +71,7 @@ function offset(role: PartRole, c: { W: number; H: number; D: number }, e: numbe
     case "rail_front":
     case "rail_rear":
       return [0, 0.32 * c.H * k, 0];
+    case "rail_bottom":
     case "bottom":
       return [0, -0.22 * c.H * k, 0];
     case "back":

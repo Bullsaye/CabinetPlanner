@@ -76,6 +76,10 @@ export const VARIABLES: readonly VarDef[] = [
 
   // Construction.
   v({ name: "rail_w", group: "construction", unit: "mm", factory: 100, min: 30, max: 300, step: 10 }),
+  v({ name: "rail_bottom_w", group: "construction", unit: "mm", factory: "rail_w", min: 30, max: 400, step: 10 }),
+  v({ name: "bottom_setback_rear", group: "construction", unit: "mm", factory: 0, min: 0, max: 600, step: 5 }),
+  v({ name: "bottom_setback_front", group: "construction", unit: "mm", factory: 0, min: 0, max: 300, step: 5 }),
+  v({ name: "joint_screw_every", group: "construction", unit: "count", factory: 1, min: 1, max: 10, integer: true, step: 1 }),
   v({ name: "partition_count", group: "construction", unit: "count", factory: 0, min: 0, max: 5, integer: true, step: 1, quick: true }),
   v({ name: "partition_setback", group: "construction", unit: "mm", factory: 0, min: 0, max: 200 }),
   v({ name: "dowel_offset_front", group: "construction", unit: "mm", factory: "sys_row_front", min: 5, max: 200 }),
@@ -200,11 +204,19 @@ export const OPTIONS: readonly OptionDef[] = [
   },
   /** Top: full panel or two rails; auto = top.base_unit for base units, a full panel otherwise. */
   { key: "top", group: "construction", kind: { type: "enum", values: ["auto", "full", "rails"] }, factory: "auto" },
+  /** Rails under top: rails — each flat (rail_w deep), upright (rail_w high) or left out (D41). */
+  { key: "rail.front", group: "construction", kind: { type: "enum", values: ["flat", "upright", "none"] }, factory: "flat" },
+  { key: "rail.rear", group: "construction", kind: { type: "enum", values: ["flat", "upright", "none"] }, factory: "flat" },
+  /** Rear rail at the bottom, e.g. behind a shortened bottom in sink units. */
+  { key: "rail.bottom", group: "construction", kind: { type: "enum", values: ["none", "flat", "upright"] }, factory: "none" },
+  /** Screws through the sides alongside the dowels, between them (D41). */
+  { key: "joint_screws", group: "construction", kind: { type: "enum", values: ["none", "between_dowels"] }, factory: "none" },
+  { key: "hardware.joint_screw", group: "construction", kind: { type: "hardware", category: "connector" }, factory: "generic-chipboard-screw-4x50" },
   { key: "top.base_unit", group: "construction", kind: { type: "enum", values: ["rails", "full"] }, factory: "rails" },
   {
     key: "back_mount",
     group: "back",
-    kind: { type: "enum", values: ["groove", "rebate", "surface"] },
+    kind: { type: "enum", values: ["groove", "rebate", "surface", "none"] },
     factory: "groove",
   },
   /** Back between the sides and behind bottom and top (horizontals end at the back), or inside them. */

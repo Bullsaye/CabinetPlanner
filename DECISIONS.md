@@ -579,3 +579,24 @@ Two shop settings, because they are used for different things:
   except id, name, place and template.
 - `CabinetResult.layout` exposes the box layout (zones with their
   automatic fixed shelf) for the editor.
+
+### D41 · 2026-11-09 · Rails, shortened bottom, no back, screws with the dowels
+
+- With rails under the top, `rail.front` and `rail.rear` are each `flat`
+  (in the top plane, `rail_w` deep), `upright` (standing, `rail_w` high,
+  thickness along Z) or `none`. `rail.bottom` adds a rear rail at the
+  bottom (`flat` behind the bottom, `rail_bottom_w` deep; or `upright`,
+  `rail_bottom_w` high); it needs the bottom shortened by its depth.
+  Upright rails need `carcase_joint: sides_over`.
+- `bottom_setback_rear` / `bottom_setback_front` shorten the bottom (any
+  formula, e.g. `D / 3`). Legs follow the shortened bottom.
+- `back_mount: none`: no back panel, no grooves; the interior starts at
+  the carcase rear edge.
+- Joints run along a line axis: Z for flat panels, Y for upright rails,
+  counted from the top for top rails and from the bottom for the bottom
+  rail (the dowel rules see the joint as running from its front end).
+  Middle panels join flat horizontals only.
+- `joint_screws: between_dowels`: a screw (item `hardware.joint_screw`,
+  connector drilling: clearance through the side, pilot into the panel
+  end) halfway between consecutive dowels of every carcase joint, starting
+  between the first two, in every `joint_screw_every`-th gap.

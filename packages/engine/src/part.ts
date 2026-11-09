@@ -13,6 +13,7 @@ export type PartRole =
   | "top"
   | "rail_front"
   | "rail_rear"
+  | "rail_bottom"
   | "back"
   | "shelf"
   | "partition"
@@ -42,6 +43,7 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   top: "TO",
   rail_front: "RF",
   rail_rear: "RR",
+  rail_bottom: "RB",
   back: "BK",
   shelf: "SH",
   partition: "MP",
@@ -68,6 +70,7 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "top",
   "rail_front",
   "rail_rear",
+  "rail_bottom",
   "back",
   "partition",
   "fixed_shelf",

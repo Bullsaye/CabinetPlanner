@@ -195,12 +195,29 @@ export function machineBox(
     }
     const fastener = method === "connector" || method === "connector_dowel" ? library.hardware.get(opt<string>("hardware.fastener"))! : undefined;
     const seenLimits = new Set<string>();
+    const screw = opt<string>("joint_screws") === "between_dowels" ? library.hardware.get(opt<string>("hardware.joint_screw")) : undefined;
+    /** The screw's drilling for one joint (thicknesses differ per joint). */
+    const screwPlan = (j: Joint): ConnectorPlan | undefined => {
+      if (!screw) return undefined;
+      const scope = new Map(rc.values);
+      scope.set("t_edge", j.edgePart.thickness);
+      scope.set("t_face", j.facePart.thickness);
+      const params = evaluateItemParams(screw, scope, at);
+      const { drills } = evaluateDrilling(screw, params.values, at);
+      return { item: screw, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: 0, spacingMax: Infinity };
+    };
 
     for (const j of carcaseJoints(parts, opt<string>("carcase_joint"))) {
-      const zMin = Math.max(j.facePart.box.z, j.edgePart.box.z);
-      const zMax = Math.min(j.facePart.box.z + j.facePart.box.dz, j.edgePart.box.z + j.edgePart.box.dz);
-      const point = (z: number): Point3 => {
-        const p = { x: 0, y: 0, z };
+      // Positions along the joint line (Z for flat panels, Y for upright rails),
+      // counted from its front end — the top for top rails, the bottom for bottom rails.
+      const L = j.line;
+      const size = (b: Part["box"]): number => (L === "x" ? b.dx : L === "y" ? b.dy : b.dz);
+      const zMin = Math.max(j.facePart.box[L], j.edgePart.box[L]);
+      const zMax = Math.min(j.facePart.box[L] + size(j.facePart.box), j.edgePart.box[L] + size(j.edgePart.box));
+      const m = (s: number): number => (j.fromMin ? zMin + zMax - s : s);
+      const point = (s: number): Point3 => {
+        const p = { x: 0, y: 0, z: 0 };
+        p[L] = m(s);
         p[j.plane.axis] = j.plane.value;
         p[j.across.axis] = j.across.value;
         return p;
@@ -236,13 +253,15 @@ export function machineBox(
         }
         conn = { item: fastener, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
       }
-      const geo: JointGeometry = { j, W, H, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap") };
+      const geo: JointGeometry = { j, W, H, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
 
       let placed = 0;
+      let dowelLine: number[] = [];
       if (method === "dowel") {
         const zs = dowelPositions(zMin, zMax, base, dowelFree);
         zs.forEach(placeDowel);
         placed = zs.length;
+        dowelLine = zs;
         use(dowelItem, zs.length);
       } else if (method === "connector" && conn) {
         const c = conn;
@@ -254,18 +273,19 @@ export function machineBox(
           minCount: 2,
         };
         delete (o as { sequence?: unknown }).sequence;
-        const zs = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, z));
-        for (const z of zs) placeConnector(geo, c, z);
+        const zs = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
+        for (const z of zs) placeConnector(geo, c, m(z));
         placed = zs.length;
         use(c.item, zs.length);
       } else if (method === "connector_dowel" && conn) {
         const c = conn;
         // The dowel pattern without the free check, then connectors at its ends.
-        const zs = dowelPositions(zMin, zMax, base, (z) => dowelFree(z) || connectorFits(geo, c, z));
+        const zs = dowelPositions(zMin, zMax, base, (z) => dowelFree(z) || connectorFits(geo, c, m(z)));
+        dowelLine = zs;
         const ends = zs.length >= 2 ? [zs[0]!, zs[zs.length - 1]!] : zs;
         for (const z of zs) {
-          if (ends.includes(z) && connectorFits(geo, c, z)) {
-            placeConnector(geo, c, z);
+          if (ends.includes(z) && connectorFits(geo, c, m(z))) {
+            placeConnector(geo, c, m(z));
             use(c.item, 1);
           } else if (dowel && dowelFree(z)) {
             placeDowel(z);
@@ -273,6 +293,21 @@ export function machineBox(
           } else continue;
           placed++;
         }
+      }
+      // Screws through the face part alongside the dowels (D41): between
+      // dowels, starting between the first two, every joint_screw_every-th gap.
+      if (screw && dowelLine.length >= 2) {
+        const sp = screwPlan(j);
+        const every = Math.max(1, Math.round(num("joint_screw_every")));
+        let n = 0;
+        for (let k = 0; k + 1 < dowelLine.length; k += every) {
+          const mid = (dowelLine[k]! + dowelLine[k + 1]!) / 2;
+          if (sp && connectorFits(geo, sp, m(mid))) {
+            placeConnector(geo, sp, m(mid));
+            n++;
+          }
+        }
+        use(screw, n);
       }
       if (placed === 0) {
         diagnostics.push({ severity: "error", code: "joint_no_dowels", params: { joint: j.ref }, ...at });
@@ -545,7 +580,8 @@ export function machineBox(
       return Array.from({ length: n }, (_, i) => roundMm(a + ((b - a) * i) / (n - 1)));
     };
     const xs = spread(num("leg_inset_side"), W - num("leg_inset_side"));
-    const zs = spread(layout.backFrontZ + num("leg_inset_rear"), D - num("leg_inset_front"));
+    // Rows follow the bottom when it is shortened (sink units, D41).
+    const zs = spread(Math.max(layout.backFrontZ, bottom.box.z) + num("leg_inset_rear"), Math.min(D, bottom.box.z + bottom.box.dz) - num("leg_inset_front"));
     const source: OpSource = { kind: "hardware", ref: item.id };
     const minWall = num("bore_min_wall");
     const fits = (x: number, z: number): boolean =>
@@ -611,27 +647,35 @@ interface Joint {
   intoFace: Direction;
   /** Position across the joint: centre of the edge part's thickness. */
   across: { axis: Axis; value: number };
+  /** Axis the connectors run along (Z for flat panels, Y for upright rails). */
+  line: Axis;
+  /** Count positions from the low end of the line (bottom rails), else from the high end. */
+  fromMin?: boolean;
 }
 
 function carcaseJoints(parts: Part[], jointType: string): Joint[] {
   const byCode = new Map(parts.map((p) => [p.code, p]));
   const sides = [byCode.get("SL"), byCode.get("SR")].filter((p): p is Part => !!p);
-  const horizontals = ["BO", "TO", "RF", "RR"].map((c) => byCode.get(c)).filter((p): p is Part => !!p);
+  const horizontals = ["BO", "TO", "RF", "RR", "RB"].map((c) => byCode.get(c)).filter((p): p is Part => !!p);
+  const upright = (p: Part): boolean => thicknessAxis(p.lengthAxis, p.widthAxis) === "z";
   const joints: Joint[] = [];
   for (const side of sides) {
     const left = side.code === "SL";
     for (const h of horizontals) {
       if (jointType === "sides_over") {
-        // Side face, horizontal part's end.
+        // Side face, horizontal part's end. Upright rails: across their thickness (Z), along Y.
+        const up = upright(h);
         joints.push({
           ref: `${side.code}-${h.code}`,
           facePart: side,
           edgePart: h,
           plane: { axis: "x", value: left ? side.box.x + side.box.dx : side.box.x },
           intoFace: left ? "-x" : "+x",
-          across: { axis: "y", value: h.box.y + h.box.dy / 2 },
+          across: up ? { axis: "z", value: h.box.z + h.box.dz / 2 } : { axis: "y", value: h.box.y + h.box.dy / 2 },
+          line: up ? "y" : "z",
+          ...(up && h.box.y < side.box.y + side.box.dy / 2 ? { fromMin: true } : {}),
         });
-      } else {
+      } else if (!upright(h)) {
         // Horizontal part's face, side's end. Bottom is below the side, top/rails above.
         const below = h.box.y + h.box.dy <= side.box.y + 1e-6;
         joints.push({
@@ -641,6 +685,7 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
           plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
           intoFace: below ? "-y" : "+y",
           across: { axis: "x", value: side.box.x + side.box.dx / 2 },
+          line: "z",
         });
       }
     }
@@ -658,12 +703,13 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
         plane: { axis: "x", value: leftEnd ? fs.box.x : fs.box.x + fs.box.dx },
         intoFace: leftEnd ? "-x" : "+x",
         across: { axis: "y", value: fs.box.y + fs.box.dy / 2 },
+        line: "z",
       });
     }
   }
   // Middle panels always stand between bottom and top/rails.
   for (const mp of parts.filter((p) => p.role === "partition")) {
-    for (const h of horizontals) {
+    for (const h of horizontals.filter((x) => !upright(x) && x.box.z < mp.box.z + mp.box.dz && mp.box.z < x.box.z + x.box.dz)) {
       const below = h.box.y + h.box.dy <= mp.box.y + 1e-6;
       joints.push({
         ref: `${h.code}-${mp.code}`,
@@ -672,6 +718,7 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
         plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
         intoFace: below ? "-y" : "+y",
         across: { axis: "x", value: mp.box.x + mp.box.dx / 2 },
+        line: "z",
       });
     }
   }
@@ -775,6 +822,8 @@ interface JointGeometry {
   minWall: number;
   mode: ThroughMode;
   overlap: number;
+  /** +1: `a` runs with the line axis (towards the front end); -1 for joints counted from the low end. */
+  sgn: 1 | -1;
 }
 
 const sign = (d: Direction): 1 | -1 => (d[0] === "+" ? 1 : -1);
@@ -792,7 +841,8 @@ function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part
   const centre = across === "x" ? g.W / 2 : g.H / 2;
   const inner = centre >= j.across.value ? 1 : -1; // edge part's inner face, towards the cabinet centre
   const intoEdge = flip(j.intoFace);
-  const p: Point3 = { x: 0, y: 0, z: z + dr.a };
+  const p: Point3 = { x: 0, y: 0, z: 0 };
+  p[j.line] = z + g.sgn * dr.a;
   if (dr.mount === "edge_face") {
     p[j.plane.axis] = j.plane.value + sign(intoEdge) * dr.b;
     p[across] = j.across.value + (inner * j.edgePart.box[across === "x" ? "dx" : across === "y" ? "dy" : "dz"]) / 2;
@@ -832,8 +882,8 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
       else lo[ax] -= dr.depth;
       lo[across] -= dr.d / 2;
       hi[across] += dr.d / 2;
-      lo.z -= dr.len / 2;
-      hi.z += dr.len / 2;
+      lo[g.j.line] -= dr.len / 2;
+      hi[g.j.line] += dr.len / 2;
       addPocketFromBox(part, { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z }, source);
     } else if (dr.through) {
       addThroughBore(part, entry, dir, dr.d, g.mode, g.overlap, source);

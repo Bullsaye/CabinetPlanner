@@ -246,3 +246,62 @@ describe("front stack per zone", () => {
     expect(refs(p.SL!, "generic-hinge-110")).toEqual([]);
   });
 });
+
+describe("rails, shortened bottom, screws (D41)", () => {
+  // A sink unit built only from settings: upright front rail, no rear rail,
+  // upright rear rail at the bottom, bottom shortened by a third of the depth, no back.
+  const sink = (W: number, D: number) =>
+    buildOne({
+      vars: { W, D, door_count: 2, shelf_count: 0, bottom_setback_rear: "D / 3", rail_w: 100 },
+      options: { top: "rails", "rail.front": "upright", "rail.rear": "none", "rail.bottom": "upright", back_mount: "none" },
+    });
+
+  it("builds from settings alone and follows the cabinet size", () => {
+    for (const [W, D] of [[800, 560], [1000, 500]] as const) {
+      const r = sink(W, D);
+      expect(r.diagnostics).toEqual([]);
+      const p = partsByCode(r);
+      expect(p.RR).toBeUndefined();
+      expect(p.BK).toBeUndefined();
+      expect(p.RF!.box).toMatchObject({ y: 720 - 100, dy: 100, z: D - 19, dz: 19 });
+      expect(p.RB!.box).toMatchObject({ y: 0, dy: 100, z: 0, dz: 19 });
+      expect(p.BO!.box.z).toBeCloseTo(D / 3, 1);
+      // Upright rails are dowelled along their height: from the top for the front rail, from the bottom for the bottom rail.
+      const rfDowels = refs(p.SL!, "SL-RF").filter((o) => o.kind === "bore");
+      const rbDowels = refs(p.SL!, "SL-RB").filter((o) => o.kind === "bore");
+      expect(rfDowels.length).toBeGreaterThanOrEqual(2);
+      expect(rbDowels.length).toBeGreaterThanOrEqual(2);
+      // Legs stay under the shortened bottom.
+      const legs = r.cabinets[0]!.fittings.filter((f) => f.kind === "leg");
+      expect(Math.min(...legs.map((l) => l.z))).toBeGreaterThan(D / 3);
+    }
+  });
+
+  it("asks for enough shortening for the bottom rail", () => {
+    const r = buildOne({ options: { "rail.bottom": "flat" }, vars: { bottom_setback_rear: 50 } });
+    expect(r.diagnostics.map((d) => d.code)).toContain("bottom_rail_overlap");
+  });
+
+  it("screws through the sides between the dowels, starting between the first two", () => {
+    const r = buildOne({
+      options: { joint_screws: "between_dowels", dowel_pattern: "sequence", top: "full" },
+      vars: { dowel_offset_front: 32, dowel_offset_rear: 30 },
+    });
+    expect(r.diagnostics).toEqual([]);
+    const sl = partsByCode(r).SL!;
+    const dowels = refs(sl, "SL-BO").map((o) => (o.kind === "bore" ? 560 - (o.v as number) : 0)).sort((a, b) => a - b);
+    const screws = refs(sl, "generic-chipboard-screw-4x50")
+      .filter((o) => o.kind === "bore" && o.u < 30)
+      .map((o) => (o.kind === "bore" ? 560 - (o.v as number) : 0))
+      .sort((a, b) => a - b);
+    expect(dowels).toEqual([32, 64, 192, 320, 448]);
+    expect(screws).toEqual([48, 128, 256, 384]);
+    expect(refs(sl, "generic-chipboard-screw-4x50").every((o) => o.kind === "bore" && o.through)).toBe(true);
+    // Every second gap.
+    const r2 = buildOne({
+      options: { joint_screws: "between_dowels", dowel_pattern: "sequence", top: "full" },
+      vars: { dowel_offset_front: 32, dowel_offset_rear: 30, joint_screw_every: 2 },
+    });
+    expect(refs(partsByCode(r2).SL!, "generic-chipboard-screw-4x50").filter((o) => o.kind === "bore" && o.u < 30).length).toBe(2);
+  });
+});

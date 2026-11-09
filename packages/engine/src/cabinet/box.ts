@@ -157,7 +157,7 @@ export function buildBox(
   const joint = opt<"sides_over" | "sides_between">("carcase_joint");
   const topOpt = opt<"auto" | "full" | "rails">("top");
   const top: "full" | "rails" = topOpt !== "auto" ? topOpt : rc.cabinet.kind === "base" ? opt<"full" | "rails">("top.base_unit") : "full";
-  const backMount = opt<"groove" | "rebate" | "surface">("back_mount");
+  const backMount = opt<"groove" | "rebate" | "surface" | "none">("back_mount");
   const deduct = opt<boolean>("edge.deduct");
 
   const edgeCarcase = opt<string | null>("edge.carcase");
@@ -182,7 +182,7 @@ export function buildBox(
         diagnostics.push({ severity: "error", code: "back_rebate_too_deep", params: { depth: rd, thickness: t }, cabinet: cab });
       }
     }
-    backFrontZ = tBack;
+    backFrontZ = backMount === "none" ? 0 : tBack;
   }
 
   const parts: Part[] = [];
@@ -297,17 +297,42 @@ export function buildBox(
     diagnostics.push({ severity: "error", code: "back_behind_needs_sides_over", params: {}, cabinet: cab });
   }
   const hz0 = backBehind ? backFrontZ : carcaseZ0;
-  add("bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: D - hz0 }, "x", "z", "material.carcase", front(edgeCarcase));
+  // Bottom, shortened at the rear (room for pipes) and/or the front (D41).
+  const bsRear = num("bottom_setback_rear");
+  const bsFront = num("bottom_setback_front");
+  add("bottom", undefined, { x: hzX, y: 0, z: hz0 + bsRear, dx: hzW, dy: t, dz: D - bsFront - hz0 - bsRear }, "x", "z", "material.carcase", front(edgeCarcase));
+  const uprightOk = (code: string): boolean => {
+    if (joint === "sides_over") return true;
+    diagnostics.push({ severity: "error", code: "upright_rail_needs_sides_over", params: { rail: code }, cabinet: cab });
+    return false;
+  };
 
   if (top === "full") {
     add("top", undefined, { x: hzX, y: H - t, z: hz0, dx: hzW, dy: t, dz: D - hz0 }, "x", "z", "material.carcase", front(edgeCarcase));
   } else {
+    // Rails: flat (in the top plane, rail_w deep) or upright (standing, rail_w high), or none.
     const railW = num("rail_w");
-    add("rail_front", undefined, { x: hzX, y: H - t, z: D - railW, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", front(edgeCarcase));
-    add("rail_rear", undefined, { x: hzX, y: H - t, z: backFrontZ, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", none);
-    if (backFrontZ + railW > D - railW) {
+    const rf = opt<"flat" | "upright" | "none">("rail.front");
+    const rr = opt<"flat" | "upright" | "none">("rail.rear");
+    if (rf === "flat") add("rail_front", undefined, { x: hzX, y: H - t, z: D - railW, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", front(edgeCarcase));
+    if (rf === "upright" && uprightOk("RF")) add("rail_front", undefined, { x: hzX, y: H - railW, z: D - t, dx: hzW, dy: railW, dz: t }, "x", "y", "material.carcase", front(edgeCarcase));
+    if (rr === "flat") add("rail_rear", undefined, { x: hzX, y: H - t, z: backFrontZ, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", none);
+    if (rr === "upright" && uprightOk("RR")) add("rail_rear", undefined, { x: hzX, y: H - railW, z: backFrontZ, dx: hzW, dy: railW, dz: t }, "x", "y", "material.carcase", none);
+    const depthOf = (o: string): number => (o === "flat" ? railW : o === "upright" ? t : 0);
+    if (backFrontZ + depthOf(rr) > D - depthOf(rf)) {
       diagnostics.push({ severity: "error", code: "rails_overlap", params: { rail_w: railW, depth: D }, cabinet: cab });
     }
+  }
+  // Rear rail at the bottom (sink units): flat behind the shortened bottom, or upright.
+  const rb = opt<"none" | "flat" | "upright">("rail.bottom");
+  if (rb !== "none") {
+    const bw = num("rail_bottom_w");
+    const depth = rb === "flat" ? bw : t;
+    if (depth > bsRear + 1e-6) {
+      diagnostics.push({ severity: "error", code: "bottom_rail_overlap", params: { need: roundMm(depth), setback: roundMm(bsRear) }, cabinet: cab });
+    }
+    if (rb === "flat") add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: bw }, "x", "z", "material.carcase", none);
+    else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
   }
 
   // --- Middle panels -----------------------------------------------------------
@@ -412,7 +437,7 @@ export function buildBox(
   const noBack = new Set(cons?.noBack ?? []);
   // A split back needs the panels it ends at to reach into its groove.
   const splitBack = noBack.size > 0;
-  const backReachZ = splitBack && !backBehind && backMount !== "surface" ? carcaseZ0 : backFrontZ;
+  const backReachZ = splitBack && !backBehind && backMount !== "surface" && backMount !== "none" ? carcaseZ0 : backFrontZ;
 
   // Clear interior of each zone, between fixed shelves (or bottom / top).
   const zoneRange = (i: number): [number, number] => {
@@ -470,7 +495,9 @@ export function buildBox(
         : yHi >= topFace ? (top === "full" ? H - t + engage : H - play) : yHi + engage;
       return { x: t - engage, y: y0, z: zBack, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
     };
-    if (!splitBack) {
+    if (backMount === "none") {
+      // No back (sink units): nothing to add.
+    } else if (!splitBack) {
       add("back", undefined, backBox(0, topFace), "y", "x", "material.back", none);
     } else {
       // Sections between the stops; a section keeps its back unless the zone at its middle has none.

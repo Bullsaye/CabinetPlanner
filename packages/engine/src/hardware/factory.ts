@@ -24,6 +24,7 @@ import confirmat from "../../library/hardware/generic-confirmat-7x50.json" with 
 import cabinetScrew from "../../library/hardware/generic-cabinet-connector-screw.json" with { type: "json" };
 import sah130 from "../../library/hardware/hettich-sah-130.json" with { type: "json" };
 import aventosHk from "../../library/hardware/blum-aventos-hk-top.json" with { type: "json" };
+import chipScrew from "../../library/hardware/generic-chipboard-screw-4x50.json" with { type: "json" };
 import shelfPin from "../../library/hardware/shelf-pin-5.json" with { type: "json" };
 import { HardwareItem } from "./schema.ts";
 
@@ -61,6 +62,7 @@ const RAW: readonly unknown[] = [
   cabinetScrew,
   sah130,
   aventosHk,
+  chipScrew,
 ];
 
 export const FACTORY_HARDWARE: readonly HardwareItem[] = RAW.map((raw) => HardwareItem.parse(raw));

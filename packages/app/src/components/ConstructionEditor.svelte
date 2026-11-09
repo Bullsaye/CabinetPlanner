@@ -20,6 +20,11 @@
   const kind = $derived((c?.kind ?? "base") as string);
   const zones = $derived(cab?.layout?.zones ?? []);
   const hasType = (ty: string): boolean => zones.some((z) => z.type === ty);
+  /** Rails under the top: chosen directly, or by top.base_unit for base units. */
+  const usesRails = $derived.by(() => {
+    const top = cab?.resolved.options.get("top")?.value;
+    return top === "rails" || (top === "auto" && kind === "base" && cab?.resolved.options.get("top.base_unit")?.value === "rails");
+  });
   const fmt = (x: number | null | undefined): string => (x === null || x === undefined ? "–" : formatNumber(x));
 
   /** The cabinet's construction block, created on demand. */
@@ -123,12 +128,26 @@
     <section>
       <h3 class="label">{t("ui.carcase")}</h3>
       <OptRow key="carcase_joint" />
-      <OptRow key="top" />
-      {#if kind === "base"}<OptRow key="top.base_unit" />{/if}
       <OptRow key="material.carcase" />
       <VarRow name="t_carcase" />
       <OptRow key="side.left" />
       <OptRow key="side.right" />
+    </section>
+
+    <section>
+      <h3 class="label">{t("ui.top_and_bottom")}</h3>
+      <OptRow key="top" />
+      {#if kind === "base"}<OptRow key="top.base_unit" />{/if}
+      {#if usesRails}
+        <OptRow key="rail.front" />
+        <OptRow key="rail.rear" />
+        <VarRow name="rail_w" />
+      {/if}
+      <VarRow name="bottom_setback_rear" />
+      <VarRow name="bottom_setback_front" />
+      <OptRow key="rail.bottom" />
+      {#if cab?.resolved.options.get("rail.bottom")?.value !== "none"}<VarRow name="rail_bottom_w" />{/if}
+      <p class="muted small">{t("ui.formula_hint")}</p>
     </section>
 
     <section>
@@ -150,6 +169,11 @@
       <VarRow name="dowel_second" />
       <VarRow name="dowel_raster" />
       <VarRow name="dowel_offset_rear" />
+      <OptRow key="joint_screws" />
+      {#if cab?.resolved.options.get("joint_screws")?.value !== "none"}
+        <OptRow key="hardware.joint_screw" />
+        <VarRow name="joint_screw_every" />
+      {/if}
       <OptRow key="cabinet_link" />
     </section>
 

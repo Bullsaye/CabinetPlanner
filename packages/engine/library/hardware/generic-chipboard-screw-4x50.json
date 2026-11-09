@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-chipboard-screw-4x50",
+  "name": { "en": "Chipboard screw 4 × 50, countersunk (generic)", "de": "Spanplattenschraube 4 × 50, Senkkopf (generisch)" },
+  "category": "connector",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic carcase screw used next to dowels: clearance hole Ø4.5 through the side (countersunk from outside at assembly), pilot Ø2.5 into the panel end, length minus side thickness plus 2 mm. Replace with the screw you use.",
+  "params": { "length": 50, "d_clear": 4.5, "d_pilot": 2.5 },
+  "drilling": [
+    { "mount": "face", "d": "d_clear", "depth": 0, "a": 0, "b": 0, "through": true },
+    { "mount": "edge", "d": "d_pilot", "depth": "length - t_face + 2", "a": 0, "b": 0 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

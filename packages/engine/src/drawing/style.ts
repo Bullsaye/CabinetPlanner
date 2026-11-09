@@ -23,6 +23,7 @@ const Role = z.enum([
   "top",
   "rail_front",
   "rail_rear",
+  "rail_bottom",
   "back",
   "shelf",
   "partition",
