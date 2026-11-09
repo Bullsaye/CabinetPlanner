@@ -368,6 +368,11 @@ export const de: Record<MessageKey, string> = {
   "drawing.src.back": "Rückwand ({ref})",
 
   // App UI
+  "ui.cnc_export": "CNC (DXF)",
+  "ui.dxf_profile": "Layernamen",
+  "ui.dxf_part": "Dieses Teil",
+  "ui.dxf_cabinet": "Dieser Schrank",
+  "ui.dxf_project": "Ganzes Projekt",
   "ui.add": "Hinzufügen",
   "ui.add_cabinet": "Schrank hinzufügen",
   "ui.articles": "Artikel-Nr.",

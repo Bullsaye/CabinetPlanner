@@ -388,6 +388,11 @@ export const en = {
   "drawing.src.back": "Back panel ({ref})",
 
   // App UI
+  "ui.cnc_export": "CNC (DXF)",
+  "ui.dxf_profile": "Layer names",
+  "ui.dxf_part": "This part",
+  "ui.dxf_cabinet": "This cabinet",
+  "ui.dxf_project": "Whole project",
   "ui.add": "Add",
   "ui.add_cabinet": "Add cabinet",
   "ui.articles": "Article no.",

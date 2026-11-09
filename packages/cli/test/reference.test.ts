@@ -50,6 +50,30 @@ describe("reference cabinets", () => {
   }
 });
 
+describe("reference DXF", () => {
+  // CNC files are production data too: any change shows up as a diff here.
+  for (const [project, part] of [
+    ["base-600-door", "B01-SL"],
+    ["base-600-door", "B01-BO"],
+    ["base-600-dynapro-drawer-door", "B01-SR"],
+  ] as const) {
+    it(`${project} ${part}`, async () => {
+      const written: Record<string, string | Uint8Array> = {};
+      const io: Io = {
+        readFile: (p) => readFileSync(p, "utf8"),
+        writeFile: (p, c) => void (written[p] = c),
+        stdout: () => {},
+        stderr: () => {},
+        env: {},
+      };
+      expect(run(["dxf", join(dir, `${project}.project.json`), "--part", part, "--out", "x"], io)).toBe(0);
+      for (const [path, content] of Object.entries(written)) {
+        await expect(content as string).toMatchFileSnapshot(join(root, "reference/expected", `${project}.${path.slice(2)}`));
+      }
+    });
+  }
+});
+
 describe("performance budget", () => {
   it("builds a 50-cabinet project quickly", async () => {
     const { buildProject, loadProject } = await import("@cabinet-planner/engine");

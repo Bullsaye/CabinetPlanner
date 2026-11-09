@@ -6,6 +6,10 @@ import {
   FileFormatError,
   formatNumber,
   drawAssembly,
+  DxfProfileSchema,
+  FACTORY_DXF_PROFILES,
+  partDxf,
+  zip,
   drawingText,
   drawPartSheets,
   stackSheets,
@@ -32,7 +36,7 @@ import { parseArgs } from "node:util";
  */
 export interface Io {
   readFile(path: string): string;
-  writeFile(path: string, content: string): void;
+  writeFile(path: string, content: string | Uint8Array): void;
   stdout(text: string): void;
   stderr(text: string): void;
   env: Readonly<Record<string, string | undefined>>;
@@ -47,6 +51,8 @@ Commands:
   ops       Show machining operations and hardware per part (part-local mm)
   drawing   Write an SVG drawing of one part (--part <id>, e.g. B01-SL)
   assembly  Write the assembly drawing of one cabinet: exploded view + part list (--cabinet <id>)
+  dxf       Write CNC DXF files, one per machined part side (--out <dir> or --zip <file>;
+            --cabinet / --part to limit; --profile <id> for the layer names)
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
@@ -81,6 +87,9 @@ export function run(argv: readonly string[], io: Io): number {
         part: { type: "string" },
         style: { type: "string" },
         sheet: { type: "string" },
+        zip: { type: "string" },
+        profile: { type: "string" },
+        timestamp: { type: "string" },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -94,7 +103,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
-  if (!["cutlist", "resolve", "check", "ops", "drawing", "assembly"].includes(command) || !file) {
+  if (!["cutlist", "resolve", "check", "ops", "drawing", "assembly", "dxf"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
   }
@@ -221,6 +230,45 @@ export function run(argv: readonly string[], io: Io): number {
       emit(out.join("\n"));
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
+    }
+    case "dxf": {
+      if (!result.ok) {
+        printDiagnostics(result.diagnostics, tr, io);
+        io.stderr(tr.t("cli.errors_block_output") + "\n");
+        return 1;
+      }
+      if (!opts.out && !opts.zip) {
+        io.stderr("dxf needs --out <dir> or --zip <file>\n");
+        return 2;
+      }
+      const profiles = [...FACTORY_DXF_PROFILES, ...(shopFile?.library.dxfProfiles ?? []), ...result.project.library.dxfProfiles];
+      const profile = [...profiles].reverse().find((p) => p.id === (opts.profile ?? "generic"));
+      if (!profile) {
+        io.stderr(`unknown DXF profile "${opts.profile}"\n`);
+        return 2;
+      }
+      const meta = {
+        project: result.project.name,
+        revision: result.project.revision,
+        ...(opts.timestamp ? { timestamp: opts.timestamp } : {}),
+      };
+      const files = result.cabinets
+        .filter((c) => !opts.cabinet || c.resolved.cabinet.id === opts.cabinet)
+        .flatMap((c) => {
+          const v = (n: string): number => c.resolved.values.get(n)!;
+          return c.parts
+            .filter((p) => !opts.part || p.id === opts.part)
+            .flatMap((p) => partDxf(p, { W: v("W"), H: v("H"), D: v("D") }, DxfProfileSchema.parse(profile), meta));
+        });
+      if (opts.zip) {
+        io.writeFile(opts.zip, zip(files.map((f) => ({ name: f.name, data: f.content }))));
+        io.stderr(tr.t("cli.written", { file: `${opts.zip} (${files.length} DXF)` }) + "\n");
+      } else {
+        for (const f of files) io.writeFile(`${opts.out}/${f.name}`, f.content);
+        io.stderr(tr.t("cli.written", { file: `${files.length} DXF → ${opts.out}` }) + "\n");
+      }
+      printDiagnostics(result.diagnostics, tr, io);
+      return 0;
     }
     case "assembly": {
       const c = result.cabinets.find((x) => x.resolved.cabinet.id === opts.cabinet) ?? (opts.cabinet ? undefined : result.cabinets[0]);

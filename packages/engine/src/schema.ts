@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DrawingStyleSchema } from "./drawing/style.ts";
+import { DxfProfileSchema } from "./output/dxf.ts";
 import { HardwareItem } from "./hardware/schema.ts";
 import { Edgeband, Material } from "./library.ts";
 import { LocalizedText } from "./text.ts";
@@ -83,8 +84,10 @@ const LibraryFile = z
     presets: z.array(Preset).default([]),
     /** Drawing styles, usually `extends` a factory style plus taught rules. */
     drawingStyles: z.array(DrawingStyleSchema).default([]),
+    /** DXF layer profiles: map machining to the CAM's layer names. */
+    dxfProfiles: z.array(DxfProfileSchema).default([]),
   })
-  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [] });
+  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [] });
 
 export const ProjectSchema = z
   .object({

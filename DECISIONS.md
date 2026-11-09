@@ -304,3 +304,21 @@ Two shop settings, because they are used for different things:
 - Machining records each handle/knob placement (hole positions on the outer
   face, plus display sizes from the item: length, bar Ø, knob size,
   standoff) for 3D and later drawings.
+
+### D27 · 2026-11-09 · DXF export
+
+- One ASCII DXF (R12 / AC1009, CRLF, mm) per machined side of a part, in
+  the machine frame of the part sheet (D19, D22): machined face up, front
+  edge on the reference (Y 0), origin at the reference corner. Parts
+  machined on both faces give `<part>-side1.dxf` and `<part>-side2.dxf`;
+  edge (horizontal) bores go into side 1.
+- Entities: outline as closed POLYLINE (thickness = panel thickness, as
+  negative group 39); face bores as CIRCLE (group 39 = −depth); through
+  bores on their own layer; horizontal bores as LINE from the edge inwards,
+  length = depth; pockets/grooves as closed POLYLINE (group 39 = −depth).
+- Layer names come from a DXF profile (`library.dxfProfiles`, factory
+  `generic`) with placeholders {d} {depth} {z} {edge} {t}; dots become "P",
+  other characters "_". Group 39 can be switched off per profile.
+- No post-processing: native CNC formats (e.g. Maestro .xcs) stay for later.
+- Header comment (999) names project, revision, part, side, size; a
+  timestamp only when asked (CLI --timestamp), so files are reproducible.

@@ -5,16 +5,16 @@ import { run, type Io } from "../src/app.ts";
 
 const root = join(import.meta.dirname, "../../..");
 
-function fakeIo(files: Record<string, string> = {}): Io & { out: string; err: string; written: Record<string, string> } {
+function fakeIo(files: Record<string, string> = {}): Io & { out: string; err: string; written: Record<string, string | Uint8Array> } {
   const io = {
     out: "",
     err: "",
-    written: {} as Record<string, string>,
+    written: {} as Record<string, string | Uint8Array>,
     readFile(p: string): string {
       if (Object.hasOwn(files, p)) return files[p]!;
       return readFileSync(join(root, p), "utf8");
     },
-    writeFile(p: string, c: string) {
+    writeFile(p: string, c: string | Uint8Array) {
       io.written[p] = c;
     },
     stdout(t: string) {
@@ -121,5 +121,18 @@ describe("cli drawing", () => {
     const bad = fakeIo();
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "X99-SL"], bad)).toBe(1);
     expect(bad.err).toContain("not found");
+  });
+});
+
+describe("cli dxf", () => {
+  it("writes one DXF per part side, or a zip", () => {
+    const io = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--cabinet", "B01", "--out", "out"], io)).toBe(0);
+    expect(Object.keys(io.written).sort()).toContain("out/B01-SL.dxf");
+    const z = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--zip", "k.zip"], z)).toBe(0);
+    expect(z.written["k.zip"]).toBeInstanceOf(Uint8Array);
+    const bad = fakeIo();
+    expect(run(["dxf", "examples/kitchen-basic.project.json", "--zip", "k.zip", "--profile", "nope"], bad)).toBe(2);
   });
 });

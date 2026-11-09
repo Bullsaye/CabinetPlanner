@@ -1,5 +1,19 @@
 <script lang="ts">
-  import { drawAssembly, drawingText, drawPartSheets, FACTORY_STYLES, localName, resolveStyle, stackSheets } from "@cabinet-planner/engine";
+  import {
+    drawAssembly,
+    drawingText,
+    drawPartSheets,
+    DxfProfileSchema,
+    FACTORY_DXF_PROFILES,
+    FACTORY_STYLES,
+    localName,
+    partDxf,
+    resolveStyle,
+    stackSheets,
+    zip,
+    type CabinetResult,
+    type DxfFile,
+  } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
 
   const t = $derived(store.tr.t);
@@ -41,6 +55,31 @@
     }
   }
   const svg = $derived(make(false));
+
+  // CNC export: one DXF per machined part side, always delivered as a zip.
+  const profiles = $derived([...FACTORY_DXF_PROFILES, ...(store.built.shop?.library.dxfProfiles ?? []), ...(store.result?.project.library.dxfProfiles ?? [])]);
+  let profileId = $state("generic");
+  function dxfOf(cabs: CabinetResult[], partFilter?: string): DxfFile[] {
+    const r = store.result!;
+    const profile = DxfProfileSchema.parse([...profiles].reverse().find((p) => p.id === profileId) ?? profiles[0]);
+    const meta = { project: r.project.name, revision: r.project.revision, timestamp: new Date().toISOString().slice(0, 19) };
+    return cabs.flatMap((c) => {
+      const v = (n: string): number => c.resolved.values.get(n)!;
+      return c.parts.filter((p) => !partFilter || p.id === partFilter).flatMap((p) => partDxf(p, { W: v("W"), H: v("H"), D: v("D") }, profile, meta));
+    });
+  }
+  async function exportDxf(scope: "part" | "cabinet" | "project"): Promise<void> {
+    const r = store.result;
+    if (!r || !r.ok) {
+      note = t("ui.fix_errors_first");
+      return;
+    }
+    const cabs = scope === "project" ? r.cabinets : cab ? [cab] : [];
+    const files = dxfOf(cabs, scope === "part" ? partId : undefined);
+    const base = scope === "project" ? (r.project.name || "project").replace(/[^\w.-]+/g, "-") : scope === "cabinet" ? cab!.resolved.cabinet.id : partId;
+    const name = `${base}-dxf.zip`;
+    note = downloadNote(await download(name, zip(files.map((f) => ({ name: f.name, data: f.content }))), "application/zip"), `${name} (${files.length} DXF)`, t);
+  }
   const fileName = $derived(kind === "assembly" ? `${cab?.resolved.cabinet.id}-assembly.svg` : `${partId}.svg`);
 </script>
 
@@ -62,6 +101,15 @@
     <button onclick={async () => (note = downloadNote(await download(fileName, make(true), "image/svg+xml"), fileName, t))}>{t("ui.download_svg")}</button>
     <button onclick={async () => (note = (await copy(make(true))) ? t("ui.copied") : t("ui.copy_failed"))}>{t("ui.copy_svg")}</button>
   </div>
+  <div class="bar cnc">
+    <span class="label">{t("ui.cnc_export")}</span>
+    <select id="dxf-profile" aria-label={t("ui.dxf_profile")} bind:value={profileId}>
+      {#each profiles as p}<option value={p.id}>{localName(p.name, store.tr.locale)}</option>{/each}
+    </select>
+    <button onclick={() => exportDxf("part")} disabled={!partId}>{t("ui.dxf_part")}</button>
+    <button onclick={() => exportDxf("cabinet")} disabled={!cab}>{t("ui.dxf_cabinet")}</button>
+    <button onclick={() => exportDxf("project")}>{t("ui.dxf_project")}</button>
+  </div>
   {#if note}<p class="note muted">{note}</p>{/if}
   {#if !cab}
     <p class="muted pad">{t("ui.select_cabinet")}</p>
@@ -76,6 +124,7 @@
   .dv { display: flex; flex-direction: column; min-height: 460px; }
   .bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); align-items: center; }
   .bar [role="group"] { display: flex; gap: 4px; }
+  .cnc { background: var(--surface-2); }
   .sp { flex: 1; }
   .note { margin: 6px 10px 0; font-size: 12px; }
   .pad { padding: 16px; }

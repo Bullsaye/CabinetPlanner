@@ -23,6 +23,7 @@ pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01   # every value and where it came from
 pnpm cp check examples/kitchen-basic.project.json
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01      # machining and hardware per part
+pnpm cp dxf examples/kitchen-basic.project.json --zip kitchen.zip  # CNC DXF per part side (docs/CNC.md)
 ```
 
 ## Repository

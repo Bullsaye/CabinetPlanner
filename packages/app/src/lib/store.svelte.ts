@@ -217,7 +217,7 @@ export function setOption(layer: Layer, key: string, value: string | boolean | n
 // ---------------------------------------------------------------------------
 // Files
 
-type DownloadsApi = { save(r: { filename: string; data: string }): Promise<unknown> };
+type DownloadsApi = { save(r: { filename: string; data: string | Uint8Array }): Promise<unknown> };
 let downloadsApi: Promise<DownloadsApi | null> | undefined;
 
 /** Inside a claude.ai artifact the viewer grants saves; elsewhere a plain download. */
@@ -230,7 +230,7 @@ function hostDownloads(): Promise<DownloadsApi | null> {
 
 export type DownloadResult = "saved" | "declined" | "failed";
 
-export async function download(name: string, content: string, type: string): Promise<DownloadResult> {
+export async function download(name: string, content: string | Uint8Array, type: string): Promise<DownloadResult> {
   const host = await hostDownloads();
   if (host) {
     try {
@@ -241,7 +241,7 @@ export async function download(name: string, content: string, type: string): Pro
     }
   }
   try {
-    const url = URL.createObjectURL(new Blob([content], { type }));
+    const url = URL.createObjectURL(new Blob([content as BlobPart], { type }));
     const a = document.createElement("a");
     a.href = url;
     a.download = name;

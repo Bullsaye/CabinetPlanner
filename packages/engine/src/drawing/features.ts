@@ -20,6 +20,8 @@ export interface DFeature {
   sources: OpSource[];
   through?: boolean;
   split?: boolean;
+  /** Edge bores: distance of the axis below the viewed face (mm). */
+  zFromFace?: number;
 }
 
 /** A regular row (axis x) or column (axis y) of equal features. */
@@ -93,6 +95,7 @@ export function extractFeatures(view: PartView): DFeature[] {
         sources: op.sources,
         ...(op.through ? { through: true } : {}),
         ...(op.split ? { split: true } : {}),
+        ...(where === "edge" ? { zFromFace: r2(view.face === "t1" ? part.thickness - op.w : op.w) } : {}),
       });
     } else {
       const a = view.projectLocal({ u: op.u0, v: op.v0, w: op.w0 });
