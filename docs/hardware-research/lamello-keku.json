@@ -1,0 +1,539 @@
+{
+  "brand": "Lamello + Keku",
+  "status": "Lamello values read from the manufacturer's own PDFs: the P-System brochure EN (product pages, installation pictograms, 1:1 technical drawings pp. 70-75, CNC tools pp. 68-69, connector overview p. 86) and the Drilling systems (Bohr-System) brochure EN (Cabineo, pp. 8-11 and the 'Machining Cabineo' drawings pp. 32-33). Pictogram numbers were read from page renders. Keku: no manufacturer source was reachable (keku.com is an unrelated telecom company; Keku fittings are a Häfele line, and haefele.de and lignoshop.de are blocked). Dowels: no source.",
+  "items": [
+    {
+      "id": "lamello-p-system-groove",
+      "name": "Lamello P-System profile groove (common to Clamex P, Tenso P, Bisco P, Divario P-18 groove element)",
+      "category": "other",
+      "articles": [
+        "132148 P-System groove cutter CNC, DP, Ø 100.4 × 7 × Ø 35 mm, Z3 (listed for Morbidelli cx110 / cx220, Brema Eko 2.1, Masterwood TF 100, Format4 D-Jet)",
+        "132142 groove cutter CNC DP Ø 100.4 × 7 × Ø 30 Z3",
+        "131342 P-System shank tool cutter, HW solid, Ø 7.05/9.8 mm, S Ø 12 × 40 mm, L 80 mm",
+        "131556 Clamex CNC drill bit HW Ø 6 mm, shaft Ø 10 × 65 mm, L 100 mm"
+      ],
+      "values": {
+        "disc_cutter_d": 100.4,
+        "groove_width": 7,
+        "groove_undercut_width": 9.8,
+        "shank_tool_d_neck": 7.05,
+        "shank_tool_d_undercut": 9.8,
+        "depth_p14": 14,
+        "depth_p10": 10,
+        "groove_length_at_surface_depth14": 69.6,
+        "groove_length_at_surface_depth10": 60.3,
+        "surface_centre_depth_limit_benz_5axis": 10
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 14,
+          "position": "P-14: disc-cutter plunge to 14 mm, giving ~69.6 mm chord at the surface; groove 7 mm wide with 9.8 mm undercut profile"
+        },
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 10,
+          "position": "P-10: plunge 10 mm, ~60.3 mm chord at the surface"
+        }
+      ],
+      "rules": [
+        "Lamello recommends making all profile grooves with a disc cutter (precision, tool life, machining time); a shank tool or contour cutter only for surface machining when no angle aggregate is available (brochure p. 69).",
+        "On automatically swivelling aggregates (Benz FLEX5+C / 5-MOTION PLUS) the profile groove depth in the centre of the surface is limited to 10 mm (p. 62).",
+        "Groove lengths ~69.6 / ~60.3 mm are labelled with '~' on the 1:1 drawings."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 68-69 CNC tools (cutter/shank tool/drill dims, Morbidelli cutter 132148); pp. 70-75 1:1 drawings (7 / 9.8 mm profile, 14/10 mm depth, ~69.6/~60.3 mm chord, Ø100.4); p. 62 surface depth limit"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Undercut 30° flanks are visible on the shank-tool drawing (p. 69) but the full rib profile is not dimensioned beyond 7 / 9.8 mm. The groove sits on the panel edge (butt/mitre) or on the face (surface groove)."
+    },
+    {
+      "id": "lamello-clamex-p14",
+      "name": "Lamello Clamex P-14 (detachable connector with lever)",
+      "category": "connector",
+      "articles": [
+        "145334 (80 pairs)",
+        "145346 (300 pairs)",
+        "145356 (1000 pairs)",
+        "145338 element with lever (2000 pcs)",
+        "145339 element without lever (2000 pcs)"
+      ],
+      "values": {
+        "size": "64 × 27 × 9.7",
+        "groove_depth_each_part": 14,
+        "groove_width": 7,
+        "access_hole_d": 6,
+        "access_hole_d_range_drawing": "5-6",
+        "access_hole_axis_from_joint_face": 7.5,
+        "min_end_distance": 37,
+        "max_spacing": 300,
+        "min_thickness_butt": 15,
+        "min_thickness_mitre": 18,
+        "min_thickness_centre_panel_both_sides": 29,
+        "min_thickness_surface_groove_part": 12,
+        "install_tolerance_long": 1,
+        "install_tolerance_radial": 1,
+        "access_hole_depth": null,
+        "groove_offset_from_face_19mm": 9.5
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 14,
+          "position": "part A (lever-less side) and part B (lever side): 14 mm deep P-System groove; groove centred in board thickness for 19 mm (X1 = X2 = 9.5 mm in the configurator example)"
+        },
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 6,
+          "depth": null,
+          "position": "part B: access hole axis 7.5 mm from the joint face (panel edge), at the groove centre along the joint; drilled from the inside face into the groove"
+        }
+      ],
+      "rules": [
+        "First connector centre ≥ 37 mm from the panel end; ≤ 300 mm between connectors (installation pictogram, step 2).",
+        "Butt joints from 15 mm, mitre joints from 18 mm (product text and overview p. 86); centre panel with connectors from both sides ≥ 29 mm; the part grooved on its face ≥ 12 mm (p. 86 table, column 1).",
+        "Lever and actuating key go through the Ø6 access hole; a CNC version takes a Ø5 hole (see lamello-clamex-p14-cnc)."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 10-11 product page and installation pictograms (14 mm, 7.5 mm, Ø6, min. 37 / max. 300 mm, technical data); p. 71 1:1 drawing; p. 70 configurator screenshot X1/X2 = 9.5/9.5 (CNC); p. 86 overview (min. thicknesses, article numbers)"
+        },
+        {
+          "url": "https://lamello.com/products/p-system/clamex-p-14",
+          "what": "product page: Ø 6 mm opening, 64 × 27 × 9.7 mm, thickness figures"
+        }
+      ],
+      "confidence": "high",
+      "notes": "The 9.5 mm groove offset is read from a small configurator screenshot (p. 70) and is medium confidence; the configurator itself (lamello.com) gives the exact position per joint. The column meaning of the p. 86 thickness table comes from pictograms; 15 butt / 18 mitre are also stated in words. An earlier '12 mm butt' figure belonged to Clamex P-10. The access-hole depth is not dimensioned (it runs down to the groove)."
+    },
+    {
+      "id": "lamello-clamex-p14-cnc",
+      "name": "Lamello Clamex P-14 CNC (element with lever, automatic alignment)",
+      "category": "connector",
+      "articles": [
+        "145388 Clamex P-14 CNC element with lever (2000 pcs)",
+        "pairs with 145339 Clamex P-14 element without lever, 145358 Clamex P-10 element without lever, or 145369 Clamex P-10 Medius element without lever"
+      ],
+      "values": {
+        "size": "64 × 13.5 × 9.7",
+        "groove_depth_lever_side": 14,
+        "groove_depth_counterpart_p10": 10,
+        "access_hole_d": 5,
+        "access_hole_d_range": "5-6",
+        "access_hole_axis_from_joint_face": 7.5,
+        "min_end_distance": 37,
+        "max_spacing": 300,
+        "min_thickness_butt": 12,
+        "min_thickness_mitre": 18,
+        "min_thickness_centre_panel": 16,
+        "install_tolerance_long": 0,
+        "install_tolerance_radial": 1,
+        "groove_offset_from_face_19mm": 9.5
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 14,
+          "position": "lever side 14 mm; counterpart 14 mm (P-14 element) or 10 mm (P-10 element)"
+        },
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 5,
+          "depth": null,
+          "position": "access hole Ø 5-6 mm, axis 7.5 mm from joint face"
+        }
+      ],
+      "rules": [
+        "Butt joints from 12 mm, mitre from 18 mm (product text).",
+        "First connector ≥ 37 mm from the panel end; ≤ 300 mm between connectors (installation pictogram).",
+        "Installation tolerance longitudinal ± 0 mm: the CNC must place both grooves exactly opposite each other."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 18-19 product page and installation pictograms (5 mm hole, 14/10 mm, 7.5 mm, 5-6 mm drill, min. 37 / max. 300, max. 34 mm aggregate clearance); p. 72 drawing; p. 86 table"
+        }
+      ],
+      "confidence": "high",
+      "notes": "The installation pictogram's 'max. 34 mm' is the clearance of the angle aggregate head, not a part dimension."
+    },
+    {
+      "id": "lamello-clamex-p10",
+      "name": "Lamello Clamex P-10 (detachable, thin materials)",
+      "category": "connector",
+      "articles": [
+        "145372 (80 pairs)",
+        "145373 (300 pairs)",
+        "145374 (1000 pairs)"
+      ],
+      "values": {
+        "size": "52 × 19 × 9.7",
+        "groove_depth_each_part": 10,
+        "access_hole_d": 6,
+        "access_hole_axis_from_joint_face": 5.5,
+        "min_end_distance": 32,
+        "max_spacing": 300,
+        "min_thickness_butt": 12,
+        "min_thickness_mitre": 15,
+        "min_thickness_centre_panel": 19,
+        "install_tolerance_long": 0.5,
+        "install_tolerance_radial": 0.5
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 10,
+          "position": "both parts 10 mm deep"
+        },
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 6,
+          "depth": null,
+          "position": "part B: access hole axis 5.5 mm from joint face"
+        }
+      ],
+      "rules": [
+        "Mitre from 15 mm, butt from 12 mm (product text).",
+        "First connector ≥ 32 mm from the panel end; ≤ 300 mm between connectors."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 14-15 product page and pictograms (10 mm, 5.5 mm, 6 mm, min. 32 / max. 300); p. 71 drawing; p. 86 table"
+        }
+      ],
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "id": "lamello-tenso-p14",
+      "name": "Lamello Tenso P-14 (self-clamping glue-in connector)",
+      "category": "connector",
+      "articles": [
+        "145415 (80 pairs)",
+        "145415S (80 pairs with preload clip)",
+        "145425 (300 pairs)",
+        "145425S",
+        "145435 (1000 pairs)",
+        "145440 element with spring",
+        "145441 element without spring",
+        "145426 / 145436 preload clips"
+      ],
+      "values": {
+        "size": "66 × 27 × 9.7",
+        "groove_depth_each_part": 14,
+        "min_end_distance": 37,
+        "max_spacing": 300,
+        "min_thickness_butt": 15,
+        "min_thickness_butt_offset_install": 11,
+        "min_thickness_mitre": 18,
+        "min_thickness_centre_panel": 19,
+        "min_thickness_surface_groove_part": 12,
+        "offset_install_groove_depth_C": 18,
+        "offset_install_groove_depth_D": 10,
+        "install_tolerance_long": 1,
+        "install_tolerance_radial": 1
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 14,
+          "position": "both parts 14 mm deep (parts A and B); no access hole"
+        }
+      ],
+      "rules": [
+        "Mitre from 18 mm, butt from 15 mm (product text); 'offset installation' allows butt from 11 mm and a centre panel from 19 mm, with an 18 mm groove in part C and 10 mm in part D (p. 27 pictogram, p. 86 footnote 1).",
+        "First connector ≥ 37 mm from the panel end; ≤ 300 mm between connectors.",
+        "Glue-in, no access hole."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 26-27 product page and pictograms (14 mm, min. 37 / max. 300, offset 18/10 mm); p. 74 drawing; p. 86 table"
+        },
+        {
+          "url": "https://lamello.com/products/p-system/tenso-p-14",
+          "what": "product page figures (11/12/18/19 mm, 66 × 27 × 9.7)"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Headline 'from 16 mm' on the product page conflicts with '15 mm butt'; values follow the technical data/table."
+    },
+    {
+      "id": "lamello-tenso-p10",
+      "name": "Lamello Tenso P-10",
+      "category": "connector",
+      "articles": [
+        "145418 (80 pairs with preload clip)",
+        "145428 (300 pairs)",
+        "145438 (1000 pairs)",
+        "145442 element with spring",
+        "145443 element without spring",
+        "145445 preload clip"
+      ],
+      "values": {
+        "size": "52 × 19 × 9.7",
+        "groove_depth_each_part": 10,
+        "min_end_distance": 32,
+        "max_spacing": 300,
+        "min_thickness_butt": 12,
+        "min_thickness_butt_offset_install": 9,
+        "min_thickness_mitre": 15,
+        "min_thickness_centre_panel": 16,
+        "offset_install_groove_depth_C": 12,
+        "offset_install_groove_depth_D": 8,
+        "install_tolerance_long": 1,
+        "install_tolerance_radial": 1
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 10,
+          "position": "both parts 10 mm deep; no access hole"
+        }
+      ],
+      "rules": [
+        "Mitre from 15 mm, butt from 12 mm (product text).",
+        "First connector ≥ 32 mm from the panel end; ≤ 300 mm between connectors."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 28-29 product page and pictograms; p. 74 drawing; p. 86 table"
+        }
+      ],
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "id": "lamello-divario-p18",
+      "name": "Lamello Divario P-18 (sliding-insertion shelf/division connector)",
+      "category": "connector",
+      "articles": [
+        "145550 (80 pairs)",
+        "145560 (300 pairs)",
+        "145570 (1000 pairs)",
+        "145520 element for P-System groove",
+        "145540 element for drill holes",
+        "125500 installation tool"
+      ],
+      "values": {
+        "groove_element_size": "58 × 16 × 9.7",
+        "hole_element_size": "72 × 17 × 8",
+        "shelf_groove_depth_setting_B": 18,
+        "shelf_groove_depth_setting_A": 8,
+        "hole_d": 8,
+        "hole_depth": 10,
+        "hole_pitch": 32,
+        "min_distance_front_edge": 60,
+        "max_spacing": 300,
+        "min_thickness_division": 18,
+        "min_thickness_butt": 12,
+        "install_tolerance_long": 1,
+        "install_tolerance_radial": 0
+      },
+      "drilling": [
+        {
+          "on": "panel_edge",
+          "op": "p_groove",
+          "d": 100.4,
+          "depth": 18,
+          "position": "shelf edge: P-System groove, depth adjustment B = 18 mm, A = 8 mm (two-stage profile per pictogram step 1)"
+        },
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 8,
+          "depth": 10,
+          "position": "division face: 2 holes per connector, 32 mm apart, ≥ 60 mm from the front edge; connectors ≤ 300 mm apart"
+        }
+      ],
+      "rules": [
+        "Shelves to divisions from 18 mm, butt joints from 12 mm (product text).",
+        "Alternative in the centre of a surface: 2 × Ø8 holes without profile groove (p. 61)."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/P-System/PDF/P-System_Broschuere_EN.pdf",
+          "what": "pp. 32-33 product page and pictograms (18/8 mm, Ø8 × 10, 32 mm, min. 60, max. 300); p. 74 drawing; p. 61 note"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Hole data read clearly; the role of the 18/8 mm depth settings (A/B) on the shelf groove is read from the pictogram, not explained in words."
+    },
+    {
+      "id": "lamello-cabineo-8",
+      "name": "Lamello Cabineo 8 (one-piece cabinet connector, surface machining only)",
+      "category": "connector",
+      "articles": [
+        "186310 (500 pcs)",
+        "186311 (2000 pcs)",
+        "186340 black (500)",
+        "186341 black (2000)",
+        "186305 Cabineo 8/12 starter set"
+      ],
+      "values": {
+        "size": "33.8 × 16.5 × 10.8",
+        "screw_length": 8,
+        "pocket_depth": 11,
+        "pocket_bore_d": 15,
+        "pocket_bore_count": 3,
+        "pocket_bore_centres_from_joint_face": [
+          3.6,
+          14.8,
+          26.0
+        ],
+        "pocket_bore_pitch": 11.2,
+        "pilot_hole_d": 5,
+        "pilot_hole_depth_X": 8,
+        "pilot_hole_axis_from_pocket_face": 5,
+        "max_cutter_d": 12,
+        "min_edge_distance": 20,
+        "max_spacing": 300,
+        "min_thickness_pocket_part": 12,
+        "min_thickness_mating_corner": 9,
+        "min_thickness_centre_panel": 16,
+        "install_tolerance_long": 0.1,
+        "tightening_torque_Nm": 2.5
+      },
+      "drilling": [
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 15,
+          "depth": 11,
+          "position": "pocket in the face of the part that carries the connector: 3 overlapping Ø15 bores, centres 3.6, 14.8 and 26.0 mm from the panel end (joint face), on one line perpendicular to the end"
+        },
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 5,
+          "depth": 8,
+          "position": "mating panel (e.g. the side), in its face where the end of the pocket panel butts against it: hole axis 5 mm from the pocket panel's open face, i.e. D-5 mm from its other face, where D is the pocket panel thickness; depth X = 8 mm"
+        }
+      ],
+      "rules": [
+        "Connector axis ≥ 20 mm from the panel edge; ≤ 300 mm between connectors (installation pictogram).",
+        "Alternative pocket with a Ø10 cutter: outline 26 mm long, 14.8 mm and 3.6 mm stations; with a Ø12 cutter: 26 / 14.8 mm (drawing p. 32).",
+        "Flush installation: pocket 11.5 mm deep with a 0.8 mm recess, 16.7 mm wide (p. 32)."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/Bohr-System/PDF/Bohr-System_Broschuere_EN.pdf",
+          "what": "pp. 10-11 Cabineo 8 product page (screw 8 mm, drill Ø5 and Ø15, cutter ≤ Ø12, min. thicknesses, min. 20 / max. 300); pp. 32-33 'Machining Cabineo' drawings (11 mm, 3 × Ø15 at 3.6 / 11.2 / 11.2 mm, X = 8, 5 mm / D-5 mm)"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Corner joint per the p. 32 section: the pocket panel's end meets the mating panel's face. The connector screw goes into a Ø5 hole in that face. The pocket is milled in the pocket panel's inner face and opens at its end."
+    },
+    {
+      "id": "lamello-cabineo-12",
+      "name": "Lamello Cabineo 12",
+      "category": "connector",
+      "articles": [
+        "186320 (500 pcs)",
+        "186321 (2000 pcs)",
+        "186330 black (500)",
+        "186331 black (2000)"
+      ],
+      "values": {
+        "size": "33.8 × 16.5 × 10.8",
+        "screw_length": 12,
+        "pocket_depth": 11,
+        "pocket_bore_d": 15,
+        "pocket_bore_centres_from_joint_face": [
+          3.6,
+          14.8,
+          26.0
+        ],
+        "pilot_hole_d": 5,
+        "pilot_hole_depth_X": 12,
+        "pilot_hole_axis_from_pocket_face": 5,
+        "min_edge_distance": 20,
+        "max_spacing": 300,
+        "min_thickness_pocket_part": 12,
+        "min_thickness_mating_corner": 13,
+        "min_thickness_centre_panel": 24,
+        "tightening_torque_Nm": 2.5
+      },
+      "drilling": [
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 15,
+          "depth": 11,
+          "position": "same pocket as Cabineo 8"
+        },
+        {
+          "on": "panel_face",
+          "op": "bore",
+          "d": 5,
+          "depth": 12,
+          "position": "mating panel (e.g. the side), in its face where the end of the pocket panel butts against it: hole axis 5 mm from the pocket panel's open face, i.e. D-5 mm from its other face, where D is the pocket panel thickness; depth X = 12 mm"
+        }
+      ],
+      "rules": [
+        "Corner joints from 13 mm (product text).",
+        "≥ 20 mm from the edge; ≤ 300 mm spacing."
+      ],
+      "sources": [
+        {
+          "url": "https://lamello.com/fileadmin/Downloads/Broschueren/Bohr-System/PDF/Bohr-System_Broschuere_EN.pdf",
+          "what": "pp. 8-9 product page; pp. 32-33 drawings (X = 12 mm)"
+        }
+      ],
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "id": "keku-as-eh",
+      "name": "Keku AS (slide-on) / Keku EH (hook-in) panel hanging fittings",
+      "category": "connector",
+      "articles": [],
+      "values": {
+        "hole_d": null,
+        "hole_depth": null,
+        "edge_distance": null,
+        "max_spacing": null
+      },
+      "drilling": [],
+      "rules": [],
+      "sources": [],
+      "confidence": "low",
+      "notes": "NOT FOUND. No manufacturer source was reachable: keku.com is an unrelated company. Keku fittings are a Häfele line; haefele.de and lignoshop.de are blocked by this session's proxy. Earlier search snippets (min. 4 pairs, ≤ 600 mm spacing, polycarbonate) came from a lignoshop.de PDF that could not be read, so they are not recorded as values."
+    },
+    {
+      "id": "dowel-8x35-8x30",
+      "name": "Wood dowel Ø8×35 / Ø8×30",
+      "category": "other",
+      "articles": [],
+      "values": {},
+      "drilling": [],
+      "rules": [],
+      "sources": [],
+      "confidence": "low",
+      "notes": "NOT FOUND: no reputable source was reachable (Häfele, Hettich and DIN hosts are not in the session allowlist). All values null."
+    }
+  ]
+}

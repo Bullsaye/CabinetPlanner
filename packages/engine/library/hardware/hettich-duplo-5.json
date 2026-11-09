@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "hettich-duplo-5",
+  "name": { "en": "Hettich shelf support Duplo Ø5, steel", "de": "Hettich Bodenträger Duplo Ø5, Stahl" },
+  "category": "shelf_support",
+  "manufacturer": "Hettich",
+  "articles": [{ "code": "46642" }],
+  "trust": "untested",
+  "source": "Hettich: shop.hettich.com/de_EN/p/46642 (Ø5 pin for Ø5 system holes).",
+  "params": { "per_shelf": 4 },
+  "drilling": [],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

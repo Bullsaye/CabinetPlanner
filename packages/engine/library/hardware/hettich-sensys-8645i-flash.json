@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "hettich-sensys-8645i-flash",
+  "name": { "en": "Hettich Sensys 8645i 110°, full overlay, Flash press-in, cross plate D0 press-in", "de": "Hettich Sensys 8645i 110°, aufliegend, Flash zum Einpressen, Kreuzmontageplatte D0 zum Einpressen" },
+  "category": "hinge",
+  "manufacturer": "Hettich",
+  "series": "Sensys 8645i TH 52",
+  "articles": [
+    { "code": "9073611", "note": "hinge, full overlay, Flash fast assembly, dowels Ø10 × 11" },
+    { "code": "9071615", "note": "cross mounting plate D 0.0, press-in Ø10 × 12" }
+  ],
+  "trust": "untested",
+  "source": "Hettich: shop.hettich.com/de_EN/p/9071205 (variants), /p/9071625 (plate variants); 300201_BB_TH52_Toleranz.jpg (TH 52 × 5.5 pattern); 300201_Distanz_B12_5_DE.pdf; 300201_Scharnieranzahl_Sensys_EN.pdf. Assumption: plate holes ±16 mm about the hinge centre.",
+  "params": {
+    "count": "if(door_h <= 1000, 2, if(door_h <= 1700, 3, if(door_h <= 2200, 4, if(door_h <= 2400, 5, if(door_h <= 2600, 6, 7)))))",
+    "grid_offset": 16,
+    "plate_distance": 0,
+    "cup_d": 35,
+    "cup_depth": 12.8,
+    "cup_boring_distance": "plate_distance - 12.5 + hinge_overlay",
+    "dowel_d": 10,
+    "dowel_depth": 11,
+    "dowel_spacing": 52,
+    "dowel_offset": 5.5,
+    "plate_row": 37,
+    "plate_hole_d": 10,
+    "plate_hole_depth": 12,
+    "plate_hole_spacing": 32
+  },
+  "drilling": [
+    { "mount": "door", "d": "cup_d", "depth": "cup_depth", "a": 0, "b": "cup_boring_distance + cup_d / 2" },
+    { "mount": "door", "d": "dowel_d", "depth": "dowel_depth", "a": "-dowel_spacing / 2", "b": "cup_boring_distance + cup_d / 2 + dowel_offset" },
+    { "mount": "door", "d": "dowel_d", "depth": "dowel_depth", "a": "dowel_spacing / 2", "b": "cup_boring_distance + cup_d / 2 + dowel_offset" },
+    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "-plate_hole_spacing / 2", "b": "plate_row" },
+    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "plate_hole_spacing / 2", "b": "plate_row" }
+  ],
+  "limits": [
+    { "name": "cup_boring_distance", "value": "cup_boring_distance", "min": 3, "max": 7 },
+    { "name": "door_t", "value": "door_t", "min": 15, "max": 24 },
+    { "name": "door_h", "value": "door_h", "max": 2800 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

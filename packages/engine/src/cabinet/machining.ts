@@ -1,5 +1,5 @@
 import type { Diagnostic } from "../diagnostics.ts";
-import { evaluateDrilling, evaluateItemParams } from "../hardware/evaluate.ts";
+import { checkLimits, evaluateDrilling, evaluateItemParams } from "../hardware/evaluate.ts";
 import type { HardwareItem } from "../hardware/schema.ts";
 import type { Library } from "../library.ts";
 import { addBore, addPocketFromBox, boreWouldCollide, checkOperations, type Direction, type OpSource } from "../ops.ts";
@@ -295,10 +295,21 @@ function placeHinges(
   diagnostics: Diagnostic[],
 ): number {
   const at = { cabinet: rc.cabinet.id };
+  const sidePart = byCode.get(side === "left" ? "SL" : "SR");
   const context = new Map(rc.values);
   context.set("door_h", door.length);
   context.set("door_w", door.width);
   context.set("door_t", door.thickness);
+  // How far the door covers the hinge side, measured from the side's inner
+  // face to the door's hinge edge (full overlay: side thickness − side gap).
+  if (sidePart) {
+    context.set(
+      "hinge_overlay",
+      side === "left"
+        ? sidePart.box.x + sidePart.box.dx - door.box.x
+        : door.box.x + door.box.dx - sidePart.box.x,
+    );
+  }
   const params = evaluateItemParams(item, context, at);
   diagnostics.push(...params.diagnostics);
   // Placement preferences are cabinet variables; the item only supplies its
@@ -330,7 +341,7 @@ function placeHinges(
     centres = centres.map((c) => gy0 + Math.round((c - gridOffset - gy0) / pitch) * pitch + gridOffset);
   }
 
-  const sidePart = byCode.get(side === "left" ? "SL" : "SR");
+  diagnostics.push(...checkLimits(item, params.values, { ...at, part: door.id }));
   const source: OpSource = { kind: "hardware", ref: item.id };
   centres.forEach((yc, i) => {
     const scope = new Map(params.values);

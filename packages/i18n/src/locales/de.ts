@@ -211,6 +211,7 @@ export const de: Record<MessageKey, string> = {
   "diag.bore_too_deep": "{part}: Bohrung Ø{d} ({op}) lässt {wall} mm stehen, weniger als {min} mm.",
   "diag.bore_too_close_to_edge": "{part}: Bohrung Ø{d} ({op}) ist {wall} mm von einer Kante, weniger als {min} mm.",
   "diag.ops_collide": "{part}: {a} und {b} überschneiden sich.",
+  "diag.hardware_limit": "Beschlag {item}: {name} ist {value}, erlaubt {min} bis {max}.",
 
   "cli.no_cabinets": "Das Projekt enthält keine Schränke.",
   "cli.errors_block_output": "Fehler gefunden; keine Ausgabe geschrieben.",

@@ -1,0 +1,405 @@
+{
+  "brand": "Hettich",
+  "access_note": "Second pass: Hettich primary sources were downloaded with curl and read (pdftotext / image). URLs below are the files actually read. catalog.hettich.com (TA 2025 page PDFs) was still blocked. Where a value is read from a dimension label on a drawing (not stated in text), that is said in notes.",
+  "items": [
+    {
+      "id": "hettich-sensys-8645i-110-overlay-th52",
+      "name": "Sensys 110° hinge with integrated silent system (Sensys 8645i), full overlay, TH 52 x 5.5 mm drilling pattern",
+      "category": "hinge",
+      "articles": [
+        "9071205 (full overlay, for screwing on, PU 200)",
+        "9073605 (full overlay, for screwing on, PU 50)",
+        "9073611 (full overlay, Flash fast assembly, mounting hole ø10 x 11)",
+        "9073614 (full overlay, Fix fast assembly, mounting hole ø10 x 6)",
+        "9071206 / 9071207 (half overlay / inset, screw-on, for reference)"
+      ],
+      "values": {
+        "cup_d": 35,
+        "cup_d_tol_plus": 0.2,
+        "cup_depth": 12.8,
+        "pattern_spacing": 52,
+        "pattern_spacing_tol": 0.1,
+        "pattern_offset": 5.5,
+        "pattern_offset_tol": 0.1,
+        "fix_hole_d": 10,
+        "fix_hole_depth_flash": 11,
+        "fix_hole_depth_fix": 6,
+        "screw_predrill_d_max": 2.5,
+        "door_thickness_min": 15,
+        "door_thickness_max": 24,
+        "base_B_full_overlay": 12.5,
+        "base_B_half_overlay": 3,
+        "base_B_inset": -4,
+        "cup_boring_distance_min": 3,
+        "cup_boring_distance_max": 7,
+        "cup_boring_distance_default": null,
+        "overlay_adjust": 2,
+        "depth_adjust_plus": 3,
+        "depth_adjust_minus": 2,
+        "hinge_protrusion_H_full_overlay": 25.0,
+        "door_protrusion_T_full_overlay": 8.5,
+        "min_reveal_19mm_door_C3_to_C5": 0.8,
+        "min_reveal_19mm_door_C6": 0.7,
+        "min_reveal_19mm_door_C7": 0.7
+      },
+      "drilling": [
+        {
+          "on": "door",
+          "d": 35,
+          "depth": 12.8,
+          "position": "cup bore on the inner door face; distance from door edge (hinge side) to the cup bore EDGE = C (3.0–7.0 mm), so cup centre = C + 17.5 from door edge. Tolerance ø35 +0.2/0."
+        },
+        {
+          "on": "door",
+          "d": 10,
+          "depth": 11,
+          "position": "Flash (9073611): two holes 52 ±0.1 apart along the door edge, symmetric about the cup centre (±26), and 5.5 ±0.1 further from the door edge than the cup centre (= C + 23.0 from door edge). Fix (9073614): same positions, ø10 x 6."
+        },
+        {
+          "on": "door",
+          "d": 2.5,
+          "depth": null,
+          "position": "screw-on (9071205): same two positions (±26 along edge, cup centre + 5.5 away from edge); centre punch or predrill max ø2.5; screws ø3.5 x 16 per screw-on assembly sheet"
+        }
+      ],
+      "rules": [
+        "Overlay door: distance D (mounting plate) = C + 12.5 − A (A = overlay). Half overlay: D = C + 3 − A. Inset: D = C − 4 + F (F = reveal).",
+        "Full overlay on a 19 mm side (A = 18, rest 1 mm gap) with plate D = 0 needs C = 5.5 by the formula; the table lists A=18 only at C=6 (D=0.5) and C=7 (D=1.5). A=17 with D=0 needs C=4.5 (tabled).",
+        "Differences between computed D and available plate distances (0/1.5/3/5, some 8) are taken up with the ±2 mm overlay adjustment on the hinge arm.",
+        "Minimum reveal per door (edge radius 1 mm), 19 mm door: 0.8 mm at C 3–5, 0.7 mm at C 6–7. Radius 0: +0.4 mm; radius 3: −0.6 mm.",
+        "Hinges per door (door width ≤ 600, 300201 sheet): 2 hinges up to 1000 mm height / 7.7 kg; 3 up to 1700 / 13.7 kg; 4 up to 2200 / 17.1 kg; 5 up to 2400 / 22 kg; 6 up to 2600 / 22 kg; 7 up to 2800 / 22 kg. Guide only.",
+        "Hinge centre from door top/bottom edge 60–100 mm (300201 sheet); spacing X between hinges ≥ 280 mm and as large as possible.",
+        "The older Sensys catalogue (11309) shows a different chart: 2 hinges up to 900, 3 up to 1600, 4 up to 2000, 5 up to 2400 mm (19 mm chipboard 750 kg/m³), edge distance 'at least 90 mm'. The newer 300201 sheet is linked from the current shop page, so it is the one used above."
+      ],
+      "sources": [
+        {
+          "url": "https://shop.hettich.com/de_EN/p/9071205",
+          "what": "technical details: door 15–24, TH 52, base 12.5, cup ø35, depth 12.8, TH 52 x 5,5, predrill ø2.5, adjustments"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/300201_BB_TH52_Toleranz.jpg",
+          "what": "TH 52 drilling drawing: C to cup edge, 5.5 ±0.1 offset away from door edge, 52 ±0.1 spacing, ø35"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/300201_Distanz_B12_5_DE.pdf",
+          "what": "D = C + 12.5 − A; C columns 3.0–7.0; overlay/distance table"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/300201_Montage_Anschrauben_Sensys.pdf",
+          "what": "screw ø3.5 x 16"
+        },
+        {
+          "url": "https://web2.hettich.com/hbh/addon/montage/300201_Scharnieranzahl_Sensys_EN.pdf",
+          "what": "hinges per door height/weight, 60–100 mm, X ≥ 280"
+        },
+        {
+          "url": "https://web.hettich.com/fileadmin/Company_website/HUK/Media/Hinges_2020_HUK.pdf",
+          "what": "p.9–11: article numbers, Flash ø10x11, Fix ø10x6, minimum reveal table, H/T protrusions, half overlay/inset formulas"
+        },
+        {
+          "url": "https://web.hettich.com/fileadmin/media/Sensys_Catalogue_11309_en.pdf",
+          "what": "definition of C (door edge to cup drilling edge), basis B definition, older hinge-count chart"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Corrections to the first pass: C range is 3.0–7.0 (not 3–6), and the 'D = 0.87 x ...' formula belongs to another (angled) hinge. The 45 x 9.5 pattern is TB, a different article (TB = 9073617 etc.). No default C is given by Hettich; choose C from the overlay table. The hinge-count mapping is read from a chart layout (labels paired by position). The older 11309 catalogue says door thickness 15–22; current pages say 15–24."
+    },
+    {
+      "id": "hettich-sensys-cross-mounting-plate-37x32-d0",
+      "name": "Cross mounting plate for Sensys / Intermat, hole line 37 mm, hole spacing 32 mm, distance 0.0 mm",
+      "category": "hinge",
+      "articles": [
+        "9071625 (premounted Euro screws, ø5 x 12, D 0.0, ±3 mm oblong-hole height adjustment)",
+        "9071626 / 9071627 / 9071628 / 9071629 (same, D 1.5 / 3.0 / 5.0 / 8.0)",
+        "9071575 (for ø4.5 x 16 countersunk wood screws, D 0.0, ±3)",
+        "9071615 (press-in, ø10 x 12, D 0.0, ±2)",
+        "9071605 (expanding sockets, ø10 x 12, D 0.0, ±2)",
+        "9071595 (expanding sockets, ø5 x 12, D 0.0, ±2)",
+        "9071665 / 9071680 (Direct height adjustment versions, D 0.0; Euro screws ø5 x 12 / press-in ø10 x 12)"
+      ],
+      "values": {
+        "plate_distance_D": 0,
+        "hole_line_from_front": 37,
+        "hole_spacing_vertical": 32,
+        "euro_screw_hole_d": 5,
+        "euro_screw_hole_depth": 12,
+        "pressin_hole_d": 10,
+        "pressin_hole_depth": 12,
+        "height_adjust_euro": 3,
+        "height_adjust_pressin": 2,
+        "min_side_thickness": 15
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": 12,
+          "position": "9071625: two holes on a vertical line 37 mm from the cabinet front edge (hole line LR 37), 32 mm apart. Vertical position relative to the hinge cup not stated in the sources read (see notes)."
+        },
+        {
+          "on": "side",
+          "d": 10,
+          "depth": 12,
+          "position": "9071615 / 9071605: two holes, LR 37 from front edge, 32 apart"
+        }
+      ],
+      "rules": [
+        "Plate distances available: 0 / 1.5 / 3.0 / 5.0 (8.0 for some). Larger D reduces overlay (overlay/half overlay) or increases reveal (inset).",
+        "Cabinet side panel thickness from 15 mm (9071625 page)."
+      ],
+      "sources": [
+        {
+          "url": "https://shop.hettich.com/de_EN/p/9071625",
+          "what": "D 0, side ≥15, LR 37, spacing 32, ±3, ø5 x 12"
+        },
+        {
+          "url": "https://web.hettich.com/fileadmin/Company_website/HUK/Media/Hinges_2020_HUK.pdf",
+          "what": "p.61 mounting plate tables"
+        },
+        {
+          "url": "https://www.hettich.com/fileadmin/Media_Center/Catalogue/Sensys_Brochure_1121__918941701_US_Pattern.pdf",
+          "what": "p.37–38 plate article numbers 9071575/615/605/595/625, drillings, adjustment"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Not found in the sources read: the vertical relation between the 32 mm hole pair and the cup centre. A Hettich drawing for another hinge (Selekta Pro 2000 base hinge, Hinges 2020 p.120) shows 37 and 16 (= 32/2), i.e. the pair symmetric about the hinge axis. That is the same layout logic, but it was not confirmed for Sensys. 9071665 is not the Euro-screw plate in the 11309 catalogue numbering (there 907 166 5 is the eccentric-cam version), so use 9071625 for oblong-hole Euro screws."
+    },
+    {
+      "id": "hettich-avantech-you-actro-you",
+      "name": "AvanTech YOU drawer system on Actro YOU runner (also Quadro V6 YOU)",
+      "category": "slide",
+      "articles": [],
+      "values": {
+        "drawer_height_77": 77,
+        "drawer_height_101": 101,
+        "drawer_height_139": 139,
+        "drawer_height_187": 187,
+        "drawer_height_251": 251,
+        "inside_depth_offset_drawer": 3,
+        "inside_depth_offset_internal": 12,
+        "inside_depth_offset_internal_pto": 21,
+        "bottom_width_offset": 24,
+        "rear_width_offset": 24,
+        "bottom_length_offset_h77": 26,
+        "bottom_length_offset_h101_plus": 21,
+        "runner_first_hole_from_front": 37,
+        "runner_second_hole_spacing": 32,
+        "runner_hole_height": null
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": null,
+          "depth": null,
+          "position": "Actro YOU carcase side: holes at 37 mm from cabinet front edge, then 32 mm, then hole spacing b1 (and b2 for XL) — b1: NL 270/300 → 160; 350/400 → 224; 450–650 → 256. b2 (XL only): 450 → 288; 500–600 → 320; 650 → 416. Height of the hole line: drawing shows 19 (probably above the runner underside), not confirmed."
+        }
+      ],
+      "rules": [
+        "Nominal lengths NL: 270, 300, 350, 400, 450, 500, 550, 600, 650 (650 only Actro YOU XL). Load classes XS 10 kg, L 40 kg, XL 70 kg.",
+        "Min. clear inside cabinet depth LT: drawer / pot-and-pan drawer = NL + 3; internal drawer = NL + 12; internal drawer with Push to open Silent = NL + 21 (table e.g. NL 500 → 503 / 512 / 521).",
+        "Bottom panel width BB = LB − 24; rear panel width RB = LB − 24 (LB = clear inside width).",
+        "Bottom panel length BL = NL − 26 for drawer height 77; NL − 21 for 101 / 139 / 187 pages.",
+        "Rear panel stabiliser (77 mm): 1 for cabinet width < 600, 2 for ≥ 600, 3 for ≥ 900, 4 at 1200."
+      ],
+      "sources": [
+        {
+          "url": "https://web.hettich.com/fileadmin/Company_website/HAU/Media/AvanTech_YOU_2020_HAU.pdf",
+          "what": "planning/installation dimensions per height (p.8 ff.), Actro YOU installation dimension table p.48 (NL, b1, b2, LT)"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Formulas and the NL/b1/b2/LT table are read from text. Drawer heights 77/101/139 are page headings read; 187 and 251 come from the BL table headings and rear-panel connector notes, so check them. The hole height (19) and whether b1 is measured from the 37 hole are drawing labels in a garbled extraction: low confidence. No side-height-to-article list taken."
+    },
+    {
+      "id": "hettich-actro-5d-wooden-drawer",
+      "name": "Actro 5D full extension runner with Silent System for wooden drawers",
+      "category": "slide",
+      "articles": [
+        "9257054–9257058 (XS 10 kg, NL 250–350)",
+        "9257089–9257097 (L 40 kg)",
+        "9257126–9257130 (XL 70 kg, NL 600–750)"
+      ],
+      "values": {
+        "drawer_width_deduction": 42,
+        "drawer_width_extra_deduction": 1.5,
+        "drawer_side_thickness_max": 16,
+        "drawer_length_deduction": 10,
+        "inside_depth_offset": 3,
+        "runner_first_hole_from_front": 37,
+        "runner_second_hole_spacing": 32,
+        "rear_hook_hole_d": 6,
+        "rear_hook_hole_depth": 10,
+        "rear_notch": null
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": null,
+          "depth": null,
+          "position": "carcase: 37 from front edge, then 32, then b1 / b2: NL 250–300 → b1 160; 320–420 → 224; 450–750 → 256; b2 (XL): 450 → 288, 500–600 → 320, 650–750 → 416"
+        },
+        {
+          "on": "drawer_side",
+          "d": 6,
+          "depth": 10,
+          "position": "rear end of drawer side, for runner rear hook; position labels 11 / 7 / 9.5 in the drawing, meaning not certain"
+        }
+      ],
+      "rules": [
+        "Internal drawer width SKW = (LB − 42) − 1.5 (+0) for drawer sides ≤ 16 mm.",
+        "Drawer length SKL = NL − 10.",
+        "Clear inside depth KT/LT = NL + 3."
+      ],
+      "sources": [
+        {
+          "url": "https://web.hettich.com/fileadmin/Company_website/HAU/Media/AvanTech_YOU_2020_HAU.pdf",
+          "what": "Actro 5D pages (p.54–55): SKW, SKL, LT, b1/b2 table, article numbers"
+        }
+      ],
+      "confidence": "low",
+      "notes": "SKW, SKL, LT and the b1/b2 table are read as text (medium). Rear notch geometry, rear hook hole position and bottom recess come from an overlapped page extraction: not usable as is. Quadro not re-checked (first pass: LB − 42, third-party)."
+    },
+    {
+      "id": "hettich-rastex-15-19mm",
+      "name": "Rastex 15 eccentric cam connector for 19 mm panel",
+      "category": "connector",
+      "articles": [
+        "71950 (with rim, nickel plated, 19 mm, PU 200)",
+        "79471 (without rim, bright, 19 mm)",
+        "25064 (without rim, nickel plated, 19 mm)",
+        "9046180 / 9046182 (Rapid S dowel DU 324 / DU 325, 20 / 30 mm)",
+        "9047974 / 9047976 (Twister DU 319 T / DU 320 T, ø5 thread)"
+      ],
+      "values": {
+        "housing_d": 15,
+        "housing_depth_19": 13.7,
+        "edge_bore_d": 8,
+        "edge_bore_from_face_19": 9.5,
+        "cam_centre_from_panel_end_dowel20": 24,
+        "cam_centre_from_panel_end_dowel30": 34,
+        "cam_centre_tol_plus": 0.5,
+        "cam_centre_tol_minus": 0.3,
+        "rapid_s_hole_d": 8,
+        "rapid_s_hole_depth": 11,
+        "twister_hole_d": 5
+      },
+      "drilling": [
+        {
+          "on": "panel_face",
+          "d": 15,
+          "depth": 13.7,
+          "position": "cam housing on inner face of the panel (e.g. bottom), centre 24 (+0.5/−0.3) from the panel end for 20 mm dowel, 34 for 30 mm dowel"
+        },
+        {
+          "on": "panel_edge",
+          "d": 8,
+          "depth": null,
+          "position": "bore in the panel end, centre 9.5 from face (19 mm panel = mid-thickness), runs into the housing"
+        },
+        {
+          "on": "side",
+          "d": 8,
+          "depth": 11,
+          "position": "Rapid S dowel in the mating panel face, on the axis of the edge bore (centre 9.5 from the joining panel's face); depth label 11"
+        },
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "alternative: Twister screw-in dowel ø5 (System 32 compatible)"
+        }
+      ],
+      "rules": [
+        "Other panel thicknesses: 16 mm → edge bore 8 from face, housing depth 12.7; 18 → 9 / 13.4; 22 → 11 / 15.7; 15 → 7.5 / 12.2; 29 → 14.5 / 19.2.",
+        "Pulls panels in from up to 4 mm away from the panel end."
+      ],
+      "sources": [
+        {
+          "url": "https://web.hettich.com/fileadmin/media/Connecting_technology_2016_16359_HUS.pdf",
+          "what": "p.8–11: articles, drilling patterns per panel thickness, dowels"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Drilling dimensions are labels on drawings; the meaning was inferred from their consistent pattern across thicknesses (edge bore = half thickness). Edge-bore depth not given. VB 35/36 are in the next item."
+    },
+    {
+      "id": "hettich-vb35-19mm",
+      "name": "VB 35 / 19 eccentric cam shelf connector (19 mm shelves)",
+      "category": "connector",
+      "articles": [
+        "9117725 (nickel plated)",
+        "9116929 (white)",
+        "9116930 (brown)",
+        "9116928 (black)",
+        "9021847 (screw-in dowel DU 321, ø5)"
+      ],
+      "values": {
+        "housing_d": 20,
+        "housing_depth_19": 14,
+        "housing_centre_from_shelf_end": 9.5,
+        "housing_centre_tol_plus": 0.5,
+        "dowel_centre_from_shelf_underside": 9.5,
+        "dowel_hole_d": 5,
+        "dowel_length": 6.7
+      },
+      "drilling": [
+        {
+          "on": "panel_face",
+          "d": 20,
+          "depth": 14,
+          "position": "on the shelf underside, centre 9.5 (+0.5) from the shelf end ('cropped' ø20 drilling)"
+        },
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "dowel DU 321 into ø5 hole in side; dowel centre 9.5 from shelf underside (System 32 compatible)"
+        }
+      ],
+      "rules": [
+        "VB 36 M: pressed into a double hole 32 mm apart (ø20 + ø10)."
+      ],
+      "sources": [
+        {
+          "url": "https://web.hettich.com/fileadmin/media/Connecting_technology_2016_16359_HUS.pdf",
+          "what": "p.14–17"
+        }
+      ],
+      "confidence": "medium",
+      "notes": "Read from drawing labels."
+    },
+    {
+      "id": "hettich-shelf-support-duplo-5mm",
+      "name": "Shelf support Duplo, ø5 mm, steel nickel plated",
+      "category": "shelf_support",
+      "articles": [
+        "46642"
+      ],
+      "values": {
+        "pin_d": 5,
+        "hole_d": 5,
+        "hole_depth": null,
+        "pin_length": null
+      },
+      "drilling": [
+        {
+          "on": "side",
+          "d": 5,
+          "depth": null,
+          "position": "System 32 hole row; depth not given on the product page"
+        }
+      ],
+      "rules": [
+        "Chipboard shelf, metal support (product page)."
+      ],
+      "sources": [
+        {
+          "url": "https://shop.hettich.com/de_EN/p/46642",
+          "what": "drilling diameter 5, pin diameter 5"
+        }
+      ],
+      "confidence": "high",
+      "notes": "Only diameter confirmed; the catalogue page (catalog.hettich.com bk_827.pdf) was blocked."
+    }
+  ]
+}

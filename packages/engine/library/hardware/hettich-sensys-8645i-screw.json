@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "hettich-sensys-8645i-screw",
+  "name": { "en": "Hettich Sensys 8645i 110°, full overlay, screw-on, cross plate D0 (Euro screws)", "de": "Hettich Sensys 8645i 110°, aufliegend, zum Anschrauben, Kreuzmontageplatte D0 (Euroschrauben)" },
+  "category": "hinge",
+  "manufacturer": "Hettich",
+  "series": "Sensys 8645i TH 52",
+  "articles": [
+    { "code": "9071205", "note": "hinge, full overlay, screw-on" },
+    { "code": "9071625", "note": "cross mounting plate D 0.0, premounted Euro screws Ø5 × 12" }
+  ],
+  "trust": "untested",
+  "source": "Hettich: shop.hettich.com/de_EN/p/9071205, /p/9071625; 300201_Distanz_B12_5_DE.pdf (D = C + 12.5 − A); 300201_Scharnieranzahl_Sensys_EN.pdf (hinge count); 300201_BB_TH52_Toleranz.jpg. Assumption: the plate's two holes sit ±16 mm about the hinge centre (not stated in the sources read).",
+  "params": {
+    "count": "if(door_h <= 1000, 2, if(door_h <= 1700, 3, if(door_h <= 2200, 4, if(door_h <= 2400, 5, if(door_h <= 2600, 6, 7)))))",
+    "grid_offset": 16,
+    "plate_distance": 0,
+    "cup_d": 35,
+    "cup_depth": 12.8,
+    "cup_boring_distance": "plate_distance - 12.5 + hinge_overlay",
+    "plate_row": 37,
+    "plate_hole_d": 5,
+    "plate_hole_depth": 12,
+    "plate_hole_spacing": 32
+  },
+  "drilling": [
+    { "mount": "door", "d": "cup_d", "depth": "cup_depth", "a": 0, "b": "cup_boring_distance + cup_d / 2" },
+    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "-plate_hole_spacing / 2", "b": "plate_row" },
+    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "plate_hole_spacing / 2", "b": "plate_row" }
+  ],
+  "limits": [
+    { "name": "cup_boring_distance", "value": "cup_boring_distance", "min": 3, "max": 7 },
+    { "name": "door_t", "value": "door_t", "min": 15, "max": 24 },
+    { "name": "door_h", "value": "door_h", "max": 2800 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

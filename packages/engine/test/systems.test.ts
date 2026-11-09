@@ -241,3 +241,51 @@ describe("hardware library", () => {
     expect(r.cabinets[0]!.hardware.some((h) => h.item === "shelf-pin-5")).toBe(false);
   });
 });
+
+describe("brand hinges (values from manufacturer sources, see item files)", () => {
+  it("Hettich Sensys: cup position follows the overlay (C = D − 12.5 + A)", () => {
+    // Full overlay on 19 mm sides with a 1.5 mm side gap: A = 17.5 → C = 5 → cup centre 22.5.
+    const p = partsByCode(buildOne({ options: { "hardware.hinge": "hettich-sensys-8645i-screw" } }));
+    expect(bores(p.DO1!, "hettich-sensys-8645i-screw").map((b) => [b.v, b.d, b.depth])).toEqual([
+      [22.5, 35, 12.8],
+      [22.5, 35, 12.8],
+    ]);
+    const wider = partsByCode(
+      buildOne({ vars: { front_gap: 6 }, options: { "hardware.hinge": "hettich-sensys-8645i-screw" } }),
+    );
+    expect(bores(wider.DO1!)[0]!.v).toBe(21); // A = 16 → C = 3.5
+  });
+
+  it("Hettich Sensys Flash: TH 52 × 5.5 dowels, Ø10 plate holes replace the Ø5 system holes", () => {
+    const r = buildOne({ options: { "hardware.hinge": "hettich-sensys-8645i-flash" } });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const dowels = bores(p.DO1!).filter((b) => b.d === 10);
+    expect(dowels.map((b) => [b.u, b.v])).toEqual([
+      [63.5, 28],
+      [115.5, 28],
+      [607.5, 28],
+      [659.5, 28],
+    ]);
+    const plate = bores(p.SL!, "hettich-sensys-8645i-flash");
+    expect(plate.every((b) => b.d === 10 && b.depth === 13 && b.sources.length === 2)).toBe(true);
+  });
+
+  it("Blum CLIP top: TB = overlay − 11, INSERTA dowels 45 apart, 9.5 behind the cup", () => {
+    const p = partsByCode(buildOne({ options: { "hardware.hinge": "blum-cliptop-110-inserta" } }));
+    const b = bores(p.DO1!, "blum-cliptop-110-inserta");
+    expect(b.filter((x) => x.d === 35).map((x) => x.v)).toEqual([24, 24]); // TB 6.5 + 17.5
+    expect(b.filter((x) => x.d === 8).slice(0, 2).map((x) => [x.u, x.v])).toEqual([
+      [67, 33.5],
+      [112, 33.5],
+    ]);
+  });
+
+  it("rejects a door the hinge cannot reach", () => {
+    const r = buildOne({ vars: { front_gap: 14 }, options: { "hardware.hinge": "blum-cliptop-110-inserta" } });
+    expect(r.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "hardware_limit", params: expect.objectContaining({ name: "boring_distance", value: 1 }) }),
+    );
+    expect(r.ok).toBe(false);
+  });
+});

@@ -230,6 +230,7 @@ export const en = {
   "diag.bore_too_deep": "{part}: bore Ø{d} ({op}) leaves {wall} mm, less than {min} mm.",
   "diag.bore_too_close_to_edge": "{part}: bore Ø{d} ({op}) is {wall} mm from an edge, less than {min} mm.",
   "diag.ops_collide": "{part}: {a} and {b} overlap.",
+  "diag.hardware_limit": "Hardware {item}: {name} is {value}, allowed {min} to {max}.",
 
   // CLI
   "cli.no_cabinets": "The project has no cabinets.",

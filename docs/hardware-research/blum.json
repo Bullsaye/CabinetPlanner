@@ -1,0 +1,267 @@
+{
+  "brand": "Blum",
+  "items": [
+    {
+      "id": "blum-cliptop-blumotion-110-71b3550",
+      "name": "CLIP top BLUMOTION 110° hinge, full overlay",
+      "category": "hinge",
+      "articles": ["71B3550", "71B3590", "71B3580"],
+      "values": {
+        "cup_d": 35,
+        "cup_depth": 13,
+        "boring_distance_min": 3,
+        "boring_distance_max": 7,
+        "boring_distance_default": null,
+        "cup_centre_from_door_edge_formula_offset": 17.5,
+        "insert_dowel_d": 8,
+        "insert_dowel_d_tol_plus": 0.1,
+        "insert_dowel_d_tol_minus": 0.1,
+        "insert_dowel_spacing": 45,
+        "insert_dowel_offset_from_cup_centre": 9.5,
+        "boss_width": 57,
+        "boss_depth_screw_on": 37.5,
+        "boss_depth_inserta": 43,
+        "boss_protrusion_screw_on": 3.2,
+        "boss_protrusion_inserta": 6.4,
+        "overlay_constant_at_plate_0": 11,
+        "door_thickness_min": 16,
+        "door_thickness_max": 26,
+        "adjust_height": 3,
+        "adjust_side": 2,
+        "adjust_depth_plus": 3,
+        "adjust_depth_minus": 2,
+        "boss_screw_d": 3.5,
+        "boss_screw_length_options": [15, 17],
+        "opening_angle": 110
+      },
+      "drilling": [
+        { "on": "door", "d": 35, "depth": 13, "position": "Cup bore. Distance from door edge to cup rim ('drilling distance', TB) 3–7 mm. Cup centre from door edge = TB + 17.5 (Blum H002 table: overlay 14→centre 20.5 … overlay 18→centre 24.5 for 0 mm plate). Drilling depth is given as 'min 13' on the planning page and as 'a 13 mm drilling depth is sufficient' in the brochure text." },
+        { "on": "door", "d": 8, "depth": 13, "position": "INSERTA / knock-in boss (71B3590 / 71B3580): two Ø8 (+0.1/−0.1) dowel holes, 45 mm apart centre to centre, symmetric about the cup centre. Their axis is offset 9.5 mm from the cup centre (drawing shows them on the side away from the door edge). Depth: brochure says 13 mm drilling depth for the boss drilling pattern." },
+        { "on": "door", "d": null, "depth": null, "position": "Screw-on boss (71B3550): two screws either side of the cup. Blum shows them on the drawing but gives no dimensions. Screws: chipboard screw 3.5 x 15 (609.1500) or 3.5 x 17 (609.1700). The US kit H002 says to pre-drill 3 mm (1/8\") holes, depth < 5/8\"." }
+      ],
+      "rules": [
+        "Full overlay with mounting plate distance D (0/3/6/9 mm): front overlay = TB + 11 − D (taken from the 'Drilling distance / Front overlay' table on catalogue page 21, e.g. plate 0: TB 3→14 … TB 7→18; plate 3: TB 3→11 … 7→15; plate 6: TB 3→8 … 7→12; plate 9: TB 3→5 … 7→9).",
+        "Minimum door gap (radius 1 mm edges, factory setting) depends on door thickness and TB: for 19 mm door, 1.0 mm at TB 3–4, 0.9 mm at TB 5–7. For 16 mm, 0.5; for 18 mm, 0.8 (all TB). Add 0.4 mm for 19 mm doors with +2 mm side adjustment. Doors 28–32 mm thick: a trial application is recommended.",
+        "Dual (half) overlay articles 71B3650/3690/3680; inset 71B3750/3790/3780. For inset, set the mounting plate back by door thickness + 1.5 mm.",
+        "Hinge count by door height/weight: NOT FOUND in the sources that could be read (it is in the Blum catalogue on publications.blum.com, which is not reachable from this session). The H002 kit only says: the distance between the top and bottom hinges must be greater than the width of the door, and cup centre to door end at least 3–4 inches.",
+        "BLUMOTION can be switched off on one of two hinges for small or light doors."
+      ],
+      "sources": [
+        { "url": "https://d2.blum.com/services/BEC003/bro021_ep_dok_bsg_$sen_$aof_$v1.pdf", "what": "CLIP top BLUMOTION brochure. p.16: 13 mm drilling depth. p.19: drill bits Ø35/Ø8, set depth 13 mm. p.20: article numbers and screws. p.21 (planning drawing, read from the rendered page): Ø35, min 13, TB 3–7, INSERTA Ø8±0.1 / 45 / 9.5, overlay table, gap table, adjustments, boss dimensions." },
+        { "url": "https://d2.blum.com/services/BEC003/cme198264_ma_dok_bus_$sen-us_$aof_$v1.pdf", "what": "H002 kit instructions (US): overlay→cup centre table, Ø35 x 13 deep, door thickness 16–26 mm, hinge spacing > door width, 3 mm pre-drill." }
+      ],
+      "confidence": "high",
+      "notes": "Most numbers were read from drawings rendered from the PDF, not from text. The sources give no default TB; use the overlay table. Which side of the cup centre the 9.5 mm offset lies on is read from the drawing only (medium confidence). The brochure says doors up to 24 mm and recommends a trial application for 28–32 mm; H002 says 16–26 mm."
+    },
+    {
+      "id": "blum-clip-mounting-plate-173l6100",
+      "name": "CLIP cruciform mounting plate, 0 mm (173L6100) / 3 mm (173L6130)",
+      "category": "hinge",
+      "articles": ["173L6100", "173L6130", "173H7100", "173H7130"],
+      "values": {
+        "screw_row_from_front_edge": 37,
+        "screw_vertical_spacing": 32,
+        "screw_d_options": [3.5, 4],
+        "screw_length_recommended": 17,
+        "plate_height_173L6100": 8.5,
+        "plate_height_173L6130": 11.5,
+        "plate_distance_173L6100": 0,
+        "plate_distance_173L6130": 3,
+        "height_adjustment_173L": 3,
+        "height_adjustment_173H_cam": 2,
+        "plate_length": 57,
+        "plate_dimension_53": 53
+      },
+      "drilling": [
+        { "on": "side", "d": null, "depth": null, "position": "Two screws on a vertical line 37 mm from the front edge of the cabinet side, 32 mm apart, i.e. 16 mm above and 16 mm below the hinge centre line. A third (centre) screw marked * is only for wide-angle hinges. Chipboard screws Ø3.5 or Ø4, recommended length 17 mm. The US kit H002 says to pre-drill 3 mm (1/8\") holes; the US kit ships with #6 x 5/8\" screws." }
+      ],
+      "rules": [
+        "The hinge centre line on the side is at the same height as the cup centre on the door, measured from the door bottom minus the bottom overlay (H002: Y = X − OL).",
+        "173H7100/173H7130 is the cam version: same 37/32 pattern, cam height adjustment ±2 mm.",
+        "Plate distance (0, 3, 6, 9 mm) enters the overlay formula of the hinge (overlay = TB + 11 − D for CLIP top BLUMOTION 110° full overlay)."
+      ],
+      "sources": [
+        { "url": "https://d2.blum.com/services/BEC003/bro024_ep_dok_bsg_$sen-my_$aof_$v1.pdf", "what": "Hinge brochure (MY) p.17 and p.23: cruciform plate 173L6100/6130 text and drawing (37, 32, 57, 53, heights 8.5/11.5, screws Ø3.5/Ø4, 17 mm, ±3 mm); cam plate 173H7100/7130 ±2 mm." },
+        { "url": "https://d2.blum.com/services/BEC003/cme198264_ma_dok_bus_$sen-us_$aof_$v1.pdf", "what": "H002: 37 mm from front edge, 16 mm above/below centre line, 32 mm spacing, Y = X − OL." }
+      ],
+      "confidence": "high",
+      "notes": "The sources give no pilot-hole Ø or depth for chipboard screws, only the 3 mm US pre-drill. A third-party search snippet (not read) said Ø5 x 11.5 for the EXPANDO plate 174E6100; not used. Exactly which features the 57 and 53 dimensions measure on the plate is not stated."
+    },
+    {
+      "id": "blum-legrabox-cabinet-profile-750",
+      "name": "LEGRABOX cabinet profile (runner) with BLUMOTION S, 40 kg (750) / 70 kg (753)",
+      "category": "slide",
+      "articles": ["750.2701S", "750.3501S", "750.4001S", "750.4501S", "750.5001S", "750.5501S", "750.6001S", "753.4501S", "753.5001S", "753.5501S", "753.6001S", "753.6501S"],
+      "values": {
+        "nominal_lengths_750": [270, 350, 400, 450, 500, 550, 600],
+        "nominal_lengths_753": [450, 500, 550, 600, 650],
+        "inside_depth_min_offset": 3,
+        "drawer_base_width_offset": 35,
+        "back_width_offset": 38,
+        "drawer_base_length_offset": 10,
+        "drawer_side_thickness": 12.8,
+        "side_height_N": 66.5,
+        "side_height_M": 90.5,
+        "side_height_C": 177,
+        "side_height_F": 241,
+        "back_height_N": 39,
+        "back_height_M": 63,
+        "back_height_C": 148,
+        "back_height_F": 212,
+        "profile_screw_above_bottom_min_N": 38,
+        "space_above_screw_min_N": 42,
+        "space_above_screw_min_M": 68,
+        "front_bracket_hole_d": 10,
+        "front_bracket_hole_spacing_N": 16,
+        "front_bracket_hole_spacing_M": 32,
+        "front_bracket_lower_hole_min_N": 45.5,
+        "front_bracket_lower_hole_min_M": 51,
+        "front_bracket_hole_from_side_inner_face": 14,
+        "front_thickness_min_expando": 12,
+        "front_thickness_min_expando_t": 6,
+        "rear_back_fixing_hole_above_base": 19,
+        "rear_back_fixing_hole_from_back_face": 9,
+        "system_screw_d": 6,
+        "system_screw_length": 14.5,
+        "chipboard_screw_d": 4,
+        "chipboard_screw_length": 15
+      },
+      "drilling": [
+        { "on": "side", "d": null, "depth": null, "position": "Cabinet profile 750 (40 kg), positions measured from the front edge of the cabinet side: 18 (front screw, marked *: system screw or chipboard Ø4x15), 37, 69 (=37+32) for all NL. Rear screws by NL: NL 270 → 197 (37+160). NL 350 → 229 (37+192) and 261 (37+224). NL 400–500 → 243 (261−18), 261 and 293 (37+256). NL 550–600 → 243, 261, 293 and 357 (37+320). Each position takes either chipboard screw Ø4x15 (A) or system screw Ø6x14.5 (B)." },
+        { "on": "side", "d": null, "depth": null, "position": "Cabinet profile 753 (70 kg): front 18, 37, then 37+9 / 37+32 at the front (dimensions 9 and 32 shown). Rear 37+224 (and a hole 18 mm forward of it), 37+256, 37+320 (NL 500–650), 37+416 (NL 650)." },
+        { "on": "side", "d": null, "depth": null, "position": "Height: the profile screw axis is at least 38 mm above the top surface of the cabinet bottom (+1 mm if the profile is fitted before the cabinet is assembled). Clear height above the screw axis: min 42 mm for N; min 68 mm for M (incl. 2 mm tilt adjustment)." },
+        { "on": "front", "d": 10, "depth": null, "position": "EXPANDO front fixing bracket, height N: two Ø10 holes 16 mm apart vertically. Lower hole at least 45.5 mm above the front's lower edge (+1 mm if the profile is fitted before cabinet assembly); in the screw-on drawing the 45.5 is measured from the cabinet bottom's top face. Hole axis 14 mm inward from the inner face of the cabinet side, so FA + 14 from the front's side edge. Front min 12 mm thick (6 mm with EXPANDO T). Height M: holes 32 apart, lower min 51." },
+        { "on": "drawer_back", "d": null, "depth": null, "position": "Chipboard back fixing: screw 19 mm above the drawer base and 9 mm from the back face (back installation drawing)." },
+        { "on": "drawer_bottom", "d": null, "depth": null, "position": "Drawer base drilling (N): holes at 24 and 24+128 from the front, 48.5 dimension shown (see catalogue p.11 drawing). Rebate C: 16 mm base, 8 and 38 dimensions." }
+      ],
+      "rules": [
+        "Minimum inside cabinet depth LT = NL + 3 mm.",
+        "Drawer base (16 mm chipboard) width = LW − 35 mm, length = NL − 10 mm. Chipboard back width = LW − 38 mm, height = 39 (N), 63 (M), 148 (C), 212 (F).",
+        "Drawer side heights: N 66.5, M 90.5, C 177, F 241 mm (no K height in LEGRABOX).",
+        "Front screw at 18 mm (*) may be a chipboard screw Ø4x15. Blum recommends chipboard screws Ø4x15 for the profile, or system screws Ø6x14.5. Front bracket screws are 3.5x15 or 3.5x17."
+      ],
+      "sources": [
+        { "url": "https://d2.blum.com/services/BEC003/me77914225_ep_dok_bau_$sen-ca_$aof_$v1.pdf", "what": "LEGRABOX ordering and planning information (CA edition). p.6: side heights, 12.8 mm side. pp.8–9: articles and screws. p.10: space (38/42/20.5), front bracket (45.5/16/14/Ø10/min 12). p.11: cutting LW−35/LW−38/NL−10/39, hole spacing 37/9/32/224/256, LT = NL+3. p.14: M heights (51/32/68). Back heights from text. p.69: cabinet profile fixing positions for 750 and 753." }
+      ],
+      "confidence": "medium",
+      "notes": "Fixing positions were read from drawings, so mapping each screw to an NL is medium confidence; check against p.69. On p.11 the N drawing shows a '9' next to the 37 mm hole, and p.69 shows the front screw 18 mm from the front edge; I used p.69. The 20.5 mm horizontal dimension (space drawing) is not labelled; it is probably from the side's inner face to the drawer's inner side face, unverified. Screw pilot-hole diameters are not given. The source is a Canadian edition; the EU catalogue (publications.blum.com) was not reachable. EXPANDO hole depth not given."
+    },
+    {
+      "id": "blum-movento-760h",
+      "name": "MOVENTO full-extension runner for wooden drawers, 40 kg (760H) / 60–70 kg (766H)",
+      "category": "slide",
+      "articles": ["760H2501S", "760H2701S", "760H3001S", "760H3201S", "760H3501S", "760H3801S", "760H4001S", "760H4201S", "760H4501S", "760H4801S", "760H5001S", "760H5201S", "760H5501S", "760H6001S", "766H4501S", "766H5001S", "766H5201S", "766H5501S", "766H5801S", "766H6001S", "766H6501S", "766H7001S", "766H7501S", "T51.7601", "298.7601"],
+      "values": {
+        "nominal_lengths_760H": [250, 270, 300, 320, 350, 380, 400, 420, 450, 480, 500, 520, 550, 600],
+        "nominal_lengths_766H": [450, 500, 520, 550, 580, 600, 650, 700, 750],
+        "drawer_inner_width_offset": 42,
+        "drawer_inner_width_tol_plus": 0.0,
+        "drawer_inner_width_tol_minus": 1.5,
+        "drawer_length_offset": 10,
+        "inside_depth_min_offset": 3,
+        "inside_depth_extra_side_stabiliser": 12,
+        "drawer_side_thickness_max": 16,
+        "drawer_bottom_recess_range": [12, 15],
+        "dim_min_28_5": 28.5,
+        "runner_inner_face_from_side": 21,
+        "clearance_above_min": 7,
+        "runner_screw_above_bottom_min": 38,
+        "rear_hook_hole_d": 6,
+        "rear_hook_hole_depth": 10,
+        "rear_hook_hole_from_side_face": 7,
+        "rear_hook_hole_from_bottom_edge": 11,
+        "locking_device_ref": 75,
+        "locking_device_ref_tip_on": 125,
+        "system_screw_d": 6,
+        "system_screw_length": 14.5,
+        "chipboard_screw_d": 3.5,
+        "chipboard_screw_length": 15
+      },
+      "drilling": [
+        { "on": "side", "d": null, "depth": null, "position": "760H, positions measured from the front edge of the cabinet side: 18 (*), 37, 69 (37+32). Rear 197 (37+160), 243 (261−18), 261 (37+224), 293 (37+256); the set of rear positions grows with NL (NL 250–270 uses only one rear position; NL 550–600 adds a rearmost position marked ** 'ensures optimal stability'). 766H also uses 37+320 and 37+416, plus 9 mm offsets at the front. Screws: chipboard Ø3.5x15 (609.1500) or system screw Ø6x14.5 (661.1450.HG); * can be replaced by chipboard Ø4x15." },
+        { "on": "drawer_back", "d": 6, "depth": 10, "position": "Rear hook hole in the rear end of each drawer side: Ø6, 10 deep, 7 mm in from the side face, 11 mm up from the lower edge (drawer assembly drawing)." },
+        { "on": "drawer_bottom", "d": null, "depth": null, "position": "Locking device (T51.7601) under the drawer bottom at the front, 75 mm reference (125 mm with TIP-ON BLUMOTION). Use drilling template T65.1000.02." }
+      ],
+      "rules": [
+        "Inner drawer width SKW = LW − 42 (+0.0/−1.5) mm.",
+        "Drawer length SKL = NL − 10 mm. Minimum inside cabinet depth = NL + 3 mm (+12 mm with side stabiliser).",
+        "Drawer side thickness max 16 mm (limited side adjustment at 16 mm). Drawer bottom recessed 12–15 mm from the lower edge of the sides (interpreted from the drawing).",
+        "Clear space above the drawer: min 7 mm. Runner screw axis min 38 mm above the part below (+1 mm if runners are fitted before cabinet assembly).",
+        "Inner drawer: ISKL = SKL + X (front thickness)."
+      ],
+      "sources": [
+        { "url": "https://d2.blum.com/services/BEC003/me13029704_td_dok_bau_$sen_$aof_$v1.pdf", "what": "MOVENTO technical data sheet TD-132/1 EN/06.22. p.3: articles, NL, locking device. p.5: SKW = LW−42, SKL = NL−10, NL+3, min 7/38/28.5, 12–15, 21, max 16, Ø6 10/7/11, 75/125, template. p.13: runner attachment positions and screws." }
+      ],
+      "confidence": "medium",
+      "notes": "The locking device's exact position and fixing pattern are not dimensioned beyond 75/125; it relies on template T65.1000.02. Not found: a rear notch in the drawer back (the data sheet shows none), and the drawer bottom thickness. 'min 28.5' appears twice in the space drawings; its reference is unclear (possibly the bottom of the drawer side to the top of the drawer bottom); unverified."
+    },
+    {
+      "id": "blum-tandembox-578",
+      "name": "TANDEMBOX cabinet profile 578 (30 kg) / 576 (65 kg), drawers N and M",
+      "category": "slide",
+      "articles": ["578.2701M", "578.3001M", "578.3501M", "578.4001M", "578.4501M", "578.5001M", "578.5501M", "378N4002SA", "378M5002SA", "ZSF.35A2", "ZSF.36A2", "ZSF.39A2"],
+      "values": {
+        "inside_depth_min_offset": 3,
+        "drawer_base_width_offset": 75,
+        "back_width_offset": 87,
+        "drawer_base_length_offset": 24,
+        "side_height_N": 67,
+        "side_height_M": 83.6,
+        "back_height_N": 69,
+        "space_N_total": 79.5,
+        "space_above_screw_min_N": 49.5,
+        "screw_above_bottom_min": 33,
+        "space_below_min": 9,
+        "runner_dim_37_5": 37.5,
+        "front_bracket_hole_d": 10,
+        "front_bracket_hole_d_tol_plus": 0.2,
+        "front_bracket_hole_d_tol_minus": 0.1,
+        "front_bracket_hole_spacing": 32,
+        "front_bracket_lower_hole_min": 32.5,
+        "front_bracket_hole_from_side_inner_face": 15.5,
+        "front_bracket_hole_depth_or_dim": 12,
+        "rear_back_fixing_holes": [22, 38],
+        "rear_back_fixing_from_back_face": 9
+      },
+      "drilling": [
+        { "on": "side", "d": null, "depth": null, "position": "Cabinet profile 578 (30 kg): fixing positions from the front edge of the cabinet side are taken from 19 (optional, for stability), 37, 115, 133, 165, 229, 261, 293. Which positions apply depends on NL (270–600), per the table on catalogue p.88. Cabinet profile 576 (65 kg): 19, 28, 37, 115, 165, 261, 293, 357, 453, 517, 549 (NL 450–650). Screws: chipboard Ø4x15 or system screw Ø6x14.5." },
+        { "on": "front", "d": 10, "depth": 12, "position": "INSERTA / knock-in front bracket (N): two Ø10 (+0.2/−0.1) holes 32 mm apart vertically, lower hole min 32.5 mm above the lower edge of the front. The '12' dimension is probably the hole depth. Screw-on bracket: hole axis 15.5 mm from the inner face of the cabinet side (FA + 15.5 from the front's side edge), holes 32 apart, lower at 32.5, 9 dimension shown." },
+        { "on": "drawer_back", "d": null, "depth": null, "position": "Chipboard back fixing: holes at 22 and 38 mm height (from the drawer base reference in the drawing), 9 mm from the back face." }
+      ],
+      "rules": [
+        "Minimum inside cabinet depth LT = NL + 3 mm.",
+        "16 mm chipboard: drawer base = (LW − 75) x (NL − 24); back = (LW − 87) x 69 for N.",
+        "Space for drawer N: min 49.5 above the profile screw, min 33 below it, min 9 below the drawer (from the space drawing); 79.5 overall."
+      ],
+      "sources": [
+        { "url": "https://d2.blum.com/services/BEC003/cme223692_ep_dok_bau_$sen_$aof_$v1.pdf", "what": "TANDEMBOX ordering and planning information. pp.6–7: N articles, space, front, back, cutting. p.8: M. p.88: cabinet profile fixing positions. Text line: LT min = NL + 3." }
+      ],
+      "confidence": "medium",
+      "notes": "The document is titled TANDEMBOX (current range) and never says 'antaro'; the 578/378 numbers are the antaro-generation parts, but that is not confirmed by the source. The exact reference of each vertical dimension (33, 49.5, 9, 37.5) is read from a small drawing. Inner width for TANDEMBOX is given only as cutting sizes (LW − 75 base). The per-NL subset of fixing positions was not transcribed."
+    },
+    {
+      "id": "blum-system-holes",
+      "name": "Blum 32 mm system: front row 37 mm",
+      "category": "other",
+      "articles": ["661.1450.HG"],
+      "values": {
+        "front_row_from_front_edge": 37,
+        "pitch": 32,
+        "system_screw_d": 6,
+        "system_screw_length": 14.5,
+        "system_hole_d": null
+      },
+      "drilling": [],
+      "rules": [
+        "All Blum runner and mounting-plate patterns read here use a reference row 37 mm from the front edge of the cabinet side and multiples of 32 mm behind it (e.g. 37+32, 37+224, 37+256, 37+320, 37+416).",
+        "System screws Ø6 x 14.5 mm (661.1450.HG) are listed for runner fixing; the Ø5 system hole that implies is not stated in the sources read."
+      ],
+      "sources": [
+        { "url": "https://d2.blum.com/services/BEC003/me77914225_ep_dok_bau_$sen-ca_$aof_$v1.pdf", "what": "p.69: 37/32-multiple fixing pattern." },
+        { "url": "https://d2.blum.com/services/BEC003/me13029704_td_dok_bau_$sen_$aof_$v1.pdf", "what": "p.13: system screw part number and size." }
+      ],
+      "confidence": "medium",
+      "notes": "No Blum page read here states the system-hole diameter (Ø5) or depth; null."
+    }
+  ]
+}

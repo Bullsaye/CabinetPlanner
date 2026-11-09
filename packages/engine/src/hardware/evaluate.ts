@@ -29,6 +29,37 @@ export function evaluateItemParams(
   return { values: new Map([...context, ...r.values]), diagnostics };
 }
 
+/** Checks an item's limits for one placement; returns error diagnostics. */
+export function checkLimits(
+  item: HardwareItem,
+  scope: ReadonlyMap<string, number>,
+  at: { cabinet: string; part?: string },
+): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  for (const lim of item.limits) {
+    const defs = new Map<string, string | number>([["__v", lim.value]]);
+    if (lim.min !== undefined) defs.set("__min", lim.min);
+    if (lim.max !== undefined) defs.set("__max", lim.max);
+    const r = evaluateGraph(defs, scope);
+    const v = r.values.get("__v");
+    if (r.diagnostics.length || v === undefined) {
+      out.push({ severity: "error", code: "hardware_drill_invalid", params: { item: item.id, index: lim.name, field: "limit", detail: r.diagnostics[0]?.code ?? "" }, ...at });
+      continue;
+    }
+    const min = r.values.get("__min");
+    const max = r.values.get("__max");
+    if ((min !== undefined && v < min - 1e-9) || (max !== undefined && v > max + 1e-9)) {
+      out.push({
+        severity: "error",
+        code: "hardware_limit",
+        params: { item: item.id, name: lim.name, value: Math.round(v * 100) / 100, min: min ?? "–", max: max ?? "–" },
+        ...at,
+      });
+    }
+  }
+  return out;
+}
+
 /** Evaluates the drilling list of an item for one placement. */
 export function evaluateDrilling(
   item: HardwareItem,

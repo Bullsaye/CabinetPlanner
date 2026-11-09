@@ -43,6 +43,13 @@ export const HardwareItem = z.object({
   /** Item parameters; may reference cabinet variables and placement context. */
   params: z.record(identifier, VarInput).default({}),
   drilling: z.array(DrillOp).default([]),
+  /**
+   * Ranges the manufacturer allows, checked per placement, e.g. the cup
+   * boring distance a hinge can take or the door thickness. Outside → error.
+   */
+  limits: z
+    .array(z.object({ name: z.string().min(1), value: VarInput, min: VarInput.optional(), max: VarInput.optional() }))
+    .default([]),
   bom: z
     .object({
       perPlacement: z.number().positive().default(1),

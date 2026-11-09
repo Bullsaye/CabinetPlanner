@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "blum-cliptop-110-inserta",
+  "name": { "en": "Blum CLIP top BLUMOTION 110°, full overlay, INSERTA, cruciform plate 0 mm", "de": "Blum CLIP top BLUMOTION 110°, aufschlagend, INSERTA, Kreuzmontageplatte 0 mm" },
+  "category": "hinge",
+  "manufacturer": "Blum",
+  "series": "CLIP top BLUMOTION",
+  "articles": [
+    { "code": "71B3590", "note": "hinge, full overlay, INSERTA (knock-in dowels Ø8)" },
+    { "code": "173L6100", "note": "CLIP cruciform mounting plate 0 mm" }
+  ],
+  "trust": "untested",
+  "source": "Blum: d2.blum.com/services/BEC003/bro021_ep_dok_bsg_$sen_$aof_$v1.pdf (cup Ø35 × 13, INSERTA Ø8 × 13, 45 mm spacing, 9.5 mm offset), cme198264_ma_dok_bus_$sen-us_$aof_$v1.pdf (H002: plate 37 mm row, ±16 about the hinge centre line), bro024 p.17/23 (plate 173L6100). Overlay = TB + 11 − plate distance (catalogue table). Assumptions: hinge count rule is generic (Blum's chart was not readable); plate screw holes drilled Ø5 for system/Euro screws (173L6100 is specified with Ø3.5/Ø4 chipboard screws).",
+  "params": {
+    "count": "if(door_h <= 900, 2, if(door_h <= 1600, 3, if(door_h <= 2000, 4, 5)))",
+    "grid_offset": 16,
+    "plate_distance": 0,
+    "cup_d": 35,
+    "cup_depth": 13,
+    "boring_distance": "hinge_overlay - 11 + plate_distance",
+    "dowel_d": 8,
+    "dowel_depth": 13,
+    "dowel_spacing": 45,
+    "dowel_offset": 9.5,
+    "plate_row": 37,
+    "plate_hole_d": "sys_hole_d",
+    "plate_hole_depth": "sys_hole_depth",
+    "plate_hole_spacing": 32
+  },
+  "drilling": [
+    { "mount": "door", "d": "cup_d", "depth": "cup_depth", "a": 0, "b": "boring_distance + cup_d / 2" },
+    { "mount": "door", "d": "dowel_d", "depth": "dowel_depth", "a": "-dowel_spacing / 2", "b": "boring_distance + cup_d / 2 + dowel_offset" },
+    { "mount": "door", "d": "dowel_d", "depth": "dowel_depth", "a": "dowel_spacing / 2", "b": "boring_distance + cup_d / 2 + dowel_offset" },
+    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "-plate_hole_spacing / 2", "b": "plate_row" },
+    { "mount": "side", "d": "plate_hole_d", "depth": "plate_hole_depth", "a": "plate_hole_spacing / 2", "b": "plate_row" }
+  ],
+  "limits": [
+    { "name": "boring_distance", "value": "boring_distance", "min": 3, "max": 7 },
+    { "name": "door_t", "value": "door_t", "min": 16, "max": 26 }
+  ],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

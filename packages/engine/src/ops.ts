@@ -168,9 +168,10 @@ export function addPocketFromBox(
 }
 
 /**
- * Adds an operation, merging identical bores (same face, position and
- * diameter) so a hinge plate screw that lands in a system hole is one hole
- * with two sources. The deeper depth wins.
+ * Adds an operation, merging concentric bores (same face and position) so a
+ * hinge plate screw that lands in a system hole is one hole with two
+ * sources. The larger diameter and the deeper depth win: drilling Ø10 over
+ * a Ø5 system hole leaves a Ø10 hole.
  */
 function addOperation(part: Part, op: Operation): void {
   if (op.kind === "bore") {
@@ -180,11 +181,11 @@ function addOperation(part: Part, op: Operation): void {
         o.face === op.face &&
         Math.abs(o.u - op.u) < 1e-3 &&
         Math.abs(o.v - op.v) < 1e-3 &&
-        Math.abs(o.w - op.w) < 1e-3 &&
-        Math.abs(o.d - op.d) < 1e-3,
+        Math.abs(o.w - op.w) < 1e-3,
     );
     if (same) {
       same.depth = Math.max(same.depth, op.depth);
+      same.d = Math.max(same.d, op.d);
       for (const s of op.sources) {
         if (!same.sources.some((x) => x.kind === s.kind && x.ref === s.ref)) same.sources.push(s);
       }

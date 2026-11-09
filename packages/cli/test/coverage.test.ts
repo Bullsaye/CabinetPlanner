@@ -49,3 +49,22 @@ describe("message catalogue coverage", () => {
     for (const c of codes) expect(has(`diag.${c}`), c).toBe(true);
   });
 });
+
+describe("factory hardware library", () => {
+  it("registers every JSON file in library/hardware", async () => {
+    const { FACTORY_HARDWARE } = await import("@cabinet-planner/engine");
+    const dir = join(import.meta.dirname, "../../engine/library/hardware");
+    const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+    const ids = files.map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")).id as string).sort();
+    expect(FACTORY_HARDWARE.map((h) => h.id).sort()).toEqual(ids);
+    for (const f of files) expect(f, "file name = id").toBe(JSON.parse(readFileSync(join(dir, f), "utf8")).id + ".json");
+  });
+
+  it("names every brand item's source", async () => {
+    const { FACTORY_HARDWARE } = await import("@cabinet-planner/engine");
+    for (const h of FACTORY_HARDWARE.filter((x) => x.manufacturer && x.manufacturer !== "Generic")) {
+      expect(h.source, h.id).toBeTruthy();
+      expect(h.articles.length, h.id).toBeGreaterThan(0);
+    }
+  });
+});
