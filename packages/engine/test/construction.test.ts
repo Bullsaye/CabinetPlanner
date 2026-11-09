@@ -305,3 +305,26 @@ describe("rails, shortened bottom, screws (D41)", () => {
     expect(refs(partsByCode(r2).SL!, "generic-chipboard-screw-4x50").filter((o) => o.kind === "bore" && o.u < 30).length).toBe(2);
   });
 });
+
+describe("Hettich Lift Advanced HK (D42)", () => {
+  it("drills sides and flap, hangs the flap on cup hinges in the top, picks the gas springs", () => {
+    const r = buildOne({ kind: "wall", presets: ["wall-unit"], vars: { W: 800, H: 500 }, options: { "hardware.flap": "hettich-lift-advanced-hk" }, fronts: [{ type: "flap" }] });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    // Sides: 41 and 85 below the top's underside, 22 / 118 / 75 from the front.
+    const side = refs(p.SL!, "hettich-lift-advanced-hk").map((o) => (o.kind === "bore" ? [500 - (o.u as number), 320 - (o.v as number)] : []));
+    expect(side).toEqual([[19 + 41, 22], [19 + 41, 118], [19 + 85, 75]]);
+    // Flap: two Ø10 per side; cup hinges in the flap, plates in the top.
+    expect(refs(p.FL1!, "hettich-lift-advanced-hk").filter((o) => o.kind === "bore" && o.d === 10).length).toBe(4);
+    expect(refs(p.FL1!, "generic-hinge-110").length).toBeGreaterThan(0);
+    expect(refs(p.TO!, "generic-hinge-110").length).toBeGreaterThan(0);
+    // Inside height 462, flap 797 × 497 × 19 MDF ≈ 5.6 kg + 0.4 → 6.0 kg → 300 N is the stronger fit (5.7–7.9).
+    expect(r.cabinets[0]!.hardware.find((h) => h.item === "hettich-lift-advanced-hk")).toMatchObject({ article: "9079624" });
+  });
+
+  it("reports a flap outside the spring table", () => {
+    const r = buildOne({ kind: "wall", presets: ["wall-unit"], vars: { W: 1400, H: 700 }, options: { "hardware.flap": "hettich-lift-advanced-hk" }, fronts: [{ type: "flap" }] });
+    // 14.3 kg at 662 inside height: within 17.9 kg overall, but above the 601–720 column (≤ 12.4 kg).
+    expect(r.diagnostics.map((d) => d.code)).toEqual(["hardware_no_variant"]);
+  });
+});

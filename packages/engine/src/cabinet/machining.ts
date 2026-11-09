@@ -517,6 +517,8 @@ export function machineBox(
       scope.set("front_kg", Math.round(kg * 100) / 100);
       scope.set("LF", Math.round(H * kg));
       scope.set("FAo", Math.max(0, front.box.y + front.box.dy - (H - t)));
+      scope.set("H_in", H - 2 * t);
+      scope.set("flap_top", front.box.y + front.box.dy);
       const params = evaluateItemParams(item, scope, at);
       diagnostics.push(...params.diagnostics, ...checkLimits(item, params.values, { ...at, part: front.id }));
       const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
@@ -529,10 +531,29 @@ export function machineBox(
           addBore(side, { x, y: H - dr.a, z: D - dr.b }, dir, dr.d, dr.depth, source);
         }
       }
-      const v = item.variants.find((x) => {
-        const val = params.values.get(x.param);
-        return val !== undefined && (x.min === undefined || val >= x.min) && (x.max === undefined || val <= x.max);
-      });
+      // Mount "front": into the flap's inner face, `a` below its top edge, `b` from the side's inner face.
+      const fy1 = front.box.y + front.box.dy;
+      for (const dr of drills) {
+        if (dr.mount === "side") continue;
+        if (dr.mount !== "front") {
+          diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
+          continue;
+        }
+        for (const x of [t + dr.b, W - t - dr.b]) addBore(front, { x, y: fy1 - dr.a, z: front.box.z }, "+z", dr.d, dr.depth, source);
+      }
+      // Fittings without their own pivot hang the flap on cup hinges at its top edge (D42).
+      if ((params.values.get("hinges") ?? 0) > 0) {
+        const hingeItem = library.hardware.get(opt<string>("hardware.hinge"))!;
+        use(hingeItem, placeFlapHinges(rc, hingeItem, front, parts, params.values.get("hinge_min_from_side") ?? 0, diagnostics));
+      }
+      const fits = (p: string, min?: number, max?: number): boolean => {
+        const val = params.values.get(p);
+        return val !== undefined && (min === undefined || val >= min) && (max === undefined || val <= max);
+      };
+      const v = item.variants.find((x) => fits(x.param, x.min, x.max) && x.and.every((c) => fits(c.param, c.min, c.max)));
+      if (item.variants.length && !v) {
+        diagnostics.push({ severity: "error", code: "hardware_no_variant", params: { item: item.id }, ...at, part: front.id });
+      }
       use(item, 1, undefined, v?.code);
     }
   }
@@ -895,6 +916,56 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
 
 // ---------------------------------------------------------------------------
 // Hinges
+
+/**
+ * Cup hinges along a flap's top edge (D42): the hinge item's "door" drilling
+ * goes into the flap (hinge edge = top edge, `a` along it), its "side"
+ * drilling into the underside of the panel above (top or front rail), `b`
+ * from the carcase front. Two hinges, each at least `minFromSide` and
+ * hinge_end_offset from the sides' inner faces.
+ */
+function placeFlapHinges(rc: ResolvedCabinet, item: HardwareItem, flap: Part, parts: Part[], minFromSide: number, diagnostics: Diagnostic[]): number {
+  const at = { cabinet: rc.cabinet.id };
+  const num = (n: string): number => rc.values.get(n)!;
+  const W = num("W");
+  const H = num("H");
+  const t = num("t_carcase");
+  const D = num("D");
+  const context = new Map(rc.values);
+  context.set("door_h", flap.width);
+  context.set("door_w", flap.length);
+  context.set("door_t", flap.thickness);
+  context.set("hinge_overlay", flap.box.y + flap.box.dy - (H - t));
+  const params = evaluateItemParams(item, context, at);
+  diagnostics.push(...params.diagnostics);
+  const off = Math.max(minFromSide, num("hinge_end_offset"));
+  const xs = [t + off, W - t - off];
+  const source: OpSource = { kind: "hardware", ref: item.id };
+  const fy1 = flap.box.y + flap.box.dy;
+  xs.forEach((xc, i) => {
+    const scope = new Map(params.values);
+    scope.set("hinge_y", xc);
+    scope.set("hinge_index", i + 1);
+    const { drills, diagnostics: dd } = evaluateDrilling(item, scope, at);
+    diagnostics.push(...dd);
+    for (const dr of drills) {
+      if (dr.mount === "door") {
+        addBore(flap, { x: xc + dr.a, y: fy1 - dr.b, z: flap.box.z }, "+z", dr.d, dr.depth, source);
+      } else if (dr.mount === "side") {
+        const p = { x: xc + dr.a, y: H - t, z: D - dr.b };
+        const host = parts.find(
+          (q) => (q.role === "top" || q.role === "rail_front") && q.box.y + q.box.dy >= H - 1e-6 && p.z >= q.box.z && p.z <= q.box.z + q.box.dz && q.box.dy <= t + 1e-6,
+        );
+        if (!host) {
+          diagnostics.push({ severity: "error", code: "flap_hinge_no_top", params: { item: item.id }, ...at });
+          return;
+        }
+        addBore(host, p, "+y", dr.d, dr.depth, source);
+      }
+    }
+  });
+  return xs.length;
+}
 
 function placeHinges(
   rc: ResolvedCabinet,

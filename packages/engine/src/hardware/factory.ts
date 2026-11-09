@@ -25,6 +25,7 @@ import cabinetScrew from "../../library/hardware/generic-cabinet-connector-screw
 import sah130 from "../../library/hardware/hettich-sah-130.json" with { type: "json" };
 import aventosHk from "../../library/hardware/blum-aventos-hk-top.json" with { type: "json" };
 import chipScrew from "../../library/hardware/generic-chipboard-screw-4x50.json" with { type: "json" };
+import liftHk from "../../library/hardware/hettich-lift-advanced-hk.json" with { type: "json" };
 import shelfPin from "../../library/hardware/shelf-pin-5.json" with { type: "json" };
 import { HardwareItem } from "./schema.ts";
 
@@ -63,6 +64,7 @@ const RAW: readonly unknown[] = [
   sah130,
   aventosHk,
   chipScrew,
+  liftHk,
 ];
 
 export const FACTORY_HARDWARE: readonly HardwareItem[] = RAW.map((raw) => HardwareItem.parse(raw));

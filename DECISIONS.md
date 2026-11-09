@@ -600,3 +600,20 @@ Two shop settings, because they are used for different things:
   connector drilling: clearance through the side, pilot into the panel
   end) halfway between consecutive dowels of every carcase joint, starting
   between the first two, in every `joint_screw_every`-th gap.
+
+### D42 · 2026-11-09 · Hettich Lift Advanced HK, variant conditions, flap hinges
+
+- Item variants may list further conditions (`and`); the first variant
+  whose conditions all hold is chosen, so items list them in order of
+  preference (Hettich: the stronger spring first). No match: error
+  `hardware_no_variant`.
+- Flap scope adds `H_in` (inside height H − 2t) and `flap_top`. Mount
+  `front`: into the flap's inner face, `a` below its top edge, `b` from
+  the side's inner face (both sides).
+- A flap item with param `hinges > 0` hangs the flap on two cup hinges
+  (hardware.hinge) at its top edge, at least `hinge_min_from_side` and
+  hinge_end_offset from the sides: the hinge's door drilling in the flap,
+  its side drilling in the underside of the top or a flat front rail.
+- Hettich Lift Advanced HK item: gas spring by inside height and flap
+  weight (47 table cells). Side holes from the drawing; the front sleeve
+  positions (B + 158 / B + 190) come from a sketch and must be checked.

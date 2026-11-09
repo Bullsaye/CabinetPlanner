@@ -754,6 +754,8 @@ export const en = {
   "diag.bottom_rail_overlap": "The bottom rail needs the bottom shortened by {need} mm at the rear (now {setback}).",
   "ui.top_and_bottom": "Top and bottom",
   "ui.formula_hint": "Sizes may be formulas over the cabinet (e.g. D / 3, rail_w + 20), so a template fits every size.",
+  "diag.hardware_no_variant": "{item}: no article fits this flap (size or weight outside the table).",
+  "diag.flap_hinge_no_top": "{item}: the flap's hinges need a top panel or a flat front rail to mount on.",
   "ui.add_cabinet": "Add cabinet",
   "ui.articles": "Article no.",
   "ui.assembly_drawing": "Assembly drawing",

@@ -82,7 +82,17 @@ export const HardwareItem = z.object({
   articles: z.array(z.object({ code: z.string().min(1), note: z.string().optional() })).default([]),
   /** Article chosen by a computed value (e.g. lift mechanism by power factor LF); first match wins. */
   variants: z
-    .array(z.object({ code: z.string().min(1), note: z.string().optional(), param: z.string().min(1), min: z.number().optional(), max: z.number().optional() }))
+    .array(
+      z.object({
+        code: z.string().min(1),
+        note: z.string().optional(),
+        param: z.string().min(1),
+        min: z.number().optional(),
+        max: z.number().optional(),
+        /** Further conditions that must hold too (e.g. gas spring by height and weight). */
+        and: z.array(z.object({ param: z.string().min(1), min: z.number().optional(), max: z.number().optional() })).default([]),
+      }),
+    )
     .default([]),
   /**
    * untested: data entered but never machined; tested: the author machined

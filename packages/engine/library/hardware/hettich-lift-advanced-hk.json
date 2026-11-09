@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "id": "hettich-lift-advanced-hk",
+  "name": {
+    "en": "Hettich Lift Advanced HK flap fitting with gas springs",
+    "de": "Hettich Lift Advanced HK Klappenbeschlag mit Gasfedern"
+  },
+  "category": "flap",
+  "manufacturer": "Hettich",
+  "series": "Lift Advanced HK",
+  "articles": [
+    {
+      "code": "9079603",
+      "note": "fitting set left + right"
+    }
+  ],
+  "variants": [
+    {
+      "code": "9079644",
+      "note": "gas springs 650 N, inside height 361–480, flap 15.4–16.8 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 15.4,
+          "max": 16.8
+        }
+      ]
+    },
+    {
+      "code": "9079644",
+      "note": "gas springs 650 N, inside height 481–540, flap 15.0–16.7 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 15.0,
+          "max": 16.7
+        }
+      ]
+    },
+    {
+      "code": "9079644",
+      "note": "gas springs 650 N, inside height 541–600, flap 13.1–14.3 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 13.1,
+          "max": 14.3
+        }
+      ]
+    },
+    {
+      "code": "9079644",
+      "note": "gas springs 650 N, inside height 601–720, flap 11.1–12.4 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 11.1,
+          "max": 12.4
+        }
+      ]
+    },
+    {
+      "code": "9079637",
+      "note": "gas springs 600 N, inside height 361–480, flap 14.2–15.5 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 14.2,
+          "max": 15.5
+        }
+      ]
+    },
+    {
+      "code": "9079637",
+      "note": "gas springs 600 N, inside height 481–540, flap 13.7–15.4 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 13.7,
+          "max": 15.4
+        }
+      ]
+    },
+    {
+      "code": "9079637",
+      "note": "gas springs 600 N, inside height 541–600, flap 12.0–13.2 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 12.0,
+          "max": 13.2
+        }
+      ]
+    },
+    {
+      "code": "9079637",
+      "note": "gas springs 600 N, inside height 601–720, flap 10.1–11.4 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 10.1,
+          "max": 11.4
+        }
+      ]
+    },
+    {
+      "code": "9079635",
+      "note": "gas springs 550 N, inside height 361–480, flap 12.9–14.3 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 12.9,
+          "max": 14.3
+        }
+      ]
+    },
+    {
+      "code": "9079635",
+      "note": "gas springs 550 N, inside height 481–540, flap 12.4–14.1 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 12.4,
+          "max": 14.1
+        }
+      ]
+    },
+    {
+      "code": "9079635",
+      "note": "gas springs 550 N, inside height 541–600, flap 10.7–12.2 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 10.7,
+          "max": 12.2
+        }
+      ]
+    },
+    {
+      "code": "9079635",
+      "note": "gas springs 550 N, inside height 601–720, flap 9.1–10.4 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 9.1,
+          "max": 10.4
+        }
+      ]
+    },
+    {
+      "code": "9079632",
+      "note": "gas springs 500 N, inside height 276–360, flap 15.2–17.9 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 15.2,
+          "max": 17.9
+        }
+      ]
+    },
+    {
+      "code": "9079632",
+      "note": "gas springs 500 N, inside height 361–480, flap 11.7–13.4 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 11.7,
+          "max": 13.4
+        }
+      ]
+    },
+    {
+      "code": "9079632",
+      "note": "gas springs 500 N, inside height 481–540, flap 11.0–12.8 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 11.0,
+          "max": 12.8
+        }
+      ]
+    },
+    {
+      "code": "9079632",
+      "note": "gas springs 500 N, inside height 541–600, flap 9.6–11.0 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 9.6,
+          "max": 11.0
+        }
+      ]
+    },
+    {
+      "code": "9079632",
+      "note": "gas springs 500 N, inside height 601–720, flap 8.2–9.6 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 8.2,
+          "max": 9.6
+        }
+      ]
+    },
+    {
+      "code": "9079630",
+      "note": "gas springs 450 N, inside height 276–360, flap 13.3–16.0 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 13.3,
+          "max": 16.0
+        }
+      ]
+    },
+    {
+      "code": "9079630",
+      "note": "gas springs 450 N, inside height 361–480, flap 10.2–12.1 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 10.2,
+          "max": 12.1
+        }
+      ]
+    },
+    {
+      "code": "9079630",
+      "note": "gas springs 450 N, inside height 481–540, flap 9.7–11.6 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 9.7,
+          "max": 11.6
+        }
+      ]
+    },
+    {
+      "code": "9079630",
+      "note": "gas springs 450 N, inside height 541–600, flap 8.4–10.0 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 8.4,
+          "max": 10.0
+        }
+      ]
+    },
+    {
+      "code": "9079630",
+      "note": "gas springs 450 N, inside height 601–720, flap 7.3–8.7 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 7.3,
+          "max": 8.7
+        }
+      ]
+    },
+    {
+      "code": "9079628",
+      "note": "gas springs 400 N, inside height 276–360, flap 11.5–14.3 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 11.5,
+          "max": 14.3
+        }
+      ]
+    },
+    {
+      "code": "9079628",
+      "note": "gas springs 400 N, inside height 361–480, flap 8.6–10.7 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 8.6,
+          "max": 10.7
+        }
+      ]
+    },
+    {
+      "code": "9079628",
+      "note": "gas springs 400 N, inside height 481–540, flap 8.1–10.3 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 8.1,
+          "max": 10.3
+        }
+      ]
+    },
+    {
+      "code": "9079628",
+      "note": "gas springs 400 N, inside height 541–600, flap 7.2–8.8 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 7.2,
+          "max": 8.8
+        }
+      ]
+    },
+    {
+      "code": "9079628",
+      "note": "gas springs 400 N, inside height 601–720, flap 6.3–7.8 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 6.3,
+          "max": 7.8
+        }
+      ]
+    },
+    {
+      "code": "9079626",
+      "note": "gas springs 350 N, inside height 276–360, flap 9.7–12.4 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 9.7,
+          "max": 12.4
+        }
+      ]
+    },
+    {
+      "code": "9079626",
+      "note": "gas springs 350 N, inside height 361–480, flap 7.1–9.3 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 7.1,
+          "max": 9.3
+        }
+      ]
+    },
+    {
+      "code": "9079626",
+      "note": "gas springs 350 N, inside height 481–540, flap 6.6–9.0 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 6.6,
+          "max": 9.0
+        }
+      ]
+    },
+    {
+      "code": "9079626",
+      "note": "gas springs 350 N, inside height 541–600, flap 6.1–7.7 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 6.1,
+          "max": 7.7
+        }
+      ]
+    },
+    {
+      "code": "9079626",
+      "note": "gas springs 350 N, inside height 601–720, flap 5.4–6.8 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 5.4,
+          "max": 6.8
+        }
+      ]
+    },
+    {
+      "code": "9079624",
+      "note": "gas springs 300 N, inside height 276–360, flap 7.8–10.7 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 7.8,
+          "max": 10.7
+        }
+      ]
+    },
+    {
+      "code": "9079624",
+      "note": "gas springs 300 N, inside height 361–480, flap 5.7–7.9 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 5.7,
+          "max": 7.9
+        }
+      ]
+    },
+    {
+      "code": "9079624",
+      "note": "gas springs 300 N, inside height 481–540, flap 5.2–7.6 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 5.2,
+          "max": 7.6
+        }
+      ]
+    },
+    {
+      "code": "9079624",
+      "note": "gas springs 300 N, inside height 541–600, flap 4.9–6.7 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 4.9,
+          "max": 6.7
+        }
+      ]
+    },
+    {
+      "code": "9079624",
+      "note": "gas springs 300 N, inside height 601–720, flap 4.4–5.9 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 4.4,
+          "max": 5.9
+        }
+      ]
+    },
+    {
+      "code": "9079622",
+      "note": "gas springs 250 N, inside height 276–360, flap 6.1–8.9 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 6.1,
+          "max": 8.9
+        }
+      ]
+    },
+    {
+      "code": "9079622",
+      "note": "gas springs 250 N, inside height 361–480, flap 4.5–6.3 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 4.5,
+          "max": 6.3
+        }
+      ]
+    },
+    {
+      "code": "9079622",
+      "note": "gas springs 250 N, inside height 481–540, flap 3.8–6.2 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 3.8,
+          "max": 6.2
+        }
+      ]
+    },
+    {
+      "code": "9079622",
+      "note": "gas springs 250 N, inside height 541–600, flap 3.8–5.6 kg",
+      "param": "H_in",
+      "min": 541,
+      "max": 600.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 3.8,
+          "max": 5.6
+        }
+      ]
+    },
+    {
+      "code": "9079622",
+      "note": "gas springs 250 N, inside height 601–720, flap 3.8–5.0 kg",
+      "param": "H_in",
+      "min": 601,
+      "max": 720.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 3.8,
+          "max": 5.0
+        }
+      ]
+    },
+    {
+      "code": "9079619",
+      "note": "gas springs 200 N, inside height 276–360, flap 4.1–7.0 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 4.1,
+          "max": 7.0
+        }
+      ]
+    },
+    {
+      "code": "9079619",
+      "note": "gas springs 200 N, inside height 361–480, flap 3.3–5.4 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 3.3,
+          "max": 5.4
+        }
+      ]
+    },
+    {
+      "code": "9079619",
+      "note": "gas springs 200 N, inside height 481–540, flap 2.4–4.9 kg",
+      "param": "H_in",
+      "min": 481,
+      "max": 540.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 2.4,
+          "max": 4.9
+        }
+      ]
+    },
+    {
+      "code": "9079618",
+      "note": "gas springs 150 N, inside height 276–360, flap 2.1–4.7 kg",
+      "param": "H_in",
+      "min": 276,
+      "max": 360.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 2.1,
+          "max": 4.7
+        }
+      ]
+    },
+    {
+      "code": "9079618",
+      "note": "gas springs 150 N, inside height 361–480, flap 2.0–3.8 kg",
+      "param": "H_in",
+      "min": 361,
+      "max": 480.99,
+      "and": [
+        {
+          "param": "front_kg",
+          "min": 2.0,
+          "max": 3.8
+        }
+      ]
+    }
+  ],
+  "trust": "untested",
+  "source": "Hettich Lift Advanced HK assembly instruction (2012) and shop page: side drilling 3 × Ø5 × 12 for Euro screws at (22, 41), (118, 41), (75, 85) — from the front edge and below the underside of the top (read from the drawing); front: 2 × Ø10 × 12 per side for expansion sleeves, 15.5 from the side's inner face and B + 158 / B + 190 below the flap's top edge (B = flap top below the cabinet top) — positions read from a sketch, CHECK before machining; flap hinged at the top on cup hinges, at least 90 from the side; gas springs chosen by inside height and flap weight (table). See docs/hardware-research/hanging-flaps.json.",
+  "params": {
+    "hinges": 1,
+    "hinge_min_from_side": 90,
+    "B": "max(0, H - flap_top)"
+  },
+  "drilling": [
+    {
+      "mount": "side",
+      "d": 5,
+      "depth": 12,
+      "a": "t_carcase + 41",
+      "b": 22
+    },
+    {
+      "mount": "side",
+      "d": 5,
+      "depth": 12,
+      "a": "t_carcase + 41",
+      "b": 118
+    },
+    {
+      "mount": "side",
+      "d": 5,
+      "depth": 12,
+      "a": "t_carcase + 85",
+      "b": 75
+    },
+    {
+      "mount": "front",
+      "d": 10,
+      "depth": 12,
+      "a": "B + 158",
+      "b": 15.5
+    },
+    {
+      "mount": "front",
+      "d": 10,
+      "depth": 12,
+      "a": "B + 190",
+      "b": 15.5
+    }
+  ],
+  "limits": [
+    {
+      "name": "H_in",
+      "value": "H_in",
+      "min": 276,
+      "max": 720
+    },
+    {
+      "name": "front_kg",
+      "value": "front_kg",
+      "min": 2,
+      "max": 17.9
+    }
+  ],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "sets"
+  }
+}

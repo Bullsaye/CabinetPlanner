@@ -734,6 +734,8 @@ export const de: Record<MessageKey, string> = {
   "diag.bottom_rail_overlap": "Die untere Traverse braucht den Boden hinten um {need} mm gekürzt (jetzt {setback}).",
   "ui.top_and_bottom": "Oben und unten",
   "ui.formula_hint": "Maße dürfen Formeln über den Schrank sein (z. B. D / 3, rail_w + 20), damit eine Vorlage für jede Größe passt.",
+  "diag.hardware_no_variant": "{item}: Kein Artikel passt zu dieser Klappe (Größe oder Gewicht außerhalb der Tabelle).",
+  "diag.flap_hinge_no_top": "{item}: Die Scharniere der Klappe brauchen einen Deckel oder eine liegende vordere Traverse.",
   "ui.add_cabinet": "Schrank hinzufügen",
   "ui.articles": "Artikel-Nr.",
   "ui.assembly_drawing": "Zusammenbauzeichnung",
