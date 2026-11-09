@@ -99,11 +99,15 @@
     {/if}
     <div class="right">
       {#if store.screen === "project"}
+      <span class="panel-toggles">
+        <button class="only-narrow" aria-pressed={store.ui.panel === "list"} onclick={() => (store.ui.panel = store.ui.panel === "list" ? null : "list")}>{t("ui.cabinets")}</button>
+        <button class="only-tablet" aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
+      </span>
       <span class="status" class:bad={counts.errors > 0}>
         {#if counts.errors}{t("ui.errors", { n: counts.errors })}{:else if counts.warnings}{t("ui.warnings", { n: counts.warnings })}{:else}{t("ui.checks_ok")}{/if}
       </span>
       {/if}
-      <select id="lang" aria-label={t("ui.language")} bind:value={store.ui.lang}>
+      <select id="lang" class:hide-narrow={store.screen === "project"} aria-label={t("ui.language")} bind:value={store.ui.lang}>
         <option value="en">English</option>
         <option value="de">Deutsch</option>
       </select>
@@ -125,8 +129,12 @@
     </div>
   {/if}
 
+  {#if store.ui.panel}
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="scrim" onclick={() => (store.ui.panel = null)}></div>
+  {/if}
   <div class="body">
-    <aside class="left"><CabinetList /></aside>
+    <aside class="left" class:open={store.ui.panel === "list"}><CabinetList /></aside>
     <main>
       <div class="work">
         {#if store.ui.tab === "view"}
@@ -143,7 +151,10 @@
       </div>
       <Diagnostics />
     </main>
-    <aside class="right-pane"><Inspector /></aside>
+    <aside class="right-pane" class:open={store.ui.panel === "inspector"}>
+      <button class="quiet close only-tablet" aria-label={t("ui.close")} onclick={() => (store.ui.panel = null)}>×</button>
+      <Inspector />
+    </aside>
   </div>
   {/if}
 </div>
@@ -180,11 +191,43 @@
   main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .work { flex: 1; min-height: 0; }
   aside { min-width: 0; }
+  .panel-toggles { display: contents; }
+  .only-tablet, .only-narrow, .scrim { display: none; }
+  /* Tablet: the inspector slides in from the right; phone: the cabinet list from the left too. */
   @media (max-width: 1100px) {
-    .body { grid-template-columns: 200px minmax(0, 1fr); }
-    .right-pane { grid-column: 1 / -1; }
+    .body { grid-template-columns: 210px minmax(0, 1fr); }
+    .only-tablet { display: inline-block; }
+    .scrim { display: block; position: fixed; inset: 0; background: rgb(0 0 0 / .25); z-index: 30; }
+    .right-pane {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 31; width: min(400px, 94vw); overflow-y: auto;
+      padding: max(10px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px)) 16px 10px;
+      background: var(--bg); box-shadow: -8px 0 24px rgb(0 0 0 / .18);
+      transform: translateX(105%); transition: transform .18s ease-out; visibility: hidden;
+    }
+    .right-pane.open { transform: none; visibility: visible; }
+    .close { display: block; margin-left: auto; font-size: 20px; line-height: 1; }
   }
   @media (max-width: 700px) {
     .body { grid-template-columns: minmax(0, 1fr); }
+    .only-narrow { display: inline-block; }
+    .left {
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 31; width: min(300px, 88vw); overflow-y: auto;
+      padding: max(10px, env(safe-area-inset-top, 0px)) 10px 16px max(10px, env(safe-area-inset-left, 0px));
+      background: var(--bg); box-shadow: 8px 0 24px rgb(0 0 0 / .18);
+      transform: translateX(-105%); transition: transform .18s ease-out; visibility: hidden;
+    }
+    .left.open { transform: none; visibility: visible; }
   }
+  /* Phone header: icon-only brand, one scrolling row of tabs. */
+  @media (max-width: 700px) {
+    .name, .sep { display: none; }
+    .brand { flex: 1; }
+    .project-name { width: auto; flex: 1; min-width: 0; }
+    nav { order: 10; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .tab { white-space: nowrap; }
+    .right { margin-left: 0; gap: 6px; }
+    .status { display: none; }
+    .hide-narrow { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .right-pane, .left { transition: none; } }
 </style>

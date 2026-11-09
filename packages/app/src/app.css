@@ -79,6 +79,16 @@ table.grid td { padding: 5px 10px; border-bottom: 1px solid var(--line); white-s
 table.grid td.n { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .scroll-x { overflow-x: auto; }
 
+/* Touch: larger targets, no hover-only affordances. */
+@media (pointer: coarse) {
+  body { font-size: 14px; }
+  button, select, input[type="text"] { min-height: 40px; }
+  button { padding: 6px 12px; }
+  table.grid td, table.grid th { padding-top: 8px; padding-bottom: 8px; }
+}
+html { -webkit-text-size-adjust: 100%; }
+body { overscroll-behavior: none; }
+
 /* Part drawings and assembly drawings: theme the engine's classes. */
 .sheet svg { display: block; width: 100%; height: auto; max-width: 1100px; margin: 0 auto; }
 .pd-sheet, .asm-sheet { fill: var(--surface); }

@@ -538,6 +538,8 @@ export const en = {
   "ui.history": "History",
   "ui.undo": "Undo",
   "ui.redo": "Redo",
+  "ui.properties": "Properties",
+  "ui.close": "Close",
   "ui.add_cabinet": "Add cabinet",
   "ui.articles": "Article no.",
   "ui.assembly_drawing": "Assembly drawing",

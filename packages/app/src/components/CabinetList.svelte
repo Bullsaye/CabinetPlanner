@@ -50,6 +50,8 @@
           onclick={() => {
             store.ui.selected = c.id;
             store.ui.part = null;
+            // Narrow screens: the list is a drawer; get out of the way.
+            if (typeof matchMedia !== "undefined" && matchMedia("(max-width: 700px)").matches) store.ui.panel = null;
           }}
         >
           <span class="mono id" class:err={hasError(c.id)}>{c.id}</span>

@@ -518,6 +518,8 @@ export const de: Record<MessageKey, string> = {
   "ui.history": "Verlauf",
   "ui.undo": "Rückgängig",
   "ui.redo": "Wiederholen",
+  "ui.properties": "Eigenschaften",
+  "ui.close": "Schließen",
   "ui.add_cabinet": "Schrank hinzufügen",
   "ui.articles": "Artikel-Nr.",
   "ui.assembly_drawing": "Zusammenbauzeichnung",

@@ -23,6 +23,15 @@
   const varsIn = (g: string): VarDef[] => VARIABLES.filter((v) => v.group === g);
   const optsIn = (g: string): OptionDef[] => OPTIONS.filter((o) => (OPTION_GROUP[o.group] ?? o.group) === g);
 
+  /** Touch steppers: the resolved value plus or minus the variable's step, within its limits. */
+  function stepVar(name: string, by: number, current: number | undefined): void {
+    const def = VARIABLES.find((x) => x.name === name);
+    let next = (current ?? 0) + by;
+    if (def?.min !== undefined) next = Math.max(def.min, next);
+    if (def?.max !== undefined) next = Math.min(def.max, next);
+    setVar(layer, name, Math.round(next * 100) / 100);
+  }
+
   const own = (name: string): string => {
     const v = doc?.vars?.[name];
     return v === undefined ? "" : String(v);
@@ -100,14 +109,23 @@
               {@const rv = res?.vars.get(v.name)}
               <div class="var">
                 <label for={`v-${v.name}`} title={t(`var.${v.name}.hint`)}>{t(`var.${v.name}`)}</label>
-                <input
-                  id={`v-${v.name}`}
-                  class="mono"
-                  type="text"
-                  value={own(v.name)}
-                  placeholder={rv ? String(rv.input) : ""}
-                  onchange={(e) => commitVar(v.name, (e.target as HTMLInputElement).value)}
-                />
+                <span class="field">
+                  {#if v.quick}
+                    <button class="step" tabindex="-1" aria-label={`${t(`var.${v.name}`)} −`} onclick={() => stepVar(v.name, -(v.step ?? 1), rv?.value)}>−</button>
+                  {/if}
+                  <input
+                    id={`v-${v.name}`}
+                    class="mono"
+                    type="text"
+                    inputmode="decimal"
+                    value={own(v.name)}
+                    placeholder={rv ? String(rv.input) : ""}
+                    onchange={(e) => commitVar(v.name, (e.target as HTMLInputElement).value)}
+                  />
+                  {#if v.quick}
+                    <button class="step" tabindex="-1" aria-label={`${t(`var.${v.name}`)} +`} onclick={() => stepVar(v.name, v.step ?? 1, rv?.value)}>+</button>
+                  {/if}
+                </span>
                 <span class="val mono" title={rv && typeof rv.input === "string" ? rv.input : ""}>{show(rv?.value)}</span>
                 {#if rv}<span class="pill {rv.source.layer}" title={t(`layer.${rv.source.layer}`)}>{rv.source.preset ? store.presetName(rv.source.preset) : t(`layer.${rv.source.layer}`)}</span>{/if}
                 {#if own(v.name) !== ""}
@@ -206,6 +224,13 @@
   .rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 6px; }
   .var { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 46px auto 22px; gap: 6px; align-items: center; }
   .var.opt { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; }
+  .field { display: flex; min-width: 0; gap: 2px; }
+  .field input { flex: 1; min-width: 0; width: 100%; }
+  .step { display: none; padding: 0 8px; }
+  @media (pointer: coarse) {
+    .step { display: inline-block; }
+    .var { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 46px auto 28px; }
+  }
   .var label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .var input { width: 100%; }
   .val { text-align: right; font-size: 12px; }
