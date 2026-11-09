@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildProject, DxfProfileSchema, loadProject, loadShop, partDxf, type Part, type ProjectResult } from "@cabinet-planner/engine";
+import { buildProject, crc32, DxfProfileSchema, zip, loadProject, loadShop, partDxf, type Part, type ProjectResult } from "@cabinet-planner/engine";
 
 /**
  * Reads the DXF files back with a small parser and checks them against the
@@ -187,5 +187,46 @@ describe("DXF numbers and header", () => {
     const dxf = parseDxf(f!.content);
     expect(dxf.comment).toContain("Küche Müller 0 EOF rev 2");
     expect(dxf.entities.filter((e) => e.type === "CIRCLE").length).toBeGreaterThan(0);
+  });
+});
+
+describe("DXF zip of a whole project", () => {
+  const exportZip = (): Uint8Array => {
+    const r = load("examples/kitchen-basic.project.json", "examples/shop.json");
+    const files = [
+      ...r.cabinets.flatMap((c) => c.parts.flatMap((p) => partDxf(p, { W: c.resolved.values.get("W")!, H: c.resolved.values.get("H")!, D: c.resolved.values.get("D")! }))),
+      ...r.room!.parts.flatMap((p) => partDxf(p, { W: p.box.dx, H: p.box.dy, D: p.box.dz })),
+    ];
+    return zip(files.map((f) => ({ name: f.name, data: f.content })));
+  };
+
+  it("is a valid stored archive with unique, Windows-safe names, byte-identical on repeat", () => {
+    const z = exportZip();
+    expect(Buffer.from(z).equals(Buffer.from(exportZip()))).toBe(true);
+    const v = new DataView(z.buffer, z.byteOffset, z.byteLength);
+    const end = z.length - 22;
+    expect(v.getUint32(end, true)).toBe(0x06054b50);
+    const count = v.getUint16(end + 10, true);
+    expect(v.getUint32(end + 16, true) + v.getUint32(end + 12, true)).toBe(end);
+    const names: string[] = [];
+    let c = v.getUint32(end + 16, true);
+    for (let i = 0; i < count; i++) {
+      expect(v.getUint32(c, true)).toBe(0x02014b50);
+      const [crc, size, nameLen, local] = [v.getUint32(c + 16, true), v.getUint32(c + 24, true), v.getUint16(c + 28, true), v.getUint32(c + 42, true)];
+      const name = Buffer.from(z.subarray(c + 46, c + 46 + nameLen)).toString("utf8");
+      names.push(name);
+      // The local header agrees with the directory and the data has the recorded CRC.
+      expect(v.getUint32(local, true)).toBe(0x04034b50);
+      expect([v.getUint32(local + 14, true), v.getUint32(local + 18, true), v.getUint32(local + 22, true)]).toEqual([crc, size, size]);
+      const data = z.subarray(local + 30 + nameLen, local + 30 + nameLen + size);
+      expect(crc32(data)).toBe(crc);
+      expect(Buffer.from(data).toString("utf8").endsWith("0\r\nEOF\r\n")).toBe(true);
+      c += 46 + nameLen;
+    }
+    expect(c).toBe(end);
+    expect(count).toBeGreaterThan(90);
+    expect(new Set(names.map((x) => x.toLowerCase())).size).toBe(count);
+    for (const name of names) expect(name).toMatch(/^[A-Za-z0-9][A-Za-z0-9_-]*\.dxf$/);
+    expect(names).toContain("ROOM-WT1.dxf");
   });
 });

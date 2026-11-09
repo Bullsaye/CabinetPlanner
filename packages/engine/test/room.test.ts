@@ -97,6 +97,20 @@ describe("room layout (D28)", () => {
     expect(plan).toMatch(/text-anchor="end">room.wall D</);
   });
 
+  it("escapes names in the drawings and draws an empty room", () => {
+    const name = 'Küche <Müller> & "Söhne"';
+    const r = build([{ id: "B01", type: "box", place: { wall: "<A&>" } }], { walls: [{ id: "<A&>", length: 3000 }] });
+    for (const svg of [floorPlanSvg(r.room!, name, text), elevationSvg(r.room!, "<A&>", r.cabinets, name, text)]) {
+      expect(svg).toContain('Küche &lt;Müller&gt; &amp; "Söhne"');
+      expect(svg).toContain("room.wall &lt;A&amp;&gt;");
+      expect(svg).not.toMatch(/<Müller>|<A&>|NaN|undefined|Infinity/);
+    }
+    const empty = build([]);
+    expect(empty.diagnostics).toEqual([]);
+    expect(floorPlanSvg(empty.room!, "R", text)).not.toMatch(/NaN|undefined|Infinity/);
+    expect(elevationSvg(empty.room!, "C", empty.cabinets, "R", text)).not.toMatch(/NaN|undefined|Infinity/);
+  });
+
   it("draws a floor plan and elevations", () => {
     const r = build([
       { id: "B01", type: "box", place: { wall: "A" }, options: { "hardware.handle": "generic-bar-128" } },
