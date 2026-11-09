@@ -67,26 +67,40 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 .hw td.n { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
 .drawing { padding: 12px; }
 .drawing .scroll { overflow-x: auto; }
-.drawing svg { display: block; width: 100%; max-width: 980px; min-width: 640px; height: auto; margin: 0 auto; }
-.pd-part { fill: var(--surface-2); stroke: var(--fg); stroke-width: 1.2; }
-.pd-band { stroke: var(--accent); stroke-width: 4; }
-.pd-op { fill: var(--surface); stroke: var(--fg); stroke-width: 1; }
-.pd-op-far { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
-.pd-pocket { fill: var(--pocket); stroke: var(--fg); stroke-width: 1; }
-.pd-pocket-far { fill: none; stroke: var(--muted); stroke-dasharray: 4 3; }
-.pd-dim { stroke: var(--muted); stroke-width: .75; fill: none; opacity: .7; }
-.pd-dimtext { fill: var(--muted); font: 10px var(--font-mono); }
-.pd-text { fill: var(--fg); font: 12px var(--font-ui); }
-.pd-title { fill: var(--fg); font: 600 15px var(--font-ui); }
-.pd-mono { fill: var(--fg); font: 11px var(--font-mono); }
-.pd-axis { fill: var(--muted); font: 10px var(--font-mono); }
+.drawing svg { display: block; width: 100%; max-width: 1000px; height: auto; margin: 0 auto; border-radius: 4px; }
+.drawing .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.drawing .bar .note { margin-left: auto; }
+.pd { font-family: var(--font-ui); }
+.pd-sheet { fill: var(--surface); }
+.pd-part { fill: var(--surface-2); stroke: var(--fg); stroke-width: .35; }
+.pd-band { stroke: var(--accent); stroke-width: .9; }
+.pd-edge { fill: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.pd-namebg { fill: var(--surface-2); opacity: .85; }
+.pd-hole { fill: var(--surface); stroke: var(--fg); stroke-width: .25; }
+.pd-hole-far, .pd-hidden { fill: none; stroke: var(--muted); stroke-width: .2; stroke-dasharray: .8 .5; }
+.pd-pocket { fill: var(--pocket); stroke: var(--fg); stroke-width: .2; }
+.pd-pocket-far { fill: none; stroke: var(--muted); stroke-width: .2; stroke-dasharray: .8 .5; }
+.pd-centre { stroke: var(--accent); stroke-width: .13; }
+.pd-dim, .pd-ext { stroke: var(--muted); stroke-width: .13; fill: none; }
+.pd-tick { stroke: var(--fg); stroke-width: .3; }
+.pd-arrow { fill: var(--fg); }
+.pd-origin { fill: var(--surface); stroke: var(--fg); stroke-width: .3; }
+.pd-dimtext, .pd-mono { fill: var(--fg); font-family: var(--font-mono); }
+.pd-overall { font-weight: 600; }
+.pd-textbg { fill: var(--surface); }
+.pd-leader { stroke: var(--accent); stroke-width: .15; }
+.pd-tag { fill: var(--surface); stroke: var(--accent); stroke-width: .3; }
+.pd-tagtext { fill: var(--accent-fg); font-weight: 600; }
+.pd-title, .pd-head { fill: var(--fg); font-weight: 600; }
+.pd-sub { fill: var(--muted); }
+.pd-rule { stroke: var(--line); stroke-width: .2; }
 .err { padding: 24px; color: var(--muted); }
 </style>
 
 <div class="wrap">
   <header>
     <h1>Cabinet Planner Preview</h1>
-    <p class="note">Computed by the engine from the example project and reference cabinets. Flat-shaded boxes, all machining shown. Hardware values are generic placeholders, not datasheet values yet.</p>
+    <p class="note">Computed by the engine from the example project and reference cabinets. Flat-shaded boxes, all machining shown. The example shop uses Grass Tiomos hinges (catalogue data, not yet tested on a machined part).</p>
   </header>
 
   <div class="tabs" id="tabs" role="group" aria-label="Cabinet"></div>
@@ -116,6 +130,11 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
   </div>
 
   <section class="panel drawing" aria-label="Part drawing">
+    <div class="bar" role="group" aria-label="Sheet">
+      <button id="sheet-machine" aria-pressed="true">Machine sheet</button>
+      <button id="sheet-assembly" aria-pressed="false">Workshop sheet</button>
+      <span class="note" id="sheet-note">Front edge on the reference, origin at the reference corner.</span>
+    </div>
     <div class="scroll" id="drawing"></div>
   </section>
 </div>
@@ -127,7 +146,11 @@ const DATA = /*DATA*/null;
 
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const state = { cab: 0, part: null, explode: false, bores: true, fronts: true };
+const state = { cab: 0, part: null, explode: false, bores: true, fronts: true, sheet: "machine" };
+const SHEET_NOTES = {
+  machine: "Front edge on the reference, origin at the reference corner.",
+  assembly: "Parts as in the cabinet: sides upright and folded out, bottom and top flipped.",
+};
 
 function pressed(btn, on) { btn.setAttribute("aria-pressed", on ? "true" : "false"); }
 
@@ -285,7 +308,10 @@ function renderParts() {
 
 function renderDrawing() {
   const p = DATA[state.cab].parts.find((x) => x.id === state.part);
-  $("drawing").innerHTML = p ? p.svg : "";
+  $("drawing").innerHTML = p ? p.sheets[state.sheet] : "";
+  pressed($("sheet-machine"), state.sheet === "machine");
+  pressed($("sheet-assembly"), state.sheet === "assembly");
+  $("sheet-note").textContent = SHEET_NOTES[state.sheet];
 }
 
 function selectCabinet(i) {
@@ -309,6 +335,8 @@ toggle("t-explode", "explode");
 toggle("t-bores", "bores");
 toggle("t-fronts", "fronts");
 $("t-reset").onclick = resetView;
+$("sheet-machine").onclick = () => { state.sheet = "machine"; renderDrawing(); };
+$("sheet-assembly").onclick = () => { state.sheet = "assembly"; renderDrawing(); };
 const ok = init3d();
 selectCabinet(0);
 if (ok) {

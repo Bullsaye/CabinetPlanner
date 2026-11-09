@@ -5,8 +5,11 @@ import {
   cutlistTable,
   FileFormatError,
   formatNumber,
+  drawPart,
+  FACTORY_STYLES,
   localName,
-  partSvg,
+  resolveStyle,
+  type Library,
   loadProject,
   loadShop,
   VARIABLE_BY_NAME,
@@ -51,7 +54,8 @@ Options:
   --out <file>           Write to a file instead of stdout
   --cabinet <id>         resolve, ops: only this cabinet
   --part <id>            drawing: the part to draw
-  --face <t0|t1>         drawing: the face to look at (default: the one with most machining)
+  --style <id>           drawing: machine (default), machine-iso, machine-chain, assembly,
+                         or a style from the shop/project library
   -h, --help             Show this help
 `;
 
@@ -70,7 +74,7 @@ export function run(argv: readonly string[], io: Io): number {
         out: { type: "string" },
         cabinet: { type: "string" },
         part: { type: "string" },
-        face: { type: "string" },
+        style: { type: "string" },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -96,10 +100,11 @@ export function run(argv: readonly string[], io: Io): number {
   const tr = createTranslator(opts.lang ?? io.env["LANG"] ?? "en");
 
   let result: ProjectResult;
+  let shopFile: Shop | undefined;
   try {
     const project = loadProject(readJson(io, file));
-    const shop: Shop | undefined = opts.shop ? loadShop(readJson(io, opts.shop)) : undefined;
-    result = buildProject(project, shop);
+    shopFile = opts.shop ? loadShop(readJson(io, opts.shop)) : undefined;
+    result = buildProject(project, shopFile);
   } catch (e) {
     if (e instanceof FileFormatError || e instanceof SyntaxError || isFsError(e)) {
       io.stderr(`${(e as Error).message}\n`);
@@ -218,25 +223,24 @@ export function run(argv: readonly string[], io: Io): number {
         printDiagnostics(result.diagnostics, tr, io);
         return opts.part ? 1 : 2;
       }
-      if (opts.face !== undefined && opts.face !== "t0" && opts.face !== "t1") {
-        io.stderr(`--face must be t0 or t1\n`);
+      const styles = [...(shopFile?.library.drawingStyles ?? []), ...result.project.library.drawingStyles];
+      let style;
+      try {
+        style = resolveStyle(opts.style ?? "machine", styles);
+      } catch (e) {
+        io.stderr(`${(e as Error).message}\n`);
         return 2;
       }
-      const mat = result.library.materials.get(part.material);
+      const styleInput = [...FACTORY_STYLES, ...styles].reverse().find((x) => x.id === style.id)!;
+      const cab = result.cabinets.find((c) => c.resolved.cabinet.id === part.cabinet)!;
+      const v = (n: string): number => cab.resolved.values.get(n)!;
       emit(
-        partSvg(part, {
-          title: `${part.id} · ${tr.t(`role.${part.role}`)}`,
-          subtitle: `${formatNumber(part.length)} × ${formatNumber(part.width)} × ${formatNumber(part.thickness)} mm · ${mat ? localName(mat.name, tr.locale) : part.material}`,
-          face: (f) => tr.t(`face.${f}`),
-          legend: {
-            viewed: tr.t("drawing.viewed"),
-            opposite: tr.t("drawing.opposite"),
-            edge: tr.t("drawing.edge"),
-            banded: tr.t("drawing.banded"),
-            table: tr.t("drawing.table"),
-            count: tr.t("drawing.count"),
-          },
-        }, opts.face ? { face: opts.face } : {}),
+        drawPart({
+          part,
+          cabinet: { W: v("W"), H: v("H"), D: v("D") },
+          style,
+          text: drawingText(tr, result.library, localName(styleInput.name, tr.locale)),
+        }).svg,
       );
       printDiagnostics(result.diagnostics, tr, io);
       return result.ok ? 0 : 1;
@@ -320,3 +324,22 @@ function readJson(io: Io, path: string): unknown {
 
 const isFsError = (e: unknown): boolean =>
   typeof e === "object" && e !== null && "code" in e && typeof (e as { code: unknown }).code === "string";
+
+/** Text callbacks for drawings, from the translator and library. */
+export function drawingText(tr: Translator, library: Library, styleName?: string) {
+  return {
+    t: (k: string, p?: Record<string, string | number>) => tr.t(k, p),
+    number: (x: number, d: number) => tr.number(x, d),
+    hardwareName: (id: string) => {
+      const h = library.hardware.get(id);
+      return h ? localName(h.name, tr.locale) : undefined;
+    },
+    materialName: (id: string) => {
+      const m = library.materials.get(id);
+      return m ? localName(m.name, tr.locale) : undefined;
+    },
+    edgeCode: (id: string) => library.edgebands.get(id)?.code,
+    roleName: (role: string) => tr.t(`role.${role}`),
+    ...(styleName ? { styleName } : {}),
+  };
+}

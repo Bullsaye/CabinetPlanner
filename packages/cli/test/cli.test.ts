@@ -97,6 +97,12 @@ describe("cli drawing", () => {
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--lang", "de"], io)).toBe(0);
     expect(io.out).toMatch(/^<svg /);
     expect(io.out).toContain("Seite links");
+    expect(io.out).toContain("Maschinenblatt");
+    const asm = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "assembly"], asm)).toBe(0);
+    expect(asm.out).toContain("Workshop sheet");
+    const badStyle = fakeIo();
+    expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "B01-SL", "--style", "nope"], badStyle)).toBe(2);
     const bad = fakeIo();
     expect(run(["drawing", "examples/kitchen-basic.project.json", "--part", "X99-SL"], bad)).toBe(1);
     expect(bad.err).toContain("not found");

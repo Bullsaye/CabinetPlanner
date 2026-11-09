@@ -3,21 +3,27 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import {
   buildProject,
+  drawPart,
   formatNumber,
   loadProject,
+  loadShop,
   localName,
-  partSvg,
+  resolveStyle,
   sceneOf,
 } from "../../packages/engine/src/index.ts";
+import { drawingText } from "../../packages/cli/src/app.ts";
 import { createTranslator } from "../../packages/i18n/src/index.ts";
 
-const [out, ...projects] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const shopArg = args.find((a) => a.startsWith("--shop="));
+const [out, ...projects] = args.filter((a) => !a.startsWith("--"));
+const shop = shopArg ? loadShop(JSON.parse(readFileSync(shopArg.slice(7), "utf8"))) : undefined;
 const template = new URL("./template.html", import.meta.url).pathname;
 const tr = createTranslator("en");
 
 const cabinets: unknown[] = [];
 for (const file of projects) {
-  const result = buildProject(loadProject(JSON.parse(readFileSync(file!, "utf8"))));
+  const result = buildProject(loadProject(JSON.parse(readFileSync(file!, "utf8"))), shop);
   if (!result.ok) throw new Error(`${file} has errors`);
   for (const c of result.cabinets) {
     const scene = sceneOf(c);
@@ -39,22 +45,17 @@ for (const file of projects) {
           materialName: localName(mat.name, "en"),
           size: `${formatNumber(part.length)} × ${formatNumber(part.width)} × ${formatNumber(part.thickness)}`,
           ops: part.operations.length,
-          svg: partSvg(
-            part,
-            {
-              title: `${part.id} · ${tr.t(`role.${part.role}`)}`,
-              subtitle: `${formatNumber(part.length)} × ${formatNumber(part.width)} × ${formatNumber(part.thickness)} mm · ${localName(mat.name, "en")}`,
-              face: (f) => tr.t(`face.${f}`),
-              legend: {
-                viewed: tr.t("drawing.viewed"),
-                opposite: tr.t("drawing.opposite"),
-                edge: tr.t("drawing.edge"),
-                banded: tr.t("drawing.banded"),
-                table: tr.t("drawing.table"),
-                count: tr.t("drawing.count"),
-              },
-            },
-            { style: false },
+          sheets: Object.fromEntries(
+            (["machine", "assembly"] as const).map((id) => [
+              id,
+              drawPart({
+                part,
+                cabinet: { W: scene.size.W, H: scene.size.H, D: scene.size.D },
+                style: resolveStyle(id),
+                text: drawingText(tr, result.library, id === "machine" ? "Machine sheet" : "Workshop sheet"),
+                css: false,
+              }).svg,
+            ]),
           ),
         };
       }),

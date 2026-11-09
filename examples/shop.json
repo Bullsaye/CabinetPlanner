@@ -28,6 +28,39 @@
           "back_mount": "groove"
         }
       }
+    ],
+    "drawingStyles": [
+      {
+        "id": "my-shop",
+        "name": {
+          "en": "My shop sheet",
+          "de": "Werkstattblatt"
+        },
+        "extends": "machine",
+        "dims": {
+          "textHeight": 3
+        },
+        "show": {
+          "table": true
+        },
+        "rules": [
+          {
+            "match": {
+              "source": [
+                "joint"
+              ],
+              "role": [
+                "bottom",
+                "top",
+                "rail_front",
+                "rail_rear"
+              ]
+            },
+            "positions": "none",
+            "note": "Example of a taught rule: edge dowels in horizontal parts are drilled from the side's positions"
+          }
+        ]
+      }
     ]
   },
   "defaults": {

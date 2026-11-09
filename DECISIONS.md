@@ -167,3 +167,36 @@ shop preset and overridable per project or cabinet: e.g. `hinge_end_offset`
 the door height). Hardware items carry only product data: dimensions,
 drilling patterns, nominal lengths and the manufacturer's selection rules.
 Supersedes the `end_offset` item param from D15.
+
+### D19 · 2026-11-09 · Drawing views
+
+Every part edge and face is named by the cabinet direction it faces
+(front, rear, left, right, top, bottom); the inner face is the one towards
+the cabinet centre. A view puts one thickness face towards the viewer and
+anchors one named edge to a side of the sheet. Views are never mirrored:
+what is drawn is the real face.
+
+- **Machine view** (CNC and manual drilling): inner face up, front edge on
+  the reference (drawing bottom = machine Y 0), origin at the bottom-left
+  corner. Right side: origin lower front. Left side, same face up: origin
+  upper front. Parts without a front edge use their bottom edge.
+- **Assembly view** (workshop sheet): parts as if the cabinet were unfolded
+  around the front view. Sides upright, seen from inside, folded outwards
+  (left side: front edge on the left; right side: on the right). Bottom
+  seen from above, top from below, left stays left.
+
+Supersedes the face-view convention of the first part drawing.
+
+### D20 · 2026-11-09 · Dimensioning and drawing styles
+
+- Positions are dimensioned from the origin (running / parallel
+  dimensioning, ISO 129-1), never accumulated, unless a style chooses chain
+  dimensions.
+- Regular hole rows and columns (≥ 3 at one pitch) are given as patterns:
+  first and last position on the axes, count and pitch in the legend.
+- Feature groups (same source, Ø, depth, face) get a letter tag and a
+  legend line; a coordinate table is optional per style and per rule.
+- Sheets are to scale (1:1, 1:2, 1:5, 1:10, 1:20, 1:50), A4/A3, text 2.5 mm.
+- Styles are data with `extends` and selector rules; rule properties
+  cascade (first matching rule that sets a property wins). User teaching
+  adds rules in front, so the factory styles never change underneath.

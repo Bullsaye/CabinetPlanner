@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DrawingStyleSchema } from "./drawing/style.ts";
 import { HardwareItem } from "./hardware/schema.ts";
 import { Edgeband, Material } from "./library.ts";
 import { LocalizedText } from "./text.ts";
@@ -64,8 +65,10 @@ const LibraryFile = z
     edgebands: z.array(Edgeband).default([]),
     hardware: z.array(HardwareItem).default([]),
     presets: z.array(Preset).default([]),
+    /** Drawing styles, usually `extends` a factory style plus taught rules. */
+    drawingStyles: z.array(DrawingStyleSchema).default([]),
   })
-  .default({ materials: [], edgebands: [], hardware: [], presets: [] });
+  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [] });
 
 export const ProjectSchema = z
   .object({
