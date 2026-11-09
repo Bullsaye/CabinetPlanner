@@ -5,7 +5,8 @@ import type { Library } from "../library.ts";
 import { addBore, addThroughBore, toCabinet, type Direction, type Face, type OpSource, type ThroughMode } from "../ops.ts";
 import { ROLE_CODES, boxSize, roundMm, thicknessAxis, type Axis, type Box, type Part, type PartEdges } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
-import type { CustomPartInput } from "../schema.ts";
+import { checkLimits, evaluateDrilling, evaluateItemParams } from "../hardware/evaluate.ts";
+import type { CustomBoreInput, CustomPartInput } from "../schema.ts";
 import type { AddPart, BoxLayout } from "./box.ts";
 import type { Joint } from "./machining.ts";
 
@@ -218,50 +219,124 @@ export function customJoints(parts: Part[], custom: BoxLayout["custom"]): Joint[
   return joints;
 }
 
-/** Free bores (D45), in part-local coordinates; problems become diagnostics, never exceptions. */
-export function applyCustomBores(rc: ResolvedCabinet, parts: Part[], diagnostics: Diagnostic[]): void {
+/** The wide face of a part towards (inner) or away from (outer) the cabinet centre. */
+function wideFace(part: Part, face: "inner" | "outer", centre: { x: number; y: number; z: number }): "t0" | "t1" {
+  const ax = thicknessAxis(part.lengthAxis, part.widthAxis);
+  const mid = part.box[ax] + boxSize(part.box, ax) / 2;
+  // The centre lies on the high side of the part: its inner face is t1.
+  const innerIsT1 = centre[ax] >= mid;
+  return (face === "inner") === innerIsT1 ? "t1" : "t0";
+}
+
+const listOf = (x: string | string[]): string[] => (typeof x === "string" ? [x] : x);
+
+/**
+ * Free bores and placed fittings (D45), in part-local coordinates; problems
+ * become diagnostics, never exceptions. Returns the fittings placed, for the lists.
+ */
+export function applyCustomBores(rc: ResolvedCabinet, library: Library, parts: Part[], diagnostics: Diagnostic[]): { item: string; qty: number }[] {
   const cab = rc.cabinet.id;
   const byCode = new Map(parts.map((p) => [p.code, p]));
   const mode = rc.options.get("bore.through")!.value as ThroughMode;
   const overlap = rc.values.get("through_overlap") ?? 0;
+  const centre = { x: (rc.values.get("W") ?? 0) / 2, y: (rc.values.get("H") ?? 0) / 2, z: (rc.values.get("D") ?? 0) / 2 };
+  const scopeOf = (part: Part): Map<string, number> => new Map([...rc.values, ["part_l", part.length], ["part_w", part.width], ["part_t", part.thickness]]);
+  /** One bore at (u, v) on a face; false when it does not fit the part. */
+  const drill = (part: Part, faceRef: CustomBoreInput["face"], u: number, v: number, d: number, depth: number, source: OpSource): boolean => {
+    const face: Face = faceRef === "inner" || faceRef === "outer" ? wideFace(part, faceRef, centre) : faceRef;
+    const placed = placeBore(part, face, u, v);
+    if (d <= 0 || depth < 0 || !placed) return false;
+    const wide = face === "t0" || face === "t1";
+    if (wide && (depth === 0 || depth >= part.thickness)) addThroughBore(part, placed.entry, placed.dir, d, mode, overlap, source);
+    else if (depth === 0 || depth > placed.room) return false;
+    else addBore(part, placed.entry, placed.dir, d, depth, source);
+    return true;
+  };
+
   (rc.cabinet.construction?.bores ?? []).forEach((def, k) => {
     const index = k + 1;
-    const part = byCode.get(def.part);
-    if (!part) {
-      diagnostics.push({ severity: "warning", code: "custom_bore_part_unknown", params: { index, part: def.part }, cabinet: cab });
-      return;
-    }
-    const invalid = (what: string, expr: string): void => {
-      diagnostics.push({ severity: "error", code: "custom_bore_invalid", params: { index, part: def.part, what, expr }, cabinet: cab, part: part.id });
-    };
-    const base = new Map([...rc.values, ["part_l", part.length], ["part_w", part.width], ["part_t", part.thickness]]);
-    for (const { scope } of copies(def.repeat, base, 500, (e) => invalid("repeat", e))) {
-      if (def.when !== undefined) {
-        const w = evalIn(def.when, scope);
-        if (w === undefined) invalid("when", String(def.when));
-        if (!w) continue;
-      }
-      const get = (key: "u" | "v" | "d" | "depth"): number | undefined => {
-        if (key === "depth" && def.depth === "through") return 0;
-        const x = evalIn(def[key], scope);
-        if (x === undefined) invalid(key, String(def[key]));
-        return x;
-      };
-      const [u, v, d, depth] = [get("u"), get("v"), get("d"), get("depth")];
-      if (u === undefined || v === undefined || d === undefined || depth === undefined) continue;
-      const placed = placeBore(part, def.face, u, v);
-      if (d <= 0 || depth < 0 || !placed) {
-        diagnostics.push({ severity: "error", code: "custom_bore_outside", params: { index, part: def.part, u: roundMm(u), v: roundMm(v) }, cabinet: cab, part: part.id });
+    for (const code of listOf(def.part)) {
+      const part = byCode.get(code);
+      if (!part) {
+        diagnostics.push({ severity: "warning", code: "custom_bore_part_unknown", params: { index, part: code }, cabinet: cab });
         continue;
       }
-      const source: OpSource = { kind: "custom", ref: `bore ${index}` };
-      const wide = def.face === "t0" || def.face === "t1";
-      if (wide && (depth === 0 || depth >= part.thickness)) addThroughBore(part, placed.entry, placed.dir, d, mode, overlap, source);
-      else if (depth === 0 || depth > placed.room) {
-        diagnostics.push({ severity: "error", code: "custom_bore_outside", params: { index, part: def.part, u: roundMm(u), v: roundMm(v) }, cabinet: cab, part: part.id });
-      } else addBore(part, placed.entry, placed.dir, d, depth, source);
+      const invalid = (what: string, expr: string): void => {
+        diagnostics.push({ severity: "error", code: "custom_bore_invalid", params: { index, part: code, what, expr }, cabinet: cab, part: part.id });
+      };
+      for (const { scope } of copies(def.repeat, scopeOf(part), 500, (e) => invalid("repeat", e))) {
+        if (def.when !== undefined) {
+          const w = evalIn(def.when, scope);
+          if (w === undefined) invalid("when", String(def.when));
+          if (!w) continue;
+        }
+        const get = (key: "u" | "v" | "d" | "depth"): number | undefined => {
+          if (key === "depth" && def.depth === "through") return 0;
+          const x = evalIn(def[key], scope);
+          if (x === undefined) invalid(key, String(def[key]));
+          return x;
+        };
+        const [u, v, d, depth] = [get("u"), get("v"), get("d"), get("depth")];
+        if (u === undefined || v === undefined || d === undefined || depth === undefined) continue;
+        if (!drill(part, def.face, u, v, d, depth, { kind: "custom", ref: `bore ${index}` })) {
+          diagnostics.push({ severity: "error", code: "custom_bore_outside", params: { index, part: code, u: roundMm(u), v: roundMm(v) }, cabinet: cab, part: part.id });
+        }
+      }
     }
   });
+
+  // Fittings: the item's drilling (mount "part") around (u, v); `a` along the length, `b` along the width.
+  const used: { item: string; qty: number }[] = [];
+  (rc.cabinet.construction?.fittings ?? []).forEach((def, k) => {
+    const index = k + 1;
+    const item = library.hardware.get(def.item);
+    if (!item) {
+      diagnostics.push({ severity: "error", code: "hardware_unknown", params: { key: `construction.fittings ${index}`, value: def.item }, cabinet: cab });
+      return;
+    }
+    let qty = 0;
+    for (const code of listOf(def.part)) {
+      const part = byCode.get(code);
+      if (!part) {
+        diagnostics.push({ severity: "warning", code: "fitting_part_unknown", params: { index, part: code, item: item.id }, cabinet: cab });
+        continue;
+      }
+      const invalid = (what: string, expr: string): void => {
+        diagnostics.push({ severity: "error", code: "fitting_invalid", params: { index, part: code, item: item.id, what, expr }, cabinet: cab, part: part.id });
+      };
+      for (const { scope } of copies(def.repeat, scopeOf(part), 200, (e) => invalid("repeat", e))) {
+        if (def.when !== undefined) {
+          const w = evalIn(def.when, scope);
+          if (w === undefined) invalid("when", String(def.when));
+          if (!w) continue;
+        }
+        const u = evalIn(def.u, scope);
+        const v0 = evalIn(def.v, scope);
+        if (u === undefined) invalid("u", String(def.u));
+        if (v0 === undefined) invalid("v", String(def.v));
+        if (u === undefined || v0 === undefined) continue;
+        const v = def.mirror ? part.width - v0 : v0;
+        const params = evaluateItemParams(item, scope, { cabinet: cab });
+        diagnostics.push(...params.diagnostics, ...checkLimits(item, params.values, { cabinet: cab, part: part.id }));
+        const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, { cabinet: cab });
+        diagnostics.push(...dd);
+        for (const dr of drills) {
+          if (dr.mount !== "part" || dr.op !== "bore") {
+            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.op === "bore" ? dr.mount : dr.op, category: item.category }, cabinet: cab });
+            continue;
+          }
+          const bu = u + dr.a;
+          const bv = v + (def.mirror ? -dr.b : dr.b);
+          if (!drill(part, def.face, bu, bv, dr.d, dr.through ? 0 : dr.depth, { kind: "hardware", ref: item.id })) {
+            diagnostics.push({ severity: "error", code: "fitting_outside", params: { index, part: code, item: item.id, u: roundMm(bu), v: roundMm(bv) }, cabinet: cab, part: part.id });
+          }
+        }
+        qty++;
+      }
+    }
+    if (qty > 0) used.push({ item: item.id, qty });
+  });
+  return used;
 }
 
 /** Entry point, drilling direction and material behind the entry for a bore at (u, v) on a face. */

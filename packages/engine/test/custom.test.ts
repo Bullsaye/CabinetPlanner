@@ -240,3 +240,92 @@ describe("free bores and extra hardware (D45)", () => {
     expect(codes(r)).toContain("error:hardware_unknown");
   });
 });
+
+describe("parameters in presets, layout variables, fittings (D45)", () => {
+  const lock = {
+    id: "lock-a",
+    name: "Lock A",
+    category: "other",
+    params: { backset: 25 },
+    drilling: [
+      { mount: "part", d: 19, depth: 0, a: 0, b: "backset", through: true },
+      { mount: "part", d: 3, depth: 8, a: 20, b: "backset + 10" },
+    ],
+  };
+  const lib = (extra: Record<string, unknown> = {}) => ({ library: { hardware: [lock], ...extra } });
+
+  it("a preset brings its own variable with label, description and default; the cabinet may change the value", () => {
+    const preset = {
+      id: "inset",
+      name: "Boden zurückgesetzt",
+      vars: { fixed_shelf_setback: "board_inset" },
+      params: [{ name: "board_inset", label: "Einsprung vorne", description: "Querboden springt von der Vorderkante zurück", default: 2, min: 0, max: 100 }],
+    };
+    const fronts = [{ type: "open" }, { type: "door", h: 300 }];
+    const r = buildOne({ presets: ["inset"], fronts }, { library: { presets: [preset] } });
+    expect(codes(r)).toEqual([]);
+    const rc = r.cabinets[0]!.resolved;
+    expect(rc.params.map((p) => p.name)).toEqual(["board_inset"]);
+    expect(rc.vars.get("board_inset")!.source).toEqual({ layer: "cabinet", preset: "inset", param: true });
+    const fs = partsByCode(r)["FS1"]!;
+    expect(fs.box.z + fs.box.dz).toBe(558);
+    // 50 mm instead: the board and its dowels move back together.
+    const r50 = buildOne({ presets: ["inset"], fronts, vars: { board_inset: 50 } }, { library: { presets: [preset] } });
+    const fs50 = partsByCode(r50)["FS1"]!;
+    expect(fs50.box.z + fs50.box.dz).toBe(510);
+    const firstDowel = (x: typeof r): number => Math.max(...partsByCode(x)["SL"]!.operations.filter((o) => o.sources.some((s) => s.ref === "SL-FS1")).map((o) => (o as { v: number }).v));
+    expect(firstDowel(r) - firstDowel(r50)).toBe(48);
+    // The preset applied at project level reaches every cabinet.
+    const p = buildOne({ fronts }, { presets: ["inset"], library: { presets: [preset] } });
+    expect(p.cabinets[0]!.resolved.params).toHaveLength(1);
+    expect(p.cabinets[0]!.resolved.values.get("fixed_shelf_setback")).toBe(2);
+  });
+
+  it("a free board ends at the back whatever the back rule is (back_front_z)", () => {
+    const part = { id: "QB", plane: "horizontal", x: "inner_x0", y: 300, z: "back_front_z", dx: "inner_x1 - inner_x0", dz: "D - back_front_z - 2" };
+    const groove = partsByCode(buildOne({ vars: { shelf_count: 0 }, construction: { parts: [part] } }))["QB"]!;
+    expect(groove.box.z).toBe(18);
+    const rebate = partsByCode(buildOne({ vars: { shelf_count: 0 }, options: { back_mount: "rebate" }, construction: { parts: [part] } }))["QB"]!;
+    expect(rebate.box.z).toBe(8);
+    expect(rebate.box.z + rebate.box.dz).toBe(558);
+  });
+
+  it("one bore on the inner face of both sides is a mirrored pair", () => {
+    const r = buildOne({ options: { system_holes: "none" }, vars: { shelf_count: 0 }, construction: { bores: [{ part: ["SL", "SR"], u: 400, v: "part_w - 50", d: 5, depth: 12 }] } });
+    expect(codes(r)).toEqual([]);
+    const op = (c: string) => partsByCode(r)[c]!.operations.find((o) => o.sources.some((s) => s.kind === "custom"))!;
+    expect(op("SL")).toMatchObject({ face: "t1", u: 400, v: 510 });
+    expect(op("SR")).toMatchObject({ face: "t0", u: 400, v: 510 });
+  });
+
+  it("a placed fitting drills the item's pattern; mirror flips it; swapping the item swaps the holes", () => {
+    const cab = (item: string) => ({
+      vars: { W: 800, door_count: 2, shelf_count: 0 },
+      construction: {
+        fittings: [
+          { item, part: "DO1", face: "inner", u: "part_l / 2", v: 0 },
+          { item, part: "DO2", face: "inner", u: "part_l / 2", v: 0, mirror: true },
+        ],
+      },
+    });
+    const r = buildOne(cab("lock-a"), lib());
+    expect(codes(r)).toEqual([]);
+    const holes = (x: typeof r, c: string) =>
+      partsByCode(x)[c]!.operations.filter((o) => o.sources.some((s) => s.ref === "lock-a" || s.ref === "lock-b")).map((o) => [(o as { d: number }).d, (o as { v: number }).v]).sort((a, b) => b[0]! - a[0]!);
+    const w = partsByCode(r)["DO2"]!.width;
+    expect(holes(r, "DO1")).toEqual([[19, 25], [3, 35]]);
+    expect(holes(r, "DO2")).toEqual([[19, w - 25], [3, w - 35]]);
+    expect(r.cabinets[0]!.hardware.find((h) => h.item === "lock-a")!.qty).toBe(2);
+    const other = { ...lock, id: "lock-b", params: { backset: 40 } };
+    const b = buildOne(cab("lock-b"), { library: { hardware: [other] } });
+    expect(holes(b, "DO1")).toEqual([[19, 40], [3, 50]]);
+  });
+
+  it("fittings report unknown items, parts and holes off the part", () => {
+    const r = buildOne({ construction: { fittings: [{ item: "nope", part: "SL", u: 1, v: 1 }, { item: "lock-a", part: "ZZ", u: 1, v: 1 }, { item: "lock-a", part: "SL", u: 100, v: "part_w" }] } }, lib());
+    const c = codes(r);
+    expect(c).toContain("error:hardware_unknown");
+    expect(c).toContain("warning:fitting_part_unknown");
+    expect(c).toContain("error:fitting_outside");
+  });
+});

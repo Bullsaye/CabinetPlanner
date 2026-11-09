@@ -28,6 +28,27 @@ const layerFields = {
 export const Layer = z.object(layerFields);
 export type Layer = z.infer<typeof Layer>;
 
+/**
+ * A parameter (D45): a variable its author puts into the simple editor.
+ * `name` is the function name used in formulas (shown when there is no
+ * label); `label` and `description` are display texts anyone may change or
+ * translate without touching a formula. The name may be a catalogue
+ * variable (then the parameter only adds it to the simple editor).
+ * Cabinets, templates and presets carry parameters.
+ */
+export const ParamSchema = z.object({
+  name: identifier,
+  label: LocalizedText.optional(),
+  description: LocalizedText.optional(),
+  default: VarInputSchema.optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  step: z.number().positive().optional(),
+  integer: z.boolean().optional(),
+  unit: z.enum(["mm", "count"]).default("mm"),
+});
+export type ParamInput = z.infer<typeof ParamSchema>;
+
 /** A named, partial set of variables and options. */
 export const Preset = z.object({
   id: z.string().min(1),
@@ -36,6 +57,8 @@ export const Preset = z.object({
   group: z.string().optional(),
   vars: z.record(identifier, VarInputSchema).default({}),
   options: z.record(z.string(), OptionValueSchema).default({}),
+  /** Variables this preset introduces or puts into the simple editor (D45). */
+  params: z.array(ParamSchema).max(60).default([]),
 });
 export type Preset = z.infer<typeof Preset>;
 
@@ -110,10 +133,18 @@ export const CustomPartSchema = z.object({
 export type CustomPartInput = z.infer<typeof CustomPartSchema>;
 
 /** A free bore: on face `face` of part `part`, at (u, v) along its length and width. */
+const PartRef = z.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(40)]);
+const FaceRef = z.enum(["inner", "outer", "t0", "t1", "l1", "l2", "w1", "w2"]);
+
 export const CustomBoreSchema = z.object({
-  part: z.string().min(1),
-  /** t0 / t1: the wide face at the low / high end of the thickness axis; l1, l2, w1, w2: the edges (D13). */
-  face: z.enum(["t0", "t1", "l1", "l2", "w1", "w2"]).default("t1"),
+  /** One part code or several: the same local position on each (left and right side: a mirrored pair). */
+  part: PartRef,
+  /**
+   * inner / outer: the wide face towards / away from the cabinet centre;
+   * t0 / t1: the wide face at the low / high end of the thickness axis;
+   * l1, l2, w1, w2: the edges (D13).
+   */
+  face: FaceRef.default("inner"),
   u: VarInputSchema,
   v: VarInputSchema,
   d: VarInputSchema,
@@ -125,21 +156,24 @@ export const CustomBoreSchema = z.object({
 export type CustomBoreInput = z.infer<typeof CustomBoreSchema>;
 
 /**
- * A parameter of a cabinet (D45): a variable the template author puts into
- * the simple editor, with its own label, default and limits. The name may
- * be a catalogue variable (then it only adds it to the simple editor).
+ * A fitting placed on a part (D45): the drilling of a hardware item (its
+ * mount "part" operations: `a` along the part length, `b` along the width)
+ * around the point (u, v). Swapping the item swaps the holes. `mirror`
+ * measures v from the opposite edge and flips `b`: the mirrored copy for
+ * the other hand (second door, opposite side of a pair that is not symmetric).
  */
-export const ParamSchema = z.object({
-  name: identifier,
-  label: LocalizedText.optional(),
-  default: VarInputSchema.optional(),
-  min: z.number().optional(),
-  max: z.number().optional(),
-  step: z.number().positive().optional(),
-  integer: z.boolean().optional(),
-  unit: z.enum(["mm", "count"]).default("mm"),
+export const FittingPlacementSchema = z.object({
+  item: z.string().min(1),
+  part: PartRef,
+  face: z.enum(["inner", "outer", "t0", "t1"]).default("inner"),
+  u: VarInputSchema,
+  v: VarInputSchema,
+  mirror: z.boolean().default(false),
+  when: VarInputSchema.optional(),
+  repeat: VarInputSchema.optional(),
 });
-export type ParamInput = z.infer<typeof ParamSchema>;
+export type FittingPlacementInput = z.infer<typeof FittingPlacementSchema>;
+
 
 /**
  * Construction elements of a cabinet (D38), beyond what the variables
@@ -164,6 +198,8 @@ export const ConstructionSchema = z.object({
   omit: z.array(z.string().min(1)).default([]),
   /** Free bores on any part, in part-local coordinates (D13). */
   bores: z.array(CustomBoreSchema).max(500).default([]),
+  /** Fittings placed on parts: the item's drilling at a position, and the item in the lists. */
+  fittings: z.array(FittingPlacementSchema).max(200).default([]),
   /** Extra hardware and consumables for the lists. */
   hardware: z.array(z.object({ item: z.string().min(1), qty: VarInputSchema.default(1) })).max(100).default([]),
 });

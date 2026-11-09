@@ -10,7 +10,7 @@ import type { Diagnostic } from "./diagnostics.ts";
 import { evaluateGraph, type VarInput } from "./graph.ts";
 import type { Library } from "./library.ts";
 import { FACTORY_PRESETS } from "./presets.ts";
-import type { CabinetInput, Layer, Preset, Project, Shop } from "./schema.ts";
+import type { CabinetInput, Layer, ParamInput, Preset, Project, Shop } from "./schema.ts";
 
 /** Layers in resolution order; the last one that sets a value wins. */
 export const LAYERS = ["factory", "shop", "project", "cabinet"] as const;
@@ -48,6 +48,8 @@ export interface ResolvedCabinet {
   options: Map<string, ResolvedOption>;
   /** Evaluated numbers by variable name, including material constants. */
   values: Map<string, number>;
+  /** Parameters in effect (D45): from the presets of every layer, then the cabinet's own; later ones replace earlier ones by name. */
+  params: ParamInput[];
   diagnostics: Diagnostic[];
 }
 
@@ -118,6 +120,20 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     }
   };
 
+  // Parameters (D45): definitions by name; a default sits under the values of its layer.
+  const params = new Map<string, ParamInput>();
+  const applyParams = (list: readonly ParamInput[], source: Source): void => {
+    for (const p of list) {
+      if (Object.hasOwn(MATERIAL_CONSTANTS, p.name) || (ROOM_CONSTANTS as readonly string[]).includes(p.name)) {
+        diagnostics.push({ severity: "error", code: "var_shadows_constant", params: { name: p.name }, variable: p.name, ...at });
+        continue;
+      }
+      params.delete(p.name);
+      params.set(p.name, p);
+      if (p.default !== undefined) push(varStack, p.name, { value: p.default, source });
+    }
+  };
+
   const applyLayer = (layer: Layer | undefined, name: LayerName): void => {
     if (!layer) return;
     for (const id of layer.presets) {
@@ -126,6 +142,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
         diagnostics.push({ severity: "error", code: "preset_unknown", params: { id, layer: name }, ...at });
         continue;
       }
+      applyParams(preset.params ?? [], { layer: name, preset: id, param: true });
       applyValues(preset.vars, preset.options, { layer: name, preset: id });
     }
     applyValues(layer.vars, layer.options, { layer: name });
@@ -133,15 +150,8 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
 
   applyLayer(ctx.shop, "shop");
   applyLayer(project, "project");
-  // Parameter defaults (D45) sit under the cabinet's own values.
-  for (const p of cabinet.params) {
-    if (p.default === undefined) continue;
-    if (Object.hasOwn(MATERIAL_CONSTANTS, p.name) || (ROOM_CONSTANTS as readonly string[]).includes(p.name)) {
-      diagnostics.push({ severity: "error", code: "var_shadows_constant", params: { name: p.name }, variable: p.name, ...at });
-      continue;
-    }
-    push(varStack, p.name, { value: p.default, source: { layer: "cabinet", param: true } });
-  }
+  // The cabinet's own parameters, then its presets and its own values.
+  applyParams(cabinet.params, { layer: "cabinet", param: true });
   applyLayer(cabinet, "cabinet");
 
   // Options: validate the winners.
@@ -207,8 +217,8 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     }
   }
 
-  // Limits of the cabinet's own parameters (D45).
-  for (const p of cabinet.params) {
+  // Limits of the parameters (D45).
+  for (const p of params.values()) {
     const value = graph.values.get(p.name);
     if (value === undefined) continue;
     const base = { variable: p.name, ...at };
@@ -239,7 +249,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
   }
 
   const values = new Map<string, number>([...constants, ...graph.values]);
-  return { cabinet, vars, options, values, diagnostics };
+  return { cabinet, vars, options, values, params: [...params.values()], diagnostics };
 }
 
 function validateOption(

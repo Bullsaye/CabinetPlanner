@@ -419,6 +419,10 @@ export function buildBox(
     zoneVars.set(`zone${i + 1}_y0`, f.y0);
     zoneVars.set(`zone${i + 1}_y1`, f.y1);
   });
+  // Layout facts for formulas (D45): they follow the back and joint rules.
+  for (const [k, v] of [["back_front_z", backFrontZ], ["carcase_z0", carcaseZ0], ["inner_x0", t], ["inner_x1", W - t], ["inner_y0", t], ["inner_y1", H - t]] as const) {
+    if (!zoneVars.has(k)) zoneVars.set(k, v);
+  }
   const cval = (v: string | number, what: string): number => {
     const r = evaluateGraph(new Map([["__c", v]]), zoneVars);
     const x = r.values.get("__c");

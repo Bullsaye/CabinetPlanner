@@ -647,7 +647,7 @@ export function machineBox(
   }
 
   // --- Free bores and extra hardware (D45) -------------------------------------------------
-  applyCustomBores(rc, parts, diagnostics);
+  for (const f of applyCustomBores(rc, library, parts, diagnostics)) use(library.hardware.get(f.item)!, f.qty);
   for (const [k, h] of (rc.cabinet.construction?.hardware ?? []).entries()) {
     const item = library.hardware.get(h.item);
     const r = typeof h.qty === "number" ? undefined : evaluateGraph(new Map([["__q", h.qty]]), rc.values);
