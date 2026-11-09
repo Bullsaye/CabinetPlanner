@@ -132,21 +132,40 @@ export const CabinetTemplateSchema = z.object({
 });
 export type CabinetTemplateInput = z.infer<typeof CabinetTemplateSchema>;
 
+/**
+ * A library fragment: the shape of the library section. Community packs
+ * carry one as their content; installing a pack merges it into the shop
+ * library (D45).
+ */
+export const LibraryFragmentSchema = z.object({
+  materials: z.array(Material).default([]),
+  edgebands: z.array(Edgeband).default([]),
+  hardware: z.array(HardwareItem).default([]),
+  presets: z.array(Preset).default([]),
+  /** Drawing styles, usually `extends` a factory style plus taught rules. */
+  drawingStyles: z.array(DrawingStyleSchema).default([]),
+  /** DXF layer profiles: map machining to the CAM's layer names. */
+  dxfProfiles: z.array(DxfProfileSchema).default([]),
+  /** Cabinet templates for the add menu. */
+  templates: z.array(CabinetTemplateSchema).default([]),
+});
+export type LibraryFragment = z.infer<typeof LibraryFragmentSchema>;
+export const LIBRARY_KINDS = ["presets", "templates", "hardware", "materials", "edgebands", "drawingStyles", "dxfProfiles"] as const;
+export type LibraryKind = (typeof LIBRARY_KINDS)[number];
+
 /** Library section of a project or shop file; later layers replace items with the same id. */
-const LibraryFile = z
-  .object({
-    materials: z.array(Material).default([]),
-    edgebands: z.array(Edgeband).default([]),
-    hardware: z.array(HardwareItem).default([]),
-    presets: z.array(Preset).default([]),
-    /** Drawing styles, usually `extends` a factory style plus taught rules. */
-    drawingStyles: z.array(DrawingStyleSchema).default([]),
-    /** DXF layer profiles: map machining to the CAM's layer names. */
-    dxfProfiles: z.array(DxfProfileSchema).default([]),
-    /** Cabinet templates for the add menu. */
-    templates: z.array(CabinetTemplateSchema).default([]),
-  })
-  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
+const LibraryFile = LibraryFragmentSchema.default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
+
+/** A community pack installed into the shop library (D45): which version, and which items came with it. */
+export const InstalledPackSchema = z.object({
+  id: z.string().min(1),
+  version: z.string().min(1),
+  name: z.string().default(""),
+  trust: z.enum(["community", "tested", "verified"]).default("community"),
+  /** Ids of the installed items per library kind. */
+  items: z.record(z.string(), z.array(z.string())).default({}),
+});
+export type InstalledPack = z.infer<typeof InstalledPackSchema>;
 
 export const ProjectSchema = z
   .object({
@@ -184,5 +203,7 @@ export const ShopSchema = z.object({
   library: LibraryFile,
   /** The shop default layer ("Set as default" points presets here). */
   defaults: Layer.default({ presets: [], vars: {}, options: {} }),
+  /** Community packs installed into this library (the app shows updates for them). */
+  installedPacks: z.array(InstalledPackSchema).optional(),
 });
 export type Shop = z.infer<typeof ShopSchema>;

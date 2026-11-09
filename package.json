@@ -14,14 +14,16 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p packages/engine && tsc -p packages/i18n && tsc -p packages/cli",
+    "typecheck": "tsc -p packages/engine && tsc -p packages/i18n && tsc -p packages/cli && tsc -p packages/server",
     "check": "pnpm typecheck && pnpm test",
     "cp": "tsx packages/cli/src/main.ts",
     "preview": "tsx tools/preview/gen.ts",
     "app": "pnpm --filter @cabinet-planner/app dev",
     "app:build": "pnpm --filter @cabinet-planner/app build",
     "desktop": "pnpm --filter @cabinet-planner/desktop dev",
-    "desktop:build": "pnpm --filter @cabinet-planner/desktop build"
+    "desktop:build": "pnpm --filter @cabinet-planner/desktop build",
+    "server": "pnpm --filter @cabinet-planner/server dev",
+    "server:build": "pnpm --filter @cabinet-planner/server build"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
