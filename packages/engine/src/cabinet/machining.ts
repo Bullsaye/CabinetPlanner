@@ -836,11 +836,18 @@ function sequencePositions(
     let p = raster[i]!;
     if (p >= L) break;
     const last = i === raster.length - 1;
-    if (last) while (L - p < o.offsetRear - 1e-9) p -= o.pitch;
-    else if (L - p < o.offsetRear - 1e-9) break;
-    // Move off machining in the way (e.g. a groove), towards the front.
+    // No position moves in front of the first one (offsetFront): it would leave the joint or sit in its front edge.
+    if (last) while (L - p < o.offsetRear - 1e-9 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
+    if (L - p < o.offsetRear - 1e-9) break;
+    // Move off machining in the way (e.g. a groove), towards the front; where that is not possible, to the rear.
+    const p0 = p;
     let tries = 0;
-    while (!free(roundMm(zMax - p)) && tries++ < 3) p -= o.pitch;
+    while (!free(roundMm(zMax - p)) && tries++ < 3 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
+    if (!free(roundMm(zMax - p))) {
+      p = p0;
+      tries = 0;
+      while (!free(roundMm(zMax - p)) && tries++ < 3 && L - p - o.pitch >= o.offsetRear - 1e-9) p += o.pitch;
+    }
     if (!free(roundMm(zMax - p))) continue;
     const prev = out.length ? zMax - out[out.length - 1]! : -Infinity;
     if (p - prev < o.pitch - 1e-9) continue;

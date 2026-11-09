@@ -671,3 +671,7 @@ the earlier entries stay as written.
   an upright bottom rail ends in front of the rail. Middle panels keep
   their size and get a through notch (pocket, source `joint:<rail>`) for
   every upright rail they cross.
+- Dowel sequence (D35): no position moves in front of `dowel_offset_front`.
+  A blocked position that cannot move forward moves to the rear in pitch
+  steps (up to three, like forward); a rearmost position that cannot keep
+  `dowel_offset_rear` without that is dropped.

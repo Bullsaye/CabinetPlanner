@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Part } from "../src/index.ts";
+import { dowelPositions } from "../src/cabinet/machining.ts";
 import { buildOne, partsByCode } from "./helpers.ts";
 
 /** Regression tests for bugs found in the logic audit of the cabinet rules and machining. */
@@ -125,6 +126,38 @@ describe("legs that meet other machining", () => {
         expect(o.u - o.d / 2).toBeGreaterThanOrEqual(2);
         expect(o.u + o.d / 2).toBeLessThanOrEqual(bo.length - 2);
       }
+    }
+  });
+});
+
+describe("dowel sequence pattern (D35)", () => {
+  const o = { pitch: 32, offsetFront: 37, offsetRear: 20, maxSpacing: 160, minCount: 2, sequence: { second: 32, spacing: 128 } };
+
+  it("moves a blocked front position to the rear, never in front of dowel_offset_front", () => {
+    // Positions from the front: 37, 69, 197, 325, 453 — all taken (e.g. by the shelf on the other face of a middle panel).
+    const taken = new Set([37, 69, 197, 325, 453].map((p) => 562 - p));
+    const zs = dowelPositions(0, 562, o, (z) => !taken.has(z));
+    expect(zs.map((z) => 562 - z)).toEqual([101, 165, 293, 421]);
+  });
+
+  it("drops the only position of a joint too short for the rear offset instead of moving it out", () => {
+    expect(dowelPositions(0, 50, o)).toEqual([]);
+    expect(dowelPositions(0, 60, o).map((z) => 60 - z)).toEqual([37]);
+  });
+
+  it("dowels fixed shelves on both faces of a middle panel", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit", "wardrobe"],
+      vars: { W: 1000, partition_count: 1 },
+      options: { dowel_pattern: "sequence" },
+    });
+    expect(errors(r)).toEqual([]);
+    const mp = partsByCode(r).MP1!;
+    for (const ref of ["MP1-FS1", "MP1-FS2"]) {
+      const front = mp.operations.filter((x) => x.kind === "bore" && x.sources.some((s) => s.ref === ref)).map((x) => (x.kind === "bore" ? mp.width - x.v : 0));
+      expect(front.length, ref).toBeGreaterThanOrEqual(4);
+      expect(Math.min(...front), ref).toBeGreaterThanOrEqual(37);
     }
   });
 });
