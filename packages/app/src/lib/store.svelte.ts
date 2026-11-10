@@ -304,9 +304,12 @@ class Store {
   historyAt = 0;
   historyVersion = $state(0);
   private restoring = false;
+  /** Set while a gesture (dragging a cabinet) changes the project in steps: it becomes one entry at its end. */
+  historyHold = false;
 
   /** Records the current project state if it differs from the last snapshot. */
   record(): void {
+    if (this.historyHold) return;
     if (this.restoring) {
       this.restoring = false;
       return;
