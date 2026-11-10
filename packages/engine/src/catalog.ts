@@ -205,6 +205,8 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["sides_over", "sides_between"] },
     factory: "sides_over",
   },
+  /** Middle panels between bottom and top (these run through), or through from the bottom edge to the top edge with bottom and top split per section (D46). */
+  { key: "partition_joint", group: "construction", kind: { type: "enum", values: ["between", "through"] }, factory: "between" },
   /** Top: full panel or two rails; auto = top.base_unit for base units, a full panel otherwise. */
   { key: "top", group: "construction", kind: { type: "enum", values: ["auto", "full", "rails"] }, factory: "auto" },
   /** Rails under top: rails — each flat (rail_w deep), upright (rail_w high) or left out (D41). */
@@ -282,6 +284,8 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["shelves", "hanging", "hanging_first", "hanging_last"] },
     factory: "shelves",
   },
+  /** Hanging sections: a hat shelf above the rail, or the rail straight under the panel that closes the zone (D46). */
+  { key: "hat_shelf", group: "shelves", kind: { type: "boolean" }, factory: true },
   { key: "hardware.rail", group: "hardware", kind: { type: "hardware", category: "rail" }, factory: "generic-wardrobe-rail" },
   /** Wall units: cabinet hangers (D39); hidden sides get the rail notch. */
   { key: "hardware.hanger", group: "hardware", kind: { type: "hardware", category: "hanger", nullable: true }, factory: null },

@@ -1,0 +1,124 @@
+import { describe, expect, it } from "vitest";
+import type { Operation, Part } from "../src/index.ts";
+import { buildOne, partsByCode, size } from "./helpers.ts";
+
+const refs = (p: Part, ref: string): Operation[] => p.operations.filter((o) => o.sources.some((s) => s.ref === ref));
+const hw = (p: Part, item: string): Operation[] => p.operations.filter((o) => o.sources.some((s) => s.kind === "hardware" && s.ref === item));
+
+/** The wardrobe from the sketch: two sections, each open / door / two drawers. */
+const stack = [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }];
+const wardrobe = (extra: Record<string, unknown> = {}) =>
+  buildOne({
+    kind: "tall",
+    presets: ["tall-unit"],
+    vars: { W: 1050, H: 1720, D: 475, front_gap: 4, front_gap_v: 4, front_gap_side: 2, front_gap_bottom: 4.5, shelf_gap: 0.5, ...((extra.vars as object) ?? {}) },
+    options: { hat_shelf: false, ...((extra.options as object) ?? {}) },
+    sections: [
+      { fronts: stack, interior: "shelves", shelves: 3 },
+      { fronts: stack, interior: "hanging" },
+    ],
+    ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== "vars" && k !== "options")),
+  });
+
+describe("sections (D46)", () => {
+  it("keeps the middle panel with drawers and gives every section its own fronts", () => {
+    const r = wardrobe();
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.diagnostics.map((d) => d.code)).not.toContain("partitions_with_drawers");
+    const p = partsByCode(r);
+    expect(size(p.MP1)).toBe("1682 × 457 × 19");
+    // Fronts meet at the middle of the middle panel: 2 + 521 + 4 + 521 + 2.
+    expect([p.DO1!.box.x, p.DO1!.box.dx, p.DO2!.box.x, p.DO2!.box.dx]).toEqual([2, 521, 527, 521]);
+    const drawerFronts = r.parts.filter((x) => x.role === "drawer_front");
+    expect(drawerFronts.map((x) => `${x.width}×${x.length}`).sort()).toEqual(["161×521", "161×521", "235×521", "235×521"]);
+    // Drawers sized to their section: Dynapro-style inner width over LWK = 496.5.
+    expect(r.parts.filter((x) => x.role === "drawer_side_left").map((x) => x.box.x < 525)).toEqual([true, true, false, false]);
+  });
+
+  it("puts shelves and the rail in their sections; no hat shelf when hat_shelf is off", () => {
+    const r = wardrobe();
+    const p = partsByCode(r);
+    const shelves = r.parts.filter((x) => x.role === "shelf");
+    expect(shelves).toHaveLength(3);
+    expect(shelves.every((s) => s.box.x < 525)).toBe(true);
+    // Fixed shelves: per section above the door and between door and drawers.
+    expect(r.parts.filter((x) => x.role === "fixed_shelf")).toHaveLength(4);
+    // Rail end support in the middle panel's right face and in the right side.
+    expect(hw(p.MP1!, "generic-wardrobe-rail").length).toBeGreaterThan(0);
+    expect(hw(p.SR!, "generic-wardrobe-rail").length).toBeGreaterThan(0);
+    expect(hw(p.SL!, "generic-wardrobe-rail")).toEqual([]);
+  });
+
+  it("adds a hat shelf in the hanging section by default", () => {
+    const r = wardrobe({ options: { hat_shelf: true } });
+    expect(r.parts.filter((x) => x.role === "fixed_shelf")).toHaveLength(5);
+  });
+
+  it("mounts slides on the sides and on both faces of the middle panel", () => {
+    const r = wardrobe();
+    const p = partsByCode(r);
+    const slide = "generic-undermount";
+    expect(hw(p.SL!, slide).length).toBeGreaterThan(0);
+    expect(hw(p.SR!, slide).length).toBeGreaterThan(0);
+    const faces = new Set(hw(p.MP1!, slide).map((o) => (o.kind === "bore" ? o.face : "")));
+    expect([...faces].sort()).toEqual(["t0", "t1"]);
+  });
+
+  it("hinges single doors on the outer sides; a door hinged at a middle panel drills it", () => {
+    const outer = partsByCode(wardrobe());
+    expect(outer.MP1!.operations.some((o) => o.sources.some((s) => s.ref === "generic-hinge-110"))).toBe(false);
+    const r = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 1000 }, sections: [{ fronts: [{ type: "door", hinge: "right" }] }, { fronts: [{ type: "door" }] }] });
+    const p = partsByCode(r);
+    expect(hw(p.MP1!, "generic-hinge-110").length).toBeGreaterThan(0);
+  });
+
+  it("takes section widths; the others share the rest", () => {
+    const r = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 1000 }, sections: [{ w: 300 }, {}] });
+    const p = partsByCode(r);
+    expect(p.MP1!.box.x).toBe(19 + 300);
+    expect(r.diagnostics).toEqual([]);
+    const bad = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 1000 }, sections: [{ w: 300 }, { w: 300 }] });
+    expect(bad.diagnostics.map((d) => d.code)).toContain("sections_width_mismatch");
+  });
+
+  it("bounds zones by extra construction panels", () => {
+    // Fixed shelves replaced by panels at the sketch's clear heights: 375 above the bottom, 269 under the top.
+    const r = wardrobe({ construction: { fixed: { "1": { panel: false }, "2": { panel: false } }, panels: [{ y: "H - 2 * t_carcase - 269" }, { y: "t_carcase + 375" }] } });
+    const p = partsByCode(r);
+    const fs = r.parts.filter((x) => x.role === "fixed_shelf").map((x) => x.box.y);
+    expect([...new Set(fs)].sort((a, b) => a - b)).toEqual([394, 1413]);
+    // Shelves between the panels (413…1413), the rail under the upper one.
+    for (const s of r.parts.filter((x) => x.role === "shelf")) expect(s.box.y > 413 && s.box.y < 1413).toBe(true);
+    const rail = r.cabinets[0]!.fittings.find((f) => f.kind === "rail");
+    expect(rail?.y).toBe(1413 - 50);
+    expect(p.DF1).toBeDefined();
+  });
+});
+
+describe("middle panels through (D46)", () => {
+  it("runs the middle panel full height and splits bottom and top", () => {
+    const r = wardrobe({ options: { partition_joint: "through" } });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const p = partsByCode(r);
+    expect(p.MP1!.box).toMatchObject({ y: 0, dy: 1720 });
+    expect(size(p.BO1)).toBe("496.5 × 475 × 19");
+    expect(size(p.BO2)).toBe("496.5 × 475 × 19");
+    expect(size(p.TO1)).toBe("496.5 × 475 × 19");
+    expect(p.BO).toBeUndefined();
+    // The bottoms' ends are dowelled into the middle panel's faces.
+    expect(refs(p.MP1!, "MP1-BO1").length).toBeGreaterThan(0);
+    expect(refs(p.MP1!, "MP1-BO2").length).toBeGreaterThan(0);
+    expect(refs(p.SL!, "SL-BO1").length).toBeGreaterThan(0);
+    expect(refs(p.SR!, "SR-BO2").length).toBeGreaterThan(0);
+    // Legs go into the bottom pieces, none under the middle panel.
+    const legs = r.cabinets[0]!.fittings.filter((f) => f.kind === "leg");
+    expect(legs.length).toBeGreaterThan(0);
+    for (const l of legs) expect(l.x < p.MP1!.box.x || l.x > p.MP1!.box.x + 19).toBe(true);
+  });
+
+  it("keeps one bottom and top without middle panels", () => {
+    const p = partsByCode(buildOne({ options: { partition_joint: "through" } }));
+    expect(p.BO).toBeDefined();
+    expect(p.BO1).toBeUndefined();
+  });
+});

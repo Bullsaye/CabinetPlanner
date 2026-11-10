@@ -365,7 +365,7 @@ export function machineBox(
     const hinge = library.hardware.get(opt<string>("hardware.hinge"))!;
     for (const door of layout.doors) {
       const part = byCode.get(door.code)!;
-      const placed = placeHinges(rc, hinge, part, door.hinge, byCode, diagnostics);
+      const placed = placeHinges(rc, hinge, part, door.hinge, byCode.get(door.panel), diagnostics);
       use(hinge, placed);
     }
   }
@@ -431,22 +431,23 @@ export function machineBox(
   for (const [i, d] of layout.drawers.entries()) {
     const item = library.hardware.get(d.slide)!;
     const sd = item.slide!;
-    if (i === 0) {
+    // Limits once per clear width (sections may differ, D46).
+    if (layout.drawers.findIndex((e) => e.x1 - e.x0 === d.x1 - d.x0 && e.nl === d.nl) === i) {
       const ctx = new Map(rc.values);
-      ctx.set("LWK", W - 2 * t);
+      ctx.set("LWK", d.x1 - d.x0);
       ctx.set("NL", d.nl);
-      diagnostics.push(...checkLimits(item, evaluateItemParams(item, ctx, at).values, at));
+      for (const dg of checkLimits(item, evaluateItemParams(item, ctx, at).values, at)) {
+        if (!diagnostics.some((x) => x.code === dg.code && JSON.stringify(x.params) === JSON.stringify(dg.params))) diagnostics.push(dg);
+      }
     }
     const fix = sd.fixings.find((f) => d.nl <= f.upTo) ?? sd.fixings[sd.fixings.length - 1]!;
     const source: OpSource = { kind: "hardware", ref: item.id };
-    for (const [code, x, dir] of [
-      ["SL", t, "-x"],
-      ["SR", W - t, "+x"],
-    ] as const) {
-      const side = byCode.get(code);
-      if (!side) continue;
+    // Rails on the panels left and right of the drawer: sides or middle panels.
+    for (const x of [d.x0, d.x1]) {
+      const v = verticalAt(x);
+      if (!v) continue;
       for (const a of fix.at) {
-        addBore(side, { x, y: d.axisY, z: D - sd.firstFixing - a }, dir, num("sys_hole_d"), num("sys_hole_depth"), source);
+        addBore(v.part, { x, y: d.axisY, z: D - sd.firstFixing - a }, v.dir, num("sys_hole_d"), num("sys_hole_depth"), source);
       }
     }
     use(item, 1);
@@ -458,7 +459,7 @@ export function machineBox(
       const ff = sd.frontFixing;
       const yb = d.axisY - sd.axisToBox;
       const src: OpSource = { kind: "hardware", ref: `${item.id}:front` };
-      for (const x of [t + ff.fromSide, W - t - ff.fromSide]) {
+      for (const x of [d.x0 + ff.fromSide, d.x1 - ff.fromSide]) {
         for (const r of ff.rows) addBore(df, { x, y: yb + ff.fromBox + r, z: df.box.z }, "+z", ff.d, ff.depth, src);
       }
     } else if (d.box === "wood" && opt<string>("drawer_front.fixing") === "screws") {
@@ -590,7 +591,9 @@ export function machineBox(
 
   // --- Adjustable legs under floor units with a plinth -------------------------------------
   const legId = opt<string | null>("hardware.leg");
-  const bottom = byCode.get("BO");
+  // One bottom, or one per section when middle panels run through (D46).
+  const bottoms = parts.filter((p) => p.role === "bottom").sort((a, b) => a.box.x - b.box.x);
+  const bottom = bottoms[0];
   if (legId !== null && rc.cabinet.kind !== "wall" && num("plinth_h") > 0 && bottom) {
     const item = library.hardware.get(legId)!;
     const params = evaluateItemParams(item, rc.values, at);
@@ -607,8 +610,18 @@ export function machineBox(
     const zs = spread(Math.max(layout.backFrontZ, bottom.box.z) + num("leg_inset_rear"), Math.min(D, bottom.box.z + bottom.box.dz) - num("leg_inset_front"));
     const source: OpSource = { kind: "hardware", ref: item.id };
     const minWall = num("bore_min_wall");
-    const fits = (x: number, z: number): boolean =>
-      drills.every((dr) => dr.mount !== "bottom" || !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall));
+    /** The bottom piece a leg at x is drilled into (a leg under a middle panel has none). */
+    const pieceAt = (x: number): Part | undefined => bottoms.find((b) => x >= b.box.x - 1e-6 && x <= b.box.x + b.box.dx + 1e-6);
+    const fits = (x: number, z: number): boolean => {
+      const b = pieceAt(x);
+      if (!b) return false;
+      return drills.every((dr) => {
+        if (dr.mount !== "bottom") return true;
+        const p = { x: x + dr.a, y: b.box.y, z: z + dr.b };
+        if (p.x - dr.d / 2 < b.box.x + minWall - 1e-6 || p.x + dr.d / 2 > b.box.x + b.box.dx - minWall + 1e-6) return false;
+        return !boreWouldCollide(b, p, "+y", dr.d, dr.depth, minWall);
+      });
+    };
     for (const x0 of xs) {
       for (const z of zs) {
         // A leg that meets other machining (middle panel dowels) moves sideways in pitch steps.
@@ -618,12 +631,13 @@ export function machineBox(
           x = fits(x0 - step, z) ? x0 - step : x0 + step;
         }
         if (!fits(x, z)) x = x0;
+        const piece = pieceAt(x) ?? bottom;
         for (const dr of drills) {
           if (dr.mount !== "bottom") {
             diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
             continue;
           }
-          addBore(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, source);
+          addBore(piece, { x: x + dr.a, y: piece.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, source);
         }
         fittings.push({ kind: "leg", item: item.id, x, y: 0, z, d: params.values.get("d") ?? 40, h: num("plinth_h") });
       }
@@ -679,37 +693,51 @@ interface Joint {
 function carcaseJoints(parts: Part[], jointType: string): Joint[] {
   const byCode = new Map(parts.map((p) => [p.code, p]));
   const sides = [byCode.get("SL"), byCode.get("SR")].filter((p): p is Part => !!p);
-  const horizontals = ["BO", "TO", "RF", "RR", "RB"].map((c) => byCode.get(c)).filter((p): p is Part => !!p);
+  // Bottom, top and rails: one each, or one per section (middle panels through, D46).
+  const hzRoles = ["bottom", "top", "rail_front", "rail_rear", "rail_bottom"];
+  const horizontals = parts.filter((p) => hzRoles.includes(p.role)).sort((a, b) => hzRoles.indexOf(a.role) - hzRoles.indexOf(b.role) || a.box.x - b.box.x);
   const upright = (p: Part): boolean => thicknessAxis(p.lengthAxis, p.widthAxis) === "z";
+  const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.01;
   const joints: Joint[] = [];
+  /** Vertical panel face, horizontal panel end (sides over, or middle panels through). */
+  const endJoint = (v: Part, h: Part, left: boolean): Joint => {
+    const up = upright(h);
+    return {
+      ref: `${v.code}-${h.code}`,
+      facePart: v,
+      edgePart: h,
+      plane: { axis: "x", value: left ? v.box.x + v.box.dx : v.box.x },
+      intoFace: left ? "-x" : "+x",
+      across: up ? { axis: "z", value: h.box.z + h.box.dz / 2 } : { axis: "y", value: h.box.y + h.box.dy / 2 },
+      line: up ? "y" : "z",
+      ...(up && h.box.y < v.box.y + v.box.dy / 2 ? { fromMin: true } : {}),
+    };
+  };
+  /** Horizontal panel face, vertical panel end (sides between, or middle panels between). */
+  const faceJoint = (h: Part, v: Part): Joint => {
+    const below = h.box.y + h.box.dy <= v.box.y + 1e-6;
+    return {
+      ref: `${h.code}-${v.code}`,
+      facePart: h,
+      edgePart: v,
+      plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
+      intoFace: below ? "-y" : "+y",
+      across: { axis: "x", value: v.box.x + v.box.dx / 2 },
+      line: "z",
+    };
+  };
+  /** The horizontal runs under/over the vertical part's whole thickness. */
+  const spans = (h: Part, v: Part): boolean => h.box.x <= v.box.x + 1e-6 && h.box.x + h.box.dx >= v.box.x + v.box.dx - 1e-6;
   for (const side of sides) {
     const left = side.code === "SL";
     for (const h of horizontals) {
       if (jointType === "sides_over") {
         // Side face, horizontal part's end. Upright rails: across their thickness (Z), along Y.
-        const up = upright(h);
-        joints.push({
-          ref: `${side.code}-${h.code}`,
-          facePart: side,
-          edgePart: h,
-          plane: { axis: "x", value: left ? side.box.x + side.box.dx : side.box.x },
-          intoFace: left ? "-x" : "+x",
-          across: up ? { axis: "z", value: h.box.z + h.box.dz / 2 } : { axis: "y", value: h.box.y + h.box.dy / 2 },
-          line: up ? "y" : "z",
-          ...(up && h.box.y < side.box.y + side.box.dy / 2 ? { fromMin: true } : {}),
-        });
-      } else if (!upright(h)) {
+        if (!near(left ? side.box.x + side.box.dx : side.box.x, left ? h.box.x : h.box.x + h.box.dx)) continue;
+        joints.push(endJoint(side, h, left));
+      } else if (!upright(h) && spans(h, side)) {
         // Horizontal part's face, side's end. Bottom is below the side, top/rails above.
-        const below = h.box.y + h.box.dy <= side.box.y + 1e-6;
-        joints.push({
-          ref: `${h.code}-${side.code}`,
-          facePart: h,
-          edgePart: side,
-          plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
-          intoFace: below ? "-y" : "+y",
-          across: { axis: "x", value: side.box.x + side.box.dx / 2 },
-          line: "z",
-        });
+        joints.push(faceJoint(h, side));
       }
     }
   }
@@ -730,19 +758,14 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
       });
     }
   }
-  // Middle panels always stand between bottom and top/rails.
+  // Middle panels stand between bottom and top/rails, or run through with
+  // the horizontals' ends against their faces (D46).
   for (const mp of parts.filter((p) => p.role === "partition")) {
-    for (const h of horizontals.filter((x) => !upright(x) && x.box.z < mp.box.z + mp.box.dz && mp.box.z < x.box.z + x.box.dz)) {
-      const below = h.box.y + h.box.dy <= mp.box.y + 1e-6;
-      joints.push({
-        ref: `${h.code}-${mp.code}`,
-        facePart: h,
-        edgePart: mp,
-        plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
-        intoFace: below ? "-y" : "+y",
-        across: { axis: "x", value: mp.box.x + mp.box.dx / 2 },
-        line: "z",
-      });
+    for (const h of horizontals) {
+      if (h.box.z >= mp.box.z + mp.box.dz || mp.box.z >= h.box.z + h.box.dz) continue;
+      if (near(h.box.x + h.box.dx, mp.box.x)) joints.push(endJoint(mp, h, false));
+      else if (near(h.box.x, mp.box.x + mp.box.dx)) joints.push(endJoint(mp, h, true));
+      else if (!upright(h) && spans(h, mp)) joints.push(faceJoint(h, mp));
     }
   }
   return joints;
@@ -980,11 +1003,11 @@ function placeHinges(
   item: HardwareItem,
   door: Part,
   side: "left" | "right",
-  byCode: Map<string, Part>,
+  /** The side or middle panel the hinges go into (D46). */
+  sidePart: Part | undefined,
   diagnostics: Diagnostic[],
 ): number {
   const at = { cabinet: rc.cabinet.id };
-  const sidePart = byCode.get(side === "left" ? "SL" : "SR");
   const context = new Map(rc.values);
   context.set("door_h", door.length);
   context.set("door_w", door.width);

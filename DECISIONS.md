@@ -665,3 +665,45 @@ Two shop settings, because they are used for different things:
   the panel edge: fixed shelves at the same height on both faces of a
   middle panel (dowels from both faces would meet in the panel) failed the
   edge check. Now the second face's dowels sit between the first face's.
+
+### D46 · 2026-11-10 · Sections, middle panels through, hat shelf, zone shelves
+
+- A cabinet may list `sections` left to right: each with an optional clear
+  width `w` (number or formula; the others share the rest), its own front
+  stack `fronts` (default: one door), `interior` (`shelves` / `hanging`,
+  default from option `interior`: hanging = all, hanging_first / _last =
+  first / last section), `shelves` (default shelf_count) and
+  `construction` (panels and fixed-shelf changes; the cabinet's own
+  construction applies to every section first). The number of sections
+  sets the middle panels (partition_count is ignored, warning if it
+  differs); the cabinet's `fronts` are ignored (warning). Not yet with
+  sections: flaps (error), blind corners and `noBack` (warning).
+- Without sections nothing changes: partition_count equal sections share
+  one front stack, and middle panels still drop out (warning) under
+  full-width drawers.
+- Section fronts span from the outer edge less the side gap, or from the
+  middle of a middle panel plus half `front_gap_middle`, so two sections
+  side by side look like a pair of doors. A single door hinges on the
+  section's outer side (left section left, right section right, middle
+  sections `door_hinge_side`) unless the zone sets `hinge`. Hinges go into
+  the panel on that side: a side or a middle panel (`hinge_overlay` is
+  measured from that panel's face).
+- Drawers in a section: box and slides over the section's clear width
+  (`LWK` = section width); rails drilled into the panels left and right
+  (sides or middle panel faces); system front fixing measured from those
+  faces. Slide limits are checked once per width.
+- Fixed shelves per section follow that section's zones (D30). Zone
+  ranges and drawer floor/ceiling now also respect extra construction
+  panels (D38): a panel inside a zone or at its edge (within one front gap
+  plus its thickness) bounds it. Before, shelves and rails ignored extra
+  panels that replaced automatic fixed shelves.
+- Front zones may set `shelves` (adjustable shelves in that zone),
+  overriding shelf_count / the proportional share.
+- Option `hat_shelf` (factory on): off hangs the rail `rail_drop` below the
+  panel that closes the hanging zone at the top, with no hat shelf.
+- Option `partition_joint`: `between` (factory, as before: middle panels
+  stand between bottom and top) or `through`: middle panels run from the
+  carcase bottom edge to the top edge like sides over, and bottom, top and
+  rails are split per section (codes BO1, BO2, TO1, …), dowelled into the
+  middle panel faces. Legs go into the bottom piece above them and move
+  off a middle panel.
