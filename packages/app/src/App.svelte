@@ -11,13 +11,17 @@
   import RoomView from "./components/RoomView.svelte";
   import ProjectsHome from "./components/ProjectsHome.svelte";
   import LibraryView from "./components/LibraryView.svelte";
+  import AccountMenu from "./components/AccountMenu.svelte";
+  import CommunityView from "./components/CommunityView.svelte";
+  import { account } from "./lib/account.svelte.ts";
   import { onMount } from "svelte";
 
   const t = $derived(store.tr.t);
-  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware", "library"];
+  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware", "library", "community"];
 
   onMount(() => {
-    void store.boot();
+    // The account is optional: it starts after the local data is there.
+    void store.boot().then(() => account.boot());
   });
 
   // Save and record undo history shortly after every change (typing is grouped).
@@ -100,7 +104,7 @@
     {/if}
     <div class="right">
       {#if store.screen === "project"}
-      <span class="panel-toggles">
+      <span class="panel-toggles" class:off={store.ui.tab === "community"}>
         <button class="only-narrow" aria-pressed={store.ui.panel === "list"} onclick={() => (store.ui.panel = store.ui.panel === "list" ? null : "list")}>{t("ui.cabinets")}</button>
         <button class="only-tablet" aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
       </span>
@@ -112,6 +116,7 @@
         <option value="en">English</option>
         <option value="de">Deutsch</option>
       </select>
+      <AccountMenu />
       <FileMenu />
     </div>
   </header>
@@ -120,6 +125,8 @@
     <p class="muted loading">{t("ui.loading")}</p>
   {:else if store.screen === "home"}
     <ProjectsHome />
+  {:else if store.ui.tab === "community"}
+    <CommunityView />
   {:else}
   {#if store.built.error}
     <div class="fatal" role="alert">
@@ -196,6 +203,7 @@
   .work { flex: 1; min-height: 0; }
   aside { min-width: 0; }
   .panel-toggles { display: contents; }
+  .panel-toggles.off { display: none; }
   .only-tablet, .only-narrow, .scrim { display: none; }
   /* Tablet: the inspector slides in from the right; phone: the cabinet list from the left too. */
   @media (max-width: 1100px) {
