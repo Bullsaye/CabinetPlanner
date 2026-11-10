@@ -865,3 +865,30 @@ the earlier entries stay as written.
   doors keep the handle at the top, wall unit doors at the bottom (as
   before); a door spanning the grip height gets it at that height (upper
   and full-height doors of tall units, which had it at their top end).
+
+### D53 · 2026-11-10 · Cabinet view, room optional in the app, wall visibility
+
+- The main view has two modes: **cabinet** (the selected cabinet alone) and
+  **room** (all cabinets, in the room when there is one). Without a stored
+  choice the cabinet view is the default up to 1100 px width, the room view
+  above. On narrow screens the cabinet view carries the cabinet's settings
+  below the drawing instead of the slide-in pane.
+- The cabinet view is a front elevation to scale, or the single cabinet in
+  3D. The elevation is drawn from `frontViewOf(CabinetResult)` (engine,
+  `output/frontview.ts`): the built parts as rectangles in cabinet X/Y (D2),
+  back to front, hinge positions from the cup bores of the hinge item,
+  handles from `CabinetResult.handles`, legs from the fittings. No front
+  geometry is computed in the app. Clicking a front selects its zone
+  (index into `layout.zones`) in the front builder.
+- Opening symbol on doors: preference `hingeSymbol`, `tip_at_hinge` (DIN,
+  default) or `tip_at_handle`. Both front drawings also show hinge marks on
+  the hinge edge and the handle, so the direction is clear either way.
+- A project may have no room in the app too: "work without a room" removes
+  `project.room` (cabinets keep their `place` for a later room), and a new
+  project can start without one. The 3D view then shows the simple run and
+  fits the camera again when the cabinets change.
+- Room 3D view: walls are shown `all`, `used` (default: walls named in
+  `RoomLayout.placements`) or `none`; openings and roof slopes follow their
+  wall. Floor, worktops and plinth panels stay.
+- UI preferences kept (D33): language, drawing style, machining, fronts,
+  view mode, cabinet 3D, walls, hinge symbol.

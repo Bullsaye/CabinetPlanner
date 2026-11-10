@@ -41,6 +41,7 @@
     <h1>{t("ui.projects")}</h1>
     <div class="actions">
       <button class="primary" onclick={() => store.addProject(blankProject(t("ui.new_project_name")))}>{t("ui.new_project")}</button>
+      <button onclick={() => store.addProject(blankProject(t("ui.new_project_name"), false))}>{t("ui.new_project_no_room")}</button>
       <button onclick={() => store.addProject(exampleProjectDoc())}>{t("ui.new_from_example")}</button>
       <button onclick={importFile}>{t("ui.import_file")}</button>
     </div>

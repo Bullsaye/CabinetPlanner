@@ -1,8 +1,10 @@
 <script lang="ts">
   import { blankProject, copy, download, downloadNote, parseDocument, store } from "../lib/store.svelte.ts";
   import { openFile } from "../lib/platform.ts";
+  import { swingPoints } from "../lib/elevation.ts";
 
   const t = $derived(store.tr.t);
+  const SYMBOLS = ["tip_at_hinge", "tip_at_handle"] as const;
   let open = $state(false);
   let note = $state("");
 
@@ -51,6 +53,22 @@
       <button class="quiet" role="menuitem" onclick={run(() => save("project"))}>{t("ui.save_project")}</button>
       <button class="quiet" role="menuitem" onclick={run(() => save("shop"))}>{t("ui.save_shop")}</button>
       <button class="quiet" role="menuitem" onclick={run(copyDoc)}>{t("ui.copy_project")}</button>
+      <hr />
+      <!-- Preference: which way the opening triangle on doors points (hinge marks and handle are always drawn). -->
+      <span class="label pref">{t("ui.hinge_symbol")}</span>
+      <div class="sym" role="group" aria-label={t("ui.hinge_symbol")}>
+        {#each SYMBOLS as sym}
+          <button aria-pressed={store.ui.hingeSymbol === sym} onclick={() => (store.ui.hingeSymbol = sym)}>
+            <svg width="22" height="30" viewBox="0 0 22 30" aria-hidden="true">
+              <rect x="1" y="1" width="20" height="28" fill="none" stroke="currentColor" />
+              <polyline points={swingPoints({ x: 1, y: 1, w: 20, h: 28 }, "left", sym)} fill="none" stroke="currentColor" stroke-dasharray="3 2" />
+              <rect x="1" y="4" width="2.5" height="5" fill="currentColor" /><rect x="1" y="21" width="2.5" height="5" fill="currentColor" />
+              <line x1="17.5" y1="11" x2="17.5" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            {t(`ui.hinge_symbol.${sym}`)}
+          </button>
+        {/each}
+      </div>
       {#if note}<p class="note" role="status">{note}</p>{/if}
     </div>
   {/if}
@@ -62,5 +80,9 @@
   .pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; padding: 6px; display: flex; flex-direction: column; min-width: 230px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
   .pop button { text-align: left; }
   hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+  .pref { padding: 4px 10px 2px; }
+  .sym { display: flex; gap: 4px; padding: 2px 6px 4px; }
+  .sym button { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 12px; text-align: left; padding: 4px 6px; }
+  .sym svg { flex: none; }
   .note { margin: 6px 4px 2px; font-size: 12px; color: var(--muted); max-width: 30ch; }
 </style>

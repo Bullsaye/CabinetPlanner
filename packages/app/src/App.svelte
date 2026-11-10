@@ -3,6 +3,7 @@
   import CabinetList from "./components/CabinetList.svelte";
   import RightPane from "./components/RightPane.svelte";
   import Viewer3D from "./components/Viewer3D.svelte";
+  import CabinetView from "./components/CabinetView.svelte";
   import CutlistView from "./components/CutlistView.svelte";
   import DrawingsView from "./components/DrawingsView.svelte";
   import BomView from "./components/BomView.svelte";
@@ -34,6 +35,10 @@
     store.ui.style;
     store.ui.ops;
     store.ui.fronts;
+    store.ui.viewMode;
+    store.ui.cabinet3d;
+    store.ui.walls;
+    store.ui.hingeSymbol;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => void store.persist(), 300);
   });
@@ -59,6 +64,12 @@
   }
   $effect(() => {
     document.documentElement.lang = store.ui.lang;
+  });
+
+  /** The cabinet view on a narrow screen carries the settings itself (D53). */
+  const inlinePane = $derived(store.narrow && store.ui.tab === "view" && store.viewMode === "cabinet");
+  $effect(() => {
+    if (inlinePane && store.ui.panel === "inspector") store.ui.panel = null;
   });
 
   const counts = $derived.by(() => {
@@ -106,7 +117,7 @@
       {#if store.screen === "project"}
       <span class="panel-toggles" class:off={store.ui.tab === "community"}>
         <button class="only-narrow" aria-pressed={store.ui.panel === "list"} onclick={() => (store.ui.panel = store.ui.panel === "list" ? null : "list")}>{t("ui.cabinets")}</button>
-        <button class="only-tablet" aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
+        <button class="only-tablet" class:gone={inlinePane} aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
       </span>
       <span class="status" class:bad={counts.errors > 0}>
         {#if counts.errors}{t("ui.errors", { n: counts.errors })}{:else if counts.warnings}{t("ui.warnings", { n: counts.warnings })}{:else}{t("ui.checks_ok")}{/if}
@@ -145,7 +156,9 @@
     <aside class="left" class:open={store.ui.panel === "list"}><CabinetList /></aside>
     <main>
       <div class="work">
-        {#if store.ui.tab === "view"}
+        {#if store.ui.tab === "view" && store.viewMode === "cabinet"}
+          <CabinetView />
+        {:else if store.ui.tab === "view"}
           <Viewer3D />
         {:else if store.ui.tab === "room"}
           <RoomView />
@@ -161,10 +174,13 @@
       </div>
       <Diagnostics />
     </main>
+    <!-- Narrow screens: the cabinet view shows the settings below its drawing instead. -->
+    {#if !inlinePane}
     <aside class="right-pane" class:open={store.ui.panel === "inspector"}>
       <button class="quiet close only-tablet" aria-label={t("ui.close")} onclick={() => (store.ui.panel = null)}>×</button>
       <RightPane />
     </aside>
+    {/if}
   </div>
   {/if}
 </div>
@@ -203,7 +219,7 @@
   .work { flex: 1; min-height: 0; }
   aside { min-width: 0; }
   .panel-toggles { display: contents; }
-  .panel-toggles.off { display: none; }
+  .panel-toggles.off, .panel-toggles .gone { display: none; }
   .only-tablet, .only-narrow, .scrim { display: none; }
   /* Tablet: the inspector slides in from the right; phone: the cabinet list from the left too. */
   @media (max-width: 1100px) {
