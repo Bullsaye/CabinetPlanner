@@ -844,3 +844,14 @@ the earlier entries stay as written.
 - Item data that cannot be machined is `hardware_drill_invalid`: a
   diameter, blind depth or slot length that is not positive
   (`not_positive`), `through` on a connector's `edge` mount (`edge`).
+
+### D51 · 2026-11-10 · Hinges keep clear of fixed panels
+
+- A hinge whose mounting plate holes would fall on the end of a fixed
+  panel (fixed shelf, or a lying free part ending at the hinge side),
+  within the hole radius plus `bore_min_wall`, moves towards the middle of
+  its door in steps of `sys_pitch` (at most eight) until the plate is
+  clear. Cup and plate move together. If no clear position is found the
+  hinge stays, and the usual checks report what collides.
+- Fronts fixed to an appliance door (integrated fridge, dishwasher) carry
+  no hinges (D30); this concerns the doors above and below them.

@@ -292,3 +292,23 @@ describe("upright rails and the interior", () => {
     expect(errors(r)).toContain("fixed_shelf_outside");
   });
 });
+
+describe("hinges and fixed panels (D51)", () => {
+  it("moves a hinge whose plate would sit on the end of a fixed panel towards the door's middle", async () => {
+    const { FACTORY_TEMPLATES, buildProject, loadProject } = await import("../src/index.ts");
+    const tpl = FACTORY_TEMPLATES.find((t) => t.id === "tall-fridge")!;
+    const r = buildProject(loadProject({ schemaVersion: 1, name: "T", cabinets: [{ id: "X1", type: "box", ...tpl.cabinet }] }));
+    expect(r.diagnostics).toEqual([]);
+    const side = r.parts.find((p) => p.code === "SL")!;
+    const panels = r.parts.filter((p) => p.role === "fixed_shelf");
+    const plate = side.operations.filter((o) => o.kind === "bore" && o.sources.some((s) => s.kind === "hardware" && s.ref.includes("hinge")));
+    expect(plate.length).toBeGreaterThan(0);
+    for (const o of plate) {
+      const y = side.box.y + (o as { u: number }).u;
+      for (const p of panels) expect(y < p.box.y - 2 || y > p.box.y + p.box.dy + 2).toBe(true);
+    }
+    // The fridge front itself carries no hinges: it is fixed to the appliance door (D30).
+    const front = r.parts.find((p) => p.role === "appliance_front")!;
+    expect(front.operations.filter((o) => o.sources.some((s) => s.ref.includes("hinge")))).toEqual([]);
+  });
+});

@@ -1090,6 +1090,35 @@ function placeHinges(
     centres = centres.map((c) => gy0 + Math.round((c - gridOffset - gy0) / pitch) * pitch + gridOffset);
   }
 
+  // A mounting plate never sits on the end of a fixed panel (D51): the hinge
+  // moves towards the door's middle in pitch steps until its plate holes are clear.
+  if (sidePart) {
+    const face = side === "left" ? sidePart.box.x + sidePart.box.dx : sidePart.box.x;
+    const panels = [...byCode.values()].filter(
+      (p) =>
+        (p.role === "fixed_shelf" || p.role === "custom") &&
+        thicknessAxis(p.lengthAxis, p.widthAxis) === "y" &&
+        (Math.abs(p.box.x - face) < 0.01 || Math.abs(p.box.x + p.box.dx - face) < 0.01),
+    );
+    const wall = rc.values.get("bore_min_wall")!;
+    const blocked = (yc: number): boolean => {
+      const scope = new Map(params.values);
+      scope.set("hinge_y", yc);
+      const { drills } = evaluateDrilling(item, scope, at);
+      return drills.some(
+        (dr) => dr.mount === "side" && panels.some((p) => yc + dr.a > p.box.y - dr.d / 2 - wall && yc + dr.a < p.box.y + p.box.dy + dr.d / 2 + wall),
+      );
+    };
+    const pitch = rc.values.get("sys_pitch")!;
+    const mid = door.box.y + door.box.dy / 2;
+    centres = centres.map((c) => {
+      const step = c <= mid ? pitch : -pitch;
+      let y = c;
+      for (let k = 0; k < 8 && blocked(y); k++) y += step;
+      return blocked(y) ? c : y;
+    });
+  }
+
   diagnostics.push(...checkLimits(item, params.values, { ...at, part: door.id }));
   const source: OpSource = { kind: "hardware", ref: item.id };
   centres.forEach((yc, i) => {
