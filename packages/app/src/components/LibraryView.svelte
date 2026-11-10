@@ -587,7 +587,7 @@
                 <p class="muted small">{t("ui.preset_var_hint")}</p>
               </details>
             {:else}
-              <span class="muted small mono">{Object.entries(p.vars).map(([k, v]) => `${k}=${v}`).join(" ")}</span>
+              <span class="muted small">{[...Object.entries(p.vars).map(([k, v]) => `${store.tr.has(`var.${k}`) ? t(`var.${k}`) : k}: ${v}`), ...Object.entries(p.options ?? {}).map(([k, v]) => `${store.tr.has(`option.${k}`) ? t(`option.${k}`) : k}: ${store.tr.has(`option.${k}.${v}`) ? t(`option.${k}.${v}`) : v}`)].join(" · ")}</span>
             {/if}
           </li>
         {/each}

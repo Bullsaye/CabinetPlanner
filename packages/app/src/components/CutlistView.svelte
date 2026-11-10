@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cutlistCsv, cutlistRows, formatNumber, localName, type CutlistRow } from "@cabinet-planner/engine";
+  import { cutlistCsv, cutlistRows, localName, type CutlistRow } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
   import { csvForDownload } from "../lib/export.ts";
 
@@ -25,7 +25,24 @@
   });
   const rows = $derived(store.result ? cutlistRows(parts, store.result.library, { group }) : []);
   const lib = $derived(store.result?.library);
-  const fmt = (x: number): string => formatNumber(x);
+  // Shown in the reader's number format (decimal comma in German); the CSV keeps the machine format (D10).
+  const fmt = (x: number): string => store.tr.number(x, 2);
+  /** The cabinet a row belongs to, as an editable document (room parts have none). */
+  const cabinetDoc = (r: CutlistRow): Record<string, any> | undefined => (store.project.cabinets ?? []).find((c: Record<string, any>) => c.id === r.cabinet);
+  /** Writes the remark to every part of the row (part override `note`); empty removes it. */
+  function setNote(r: CutlistRow, text: string): void {
+    const c = cabinetDoc(r);
+    if (!c) return;
+    c.parts ??= {};
+    for (const id of r.parts) {
+      const code = id.slice(id.lastIndexOf("-") + 1);
+      const o = { ...(c.parts[code] ?? {}) };
+      if (text.trim()) o.note = text.trim();
+      else delete o.note;
+      if (Object.keys(o).length) c.parts[code] = o;
+      else delete c.parts[code];
+    }
+  }
   const materialName = (id: string): string => localName(lib?.materials.get(id)?.name ?? id, store.tr.locale);
   const surfaceOf = (id: string) => (id ? lib?.surfaces.get(id) : undefined);
   /** Shown part numbers: a grouped row lists its codes without repeating the cabinet. */
@@ -94,7 +111,12 @@
               <span class="mono small">{[...new Set(r.edges.filter(Boolean))].join(" ")}</span>
             </td>
             <td class="n muted">{fmt(r.cutLength)} × {fmt(r.cutWidth)}</td>
-            <td>{noteOf(r)}</td>
+            <td class="note-cell">
+              {#if cabinetDoc(r)}
+                <input type="text" aria-label={`${t("col.note")} ${partLabel(r)}`} value={r.note} placeholder="–" onchange={(e) => setNote(r, (e.target as HTMLInputElement).value)} />
+                {#if r.outline}<span class="muted small">{t("cutlist.shaped")}</span>{/if}
+              {:else}{noteOf(r)}{/if}
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -119,6 +141,8 @@
   .eb-on { stroke: var(--accent); stroke-width: 3.5; stroke-linecap: square; }
   .swatch { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -2px; }
   .small { font-size: 11px; }
+  .note-cell input { min-width: 12em; width: 100%; border-color: transparent; background: transparent; padding: 2px 4px; }
+  .note-cell input:hover, .note-cell input:focus { border-color: var(--line); background: var(--surface); }
   th.n { text-align: right; }
   .sum { display: flex; flex-wrap: wrap; gap: 16px; padding: 8px 10px; border-top: 1px solid var(--line); font-size: 12px; }
 </style>
