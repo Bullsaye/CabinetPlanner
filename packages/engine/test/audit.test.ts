@@ -313,3 +313,26 @@ describe("hinges and fixed panels (D51)", () => {
     expect(front.operations.filter((o) => o.sources.some((s) => s.ref.includes("hinge")))).toEqual([]);
   });
 });
+
+describe("door handles by grip height (D52)", () => {
+  const ys = (r: ReturnType<typeof buildOne>, part: string): number[] => r.cabinets[0]!.handles.filter((h) => h.part === part).flatMap((h) => h.points.map((p) => p.y));
+  const handle = { "hardware.handle": "generic-bar-160" };
+  it("upper door of a tall unit: at grip height, not at its top; lower door: at the top; full-height door: at grip height", () => {
+    const r = buildOne({ kind: "tall", presets: ["tall-unit"], options: handle, fronts: [{ type: "door" }, { type: "door", h: 717 }] });
+    const [up, low] = [r.parts.find((p) => p.code === "DO1")!, r.parts.find((p) => p.code === "DO2")!];
+    // The upper door starts at 720 and spans the grip height (950 in the cabinet): centred on it, not 2 m up.
+    expect(ys(r, up.id)).toEqual([870, 1030]);
+    expect(ys(r, low.id)).toEqual([low.box.y + low.box.dy - 220, low.box.y + low.box.dy - 60]);
+    const one = buildOne({ kind: "tall", presets: ["tall-unit"], options: handle });
+    // Centred on 1050 above the floor, plinth 100: 950 in the cabinet.
+    expect(ys(one, "C1-DO1")).toEqual([870, 1030]);
+  });
+  it("base and wall units keep their handle ends", () => {
+    const b = buildOne({ options: handle });
+    const d = b.parts.find((p) => p.code === "DO1")!;
+    expect(ys(b, d.id)[1]).toBe(d.box.y + d.box.dy - 60);
+    const w = buildOne({ kind: "wall", presets: ["wall-unit"], options: handle });
+    const dw = w.parts.find((p) => p.code === "DO1")!;
+    expect(ys(w, dw.id)[0]).toBe(dw.box.y + 60);
+  });
+});

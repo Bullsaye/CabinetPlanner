@@ -432,21 +432,23 @@ export function machineBox(
       });
       use(item, 1);
     };
-    const wall = rc.cabinet.kind === "wall";
     const edgeOff = num("handle_edge_offset");
     const endOff = num("handle_end_offset");
+    // Grip height in cabinet Y (D52): the handle sits as near to it as the door allows.
+    const grip = num("handle_grip_h") - (rc.cabinet.kind === "wall" ? num("wall_bottom") : num("plinth_h"));
+    const near = (lo: number, hi: number, want: number): number => (hi < lo ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, want)));
     for (const d of [...layout.doors, ...layout.applianceFronts]) {
       const p = byCode.get(d.code)!;
       const b = p.box;
-      // Opening edge is opposite the hinges; wall units get the handle low, others high.
+      // Opening edge is opposite the hinges.
       const xOpen = d.hinge === "left" ? b.x + b.dx - edgeOff : b.x + edgeOff;
-      const yEnd = wall ? b.y + endOff : b.y + b.dy - endOff;
-      if (cc === 0) drill(p, [{ x: xOpen, y: yEnd }]);
-      else if (opt<string>("handle.door") === "vertical") {
-        drill(p, wall ? [{ x: xOpen, y: yEnd }, { x: xOpen, y: yEnd + cc }] : [{ x: xOpen, y: yEnd - cc }, { x: xOpen, y: yEnd }]);
+      if (cc !== 0 && opt<string>("handle.door") === "vertical") {
+        const yLo = near(b.y + endOff, b.y + b.dy - endOff - cc, grip - cc / 2);
+        drill(p, [{ x: xOpen, y: yLo }, { x: xOpen, y: yLo + cc }]);
       } else {
+        const y = near(b.y + endOff, b.y + b.dy - endOff, grip);
         const inward = d.hinge === "left" ? -1 : 1;
-        drill(p, [{ x: xOpen, y: yEnd }, { x: xOpen + inward * cc, y: yEnd }]);
+        drill(p, cc === 0 ? [{ x: xOpen, y }] : [{ x: xOpen, y }, { x: xOpen + inward * cc, y }]);
       }
     }
     for (const p of parts.filter((x) => x.role === "flap")) {

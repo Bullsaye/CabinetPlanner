@@ -855,3 +855,13 @@ the earlier entries stay as written.
   hinge stays, and the usual checks report what collides.
 - Fronts fixed to an appliance door (integrated fridge, dishwasher) carry
   no hinges (D30); this concerns the doors above and below them.
+
+### D52 · 2026-11-10 · Door handles by grip height
+
+- Door handles (and handles on appliance fronts) no longer follow the
+  cabinet kind. `handle_grip_h` is the height above the floor where a
+  handle is gripped; the handle sits as near to it as the door allows
+  between `handle_end_offset` from its top and bottom ends. Base unit
+  doors keep the handle at the top, wall unit doors at the bottom (as
+  before); a door spanning the grip height gets it at that height (upper
+  and full-height doors of tall units, which had it at their top end).

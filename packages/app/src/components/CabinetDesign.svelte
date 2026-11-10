@@ -78,6 +78,13 @@
       <OptRow key="hardware.handle" label={t("ui.handle")} />
       <OptRow key="handle.door" />
       <OptRow key="handle.drawer" />
+      <details>
+        <summary class="small">{t("ui.handle_position")}</summary>
+        <VarRow name="handle_grip_h" />
+        <VarRow name="handle_edge_offset" />
+        <VarRow name="handle_end_offset" />
+        <VarRow name="handle_drawer_top" />
+      </details>
     </section>
 
     <section>
