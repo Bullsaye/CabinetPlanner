@@ -1015,23 +1015,65 @@ export function buildBox(
       const local = out.map(([x, y]) => [roundMm(y - b.y), roundMm(x - b.x)] as [number, number]);
       bk.outline = ccw(local);
     }
-    // Parts the slope would cut, and fronts reaching above it.
+    // Parts under the slope: shelves shortened square, fixed shelves and
+    // middle panels cut to the slope with a bevel (their joint with the
+    // sloped panel is made by hand); fronts above the outer line warn.
     const inner = k - t;
+    const manual = [tp.code, ts.code, sp.code];
+    const over = (x: number, y: number): boolean => sn * x + cs * y > inner + 1e-6;
     for (const p of parts) {
       if (p === sp || p === tp || p === ts || p.role === "back" || p.role.startsWith("drawer_")) continue;
       const b = p.box;
       const xr = side === "right" ? b.x + b.dx : W - b.x; // end towards the slope, in slope coordinates
+      const xl = side === "right" ? b.x : W - (b.x + b.dx); // end away from it
       const yt = b.y + b.dy;
       const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
       if (isFront) {
         if (sn * xr + cs * yt > k + 1e-6) diagnostics.push({ severity: "warning", code: "slope_cuts_front", params: { part: p.id }, ...where, part: p.id });
-      } else if (["side_left", "side_right", "top", "bottom", "top_slope"].includes(p.role)) {
         continue;
-      } else if (sn * xr + cs * yt > inner + 1e-6) {
+      }
+      if (["side_left", "side_right", "top", "bottom", "top_slope"].includes(p.role) || !over(xr, yt)) continue;
+      const xAt = (y: number): number => (inner - cs * y) / sn; // inner slope line, x at height y
+      const yAt = (x: number): number => (inner - sn * x) / cs; // … y at x
+      const box = (x0: number, x1: number, y0: number, y1: number): Box => (side === "right" ? { ...b, x: x0, dx: x1 - x0, y: y0, dy: y1 - y0 } : { ...b, x: W - x1, dx: x1 - x0, y: y0, dy: y1 - y0 });
+      if (p.role === "shelf") {
+        // Square cut, shelf_gap clear of the slope at its top face.
+        const x1 = xAt(yt) - num("shelf_gap");
+        if (x1 - xl < 50) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        resize(p, box(xl, x1, b.y, yt));
+      } else if (p.role === "fixed_shelf") {
+        // Long point on the underside, bevel 90° − a at the end against the slope.
+        const xb = Math.min(xr, xAt(b.y));
+        const xt = xAt(yt);
+        if (xt - xl < 50) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        resize(p, box(xl, xb, b.y, yt));
+        p.profile = { points: ccw([pt(xl, b.y), pt(xb, b.y), pt(xt, yt), pt(xl, yt)]) };
+        p.bevels = { ...p.bevels, [side === "right" ? "w2" : "w1"]: roundMm(90 - angleDeg) };
+        manual.push(p.code);
+      } else if (p.role === "partition") {
+        // Long point on the face away from the slope, bevel a at the top end.
+        const yl = Math.min(yt, yAt(xl));
+        const yr = yAt(xr);
+        if (yr - b.y < 100) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        resize(p, box(xl, xr, b.y, yl));
+        p.profile = { points: ccw([pt(xl, b.y), pt(xr, b.y), pt(xr, yr), pt(xl, yl)]) };
+        p.bevels = { ...p.bevels, w2: roundMm(angleDeg) };
+        innerTop[p.code] = roundMm(yr);
+        manual.push(p.code);
+      } else {
         diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
       }
     }
-    diagnostics.push({ severity: "warning", code: "slope_joints_manual", params: { parts: [tp.code, ts.code, sp.code].join(", ") }, ...where });
+    diagnostics.push({ severity: "warning", code: "slope_joints_manual", params: { parts: manual.join(", ") }, ...where });
   }
 
   // --- Ceiling filler (Passblende, D44) -----------------------------------------------

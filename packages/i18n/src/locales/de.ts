@@ -793,7 +793,7 @@ export const de: Record<MessageKey, string> = {
   "diag.room_above_ceiling": "Ragt {over} mm über die Decke.",
   "diag.slope_needs_full_top": "Eine abgeschrägte Ecke braucht einen durchgehenden Oberboden (keine Traversen).",
   "diag.slope_too_large": "Die Schräge {side} ({drop} mm hoch, {run} mm breit) passt nicht in den Korpus.",
-  "diag.slope_cuts_part": "{part} ragt in die abgeschrägte Ecke; verschieben oder kürzen (Zuschnitt auf die Schräge geht noch nicht).",
+  "diag.slope_cuts_part": "{part} ragt in die abgeschrägte Ecke und lässt sich nicht darauf zuschneiden (zu wenig übrig oder ein Teil, das nicht auf Schrägen geschnitten wird); verschieben oder entfernen.",
   "diag.slope_cuts_front": "Front {part} ragt über die Schräge.",
   "diag.slope_joints_manual": "Gehrungen {parts} werden nicht gebohrt: von Hand verbinden (Leim, Lamellos, Clamex oder Schrauben).",
   "ui.ceiling": "Decke",

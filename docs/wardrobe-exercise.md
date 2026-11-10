@@ -58,7 +58,7 @@ Also found along the way:
 | --- | --- |
 | D45 | Blocked sequence dowels also move half a pitch and never closer than the end offset to an edge. |
 | D46 | **Sections**: each with its own fronts, interior (shelves / hanging), shelf count, width and construction; the middle panel stays with drawers; hinges, slides and drawer front fixing use the section's panels. Option `hat_shelf`. Option `partition_joint: through` (middle panel full height and depth, bottom/top/rails and the back split per section). Zone ranges respect extra construction panels. Zones may set their own shelf count. |
-| D47 | **Sloped top corners**: `slope_left/right_drop` and `_angle`. Side and top shortened and mitred, a sloped panel (TS) with the back's groove, the back cut to the slope. Mitres in the cutlist note and part sheets. Cross-sections in 3D and the assembly drawing. System holes stop below the cut. The room's ceiling check and wall elevation follow the cut outline. Under a room slope: `max(0, H + plinth_h - ceiling_h)`. |
+| D47 | **Sloped top corners**: `slope_left/right_drop` and `_angle`. Side and top shortened and mitred, a sloped panel (TS) with the back's groove, the back cut to the slope, shelves, fixed shelves and middle panels under it cut to it. Mitres in the cutlist note and part sheets. Cross-sections in 3D and the assembly drawing. System holes stop below the cut. The room's ceiling check and wall elevation follow the cut outline. Under a room slope: `max(0, H + plinth_h - ceiling_h)`. |
 | D48 | **Handle per front zone** (item or none). |
 | App | Front builder: split into sections, per-section tabs (width, interior, shelves), per-section stacks, zone shelf count and handle; sloped-top fields with "slope to the ceiling"; preview shows sections and the slope. |
 
@@ -126,10 +126,11 @@ horizontals, rebate, surface back, grid dowels, hat shelf on.
 - **Mitres are not drilled.** The three mitre joints (top/slope/side) would
   need angled bores (5-axis or an angle aggregate); the app warns and they
   are joined by hand (Clamex, biscuits, glue).
-- **Parts under the slope cannot be cut to it.** With a flatter slope (30°)
-  the right fixed shelf reaches into the corner: an error, no automatic
-  shortening or bevel. The same goes for middle panels and adjustable
-  shelves.
+- **Parts under the slope** are now cut to it (shelves square, fixed
+  shelves and middle panels bevelled), but their joint with the sloped
+  panel is not drilled either. Rails, drawers and fronts are not cut: a
+  door reaching above the slope gets a warning, and its top hinge then has
+  no side to go into (error).
 - **Slopes only across the width.** A roof sloping down towards the back
   wall (cutting the side's rear top corner) is not supported, and neither
   are slopes meeting in the middle (gable).

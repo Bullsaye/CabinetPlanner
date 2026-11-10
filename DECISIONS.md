@@ -741,10 +741,17 @@ Two shop settings, because they are used for different things:
   back's groove/rebate on its inner face (t0) over its full length.
 - System holes in a shortened side stop `sys_margin` below the top of its
   inner face.
-- Mitre joints are not drilled (that needs angled bores): warning
-  `slope_joints_manual`. Parts reaching into the sloped corner (middle
-  panels, fixed shelves, shelves) are an error (`slope_cuts_part`); fronts
+- Parts under the slope are cut to its inner face: adjustable shelves
+  square, `shelf_gap` clear of it at their top face; fixed shelves with a
+  bevel of 90° − a at that end (long point on the underside); middle
+  panels with a bevel of a at the top (long point on the face away from
+  the slope, system holes stop below the lower face end). A part with
+  less than 50 mm (shelves) or 100 mm (middle panels) left, and any other
+  part reaching into the corner, is an error (`slope_cuts_part`); fronts
   above the outer slope line a warning.
+- Mitre joints and the joints of cut parts with the sloped panel are not
+  drilled (that needs angled bores): warning `slope_joints_manual` lists
+  them.
 - Room: placements carry the slopes; the ceiling check compares the cut
   carcase top with the ceiling over its rear and front edges at every
   kink, and the elevation draws the cut outline.

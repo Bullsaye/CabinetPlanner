@@ -813,7 +813,7 @@ export const en = {
   "diag.room_above_ceiling": "Reaches {over} mm above the ceiling.",
   "diag.slope_needs_full_top": "A sloped top corner needs a full top panel (not rails).",
   "diag.slope_too_large": "The {side} slope ({drop} mm down, {run} mm across) does not fit the carcase.",
-  "diag.slope_cuts_part": "{part} reaches into the sloped corner; move or shorten it (cutting it to the slope is not supported yet).",
+  "diag.slope_cuts_part": "{part} reaches into the sloped corner and cannot be cut to it (too little left, or a part that is not cut to slopes); move or remove it.",
   "diag.slope_cuts_front": "Front {part} reaches above the sloped corner.",
   "diag.slope_joints_manual": "Mitre joints {parts} are not drilled: join them by hand (glue, biscuits, Clamex or screws).",
   "ui.ceiling": "Ceiling",

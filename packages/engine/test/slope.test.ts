@@ -67,10 +67,44 @@ describe("sloped top corner (D47)", () => {
     // A middle panel right under the slope.
     const cut = sloped({ partition_count: 1 }, { construction: { panels: [] } });
     expect(cut.diagnostics.map((d) => d.code)).not.toContain("slope_cuts_part");
-    const cut2 = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 600, H: 1720, D: 475, door_count: 0, shelf_count: 0, partition_count: 1, slope_right_drop: 400 } });
-    expect(cut2.diagnostics.map((d) => d.code)).toContain("slope_cuts_part");
+    // A shelf with too little left under the slope.
+    const tiny = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 600, H: 1720, D: 475, slope_right_drop: 400, shelf_count: 4 }, sections: [{}, { fronts: [{ type: "open" }, { type: "door", h: 1200 }] }] });
+    expect(tiny.diagnostics.map((d) => d.code)).toContain("slope_cuts_part");
     const rails = sloped({}, { options: { top: "rails" } });
     expect(rails.diagnostics.map((d) => d.code)).toContain("slope_needs_full_top");
+  });
+
+  it("cuts middle panels, fixed and adjustable shelves under the slope", () => {
+    // W 600, 400 down at 45°: the slope starts 200 from the left, over the middle panel.
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 600, H: 1720, D: 475, slope_right_drop: 400, shelf_count: 4 },
+      sections: [
+        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }] },
+        // An extra fixed panel high up, under the slope.
+        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1450 }] } },
+      ],
+    });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const p = partsByCode(r);
+    const mp = p.MP1!;
+    // Middle panel at x 290.5…309.5: its top follows the slope's inner line, long point on the left face.
+    expect(mp.bevels).toEqual({ w2: 45 });
+    expect(mp.profile!.points.length).toBe(4);
+    expect(mp.box.y + mp.box.dy).toBeLessThan(1720 - 19);
+    // The right section's fixed shelf is bevelled at its right end; the left one stays square.
+    const fs = r.parts.filter((x) => x.role === "fixed_shelf");
+    const right = fs.find((x) => x.box.x > 300 && x.box.y === 1450)!;
+    expect(right.bevels).toEqual({ w2: 45 });
+    expect(fs.filter((x) => x.box.x < 300).every((x) => x.bevels === undefined)).toBe(true);
+    // Adjustable shelves in the right section clear the slope.
+    for (const sh of r.parts.filter((x) => x.role === "shelf" && x.box.x > 300)) {
+      const x1 = sh.box.x + sh.box.dx;
+      const yTop = sh.box.y + sh.box.dy;
+      expect(Math.SQRT1_2 * x1 + Math.SQRT1_2 * yTop).toBeLessThanOrEqual(Math.SQRT1_2 * 600 + Math.SQRT1_2 * (1720 - 400) - 19 + 1e-6);
+    }
+    expect(r.diagnostics.find((d) => d.code === "slope_joints_manual")!.params.parts).toContain("MP1");
   });
 
   it("checks the room ceiling against the cut corner, not the full height", () => {
