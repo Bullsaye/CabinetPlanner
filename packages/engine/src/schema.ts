@@ -93,6 +93,10 @@ export const FrontZone = z.object({
   /** Door zones with one door: the hinge side (default: option door_hinge_side). */
   hinge: z.enum(["left", "right"]).optional(),
   front: z.boolean().optional(),
+  /** Door, open and flap zones: adjustable shelves in this compartment (number or formula); without it shelf_count applies (D57). */
+  shelves: VarInputSchema.optional(),
+  /** Drawer zones with a wooden box: side height of the box (number or formula, 0 = as high as fits); without it drawer_box_h applies (D57). */
+  boxH: VarInputSchema.optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;
 
@@ -190,7 +194,10 @@ export const ConstructionSchema = z.object({
   panels: z
     .array(z.object({ y: VarInputSchema, setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
     .default([]),
-  /** Automatic fixed shelf under zone i ("1" = between zones 1 and 2): left out, or shortened. */
+  /**
+   * Fixed shelf under zone i ("1" = between zones 1 and 2): `panel: false` leaves the automatic one out,
+   * setbacks shorten it; an entry with `panel: true` between two drawers, where the rule puts none, adds one (D57).
+   */
   fixed: z
     .record(z.string(), z.object({ panel: z.boolean().default(true), setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
     .default({}),

@@ -3,7 +3,9 @@
   import { swingPoints } from "../lib/elevation.ts";
   import { parseInput, store } from "../lib/store.svelte.ts";
 
-  type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean };
+  type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number | string; boxH?: number | string };
+  /** The zone's own value besides its height (D57): shelves of a compartment, or the box height of a drawer. */
+  const extraOf = (z: Zone): "shelves" | "boxH" | undefined => (z.type === "drawer" ? "boxH" : z.type === "door" || z.type === "open" || z.type === "flap" ? "shelves" : undefined);
   const TYPES = ["door", "drawer", "flap", "open", "appliance", "panel"] as const;
 
   const t = $derived(store.tr.t);
@@ -178,6 +180,25 @@
             {:else if z.type === "appliance"}
               <label class="chk"><input type="checkbox" checked={z.front ?? false} onchange={(e) => edit((l) => (l[i]!.front = (e.target as HTMLInputElement).checked))} /> {t("ui.appliance_front")}</label>
             {:else}<span></span>{/if}
+            {#if extraOf(z)}
+              {@const key = extraOf(z)!}
+              <label class="extra" title={t(key === "shelves" ? "ui.zone_shelves" : "ui.zone_box_h")}>
+                <span>{t(key === "shelves" ? "ui.zone_shelves_short" : "ui.zone_box_h_short")}</span>
+                <input
+                  id={`fz-${key}-${i}`}
+                  class="mono"
+                  type="text"
+                  inputmode="decimal"
+                  value={z[key] ?? ""}
+                  placeholder={t("ui.auto")}
+                  aria-label={t(key === "shelves" ? "ui.zone_shelves" : "ui.zone_box_h")}
+                  onchange={(e) => {
+                    const val = parseInput((e.target as HTMLInputElement).value);
+                    edit((l) => (val === undefined ? delete l[i]![key] : (l[i]![key] = val)));
+                  }}
+                />
+              </label>
+            {/if}
             <span class="tools">
               <button class="quiet" aria-label={t("ui.move_up")} disabled={i === 0} onclick={() => edit((l) => l.splice(i - 1, 0, ...l.splice(i, 1)))}>↑</button>
               <button class="quiet" aria-label={t("ui.move_down")} disabled={i === zones.length - 1} onclick={() => edit((l) => l.splice(i + 1, 0, ...l.splice(i, 1)))}>↓</button>
@@ -218,6 +239,9 @@
   .row.on { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 250px; }
   .row { display: grid; grid-template-columns: minmax(84px, 1fr) 58px auto auto; gap: 4px; align-items: center; }
+  /* The zone's own value sits on a second line of its row. */
+  .extra { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 6px; padding-left: 8px; font-size: 12px; color: var(--muted); }
+  .row .extra input { width: 58px; }
   .row input { width: 100%; }
   .seg { display: flex; }
   .seg button { padding: 2px 7px; border-radius: 0; font-size: 12px; white-space: nowrap; }

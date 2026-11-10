@@ -1,6 +1,6 @@
 <script lang="ts">
   import { FACTORY_TEMPLATES, localName } from "@cabinet-planner/engine";
-  import { openConstruction, setKind, store } from "../lib/store.svelte.ts";
+  import { openConstruction, parseInput, setKind, store } from "../lib/store.svelte.ts";
   import FrontBuilder from "./FrontBuilder.svelte";
   import OptRow from "./fields/OptRow.svelte";
   import ParamRow from "./fields/ParamRow.svelte";
@@ -15,6 +15,31 @@
   function fitToCeiling(): void {
     if (!c) return;
     c.vars = { ...(c.vars ?? {}), H: kind === "wall" ? "ceiling_h - wall_bottom - ceiling_gap" : "ceiling_h - plinth_h - ceiling_gap" };
+  }
+  /** Extra fixed shelves of the cabinet (construction.panels, D38), edited here too (D57). */
+  const fixedPanels = $derived((c?.construction?.panels ?? []) as { y: number | string }[]);
+  /** Adds a fixed shelf in the middle of the tallest compartment between the lying carcase panels. */
+  function addFixedPanel(): void {
+    if (!c) return;
+    const v = (n: string): number => store.cabinet?.resolved.values.get(n) ?? 0;
+    const t0 = v("t_carcase");
+    const lying = (store.cabinet?.parts ?? [])
+      .filter((p) => ["bottom", "top", "rail_front", "rail_rear", "fixed_shelf"].includes(p.role) && p.box.dy <= t0 + 0.01)
+      .map((p) => [p.box.y, p.box.y + p.box.dy] as const)
+      .sort((a, b) => a[0] - b[0]);
+    let best: [number, number] = [t0, v("H") - t0];
+    let size = 0;
+    for (let k = 0; k + 1 < lying.length; k++) {
+      const gap = lying[k + 1]![0] - lying[k]![1];
+      if (gap > size) [size, best] = [gap, [lying[k]![1], lying[k + 1]![0]]];
+    }
+    c.construction ??= {};
+    c.construction.panels ??= [];
+    c.construction.panels.push({ y: Math.round((best[0] + best[1] - t0) / 2) });
+  }
+  function setPanelY(k: number, text: string): void {
+    const val = parseInput(text);
+    if (val !== undefined && c?.construction?.panels?.[k]) c.construction.panels[k].y = val;
   }
   const template = $derived.by(() => {
     const id = c?.template;
@@ -118,6 +143,15 @@
       <h3 class="label">{t("ui.shelves")}</h3>
       <VarRow name="shelf_count" steppers />
       {#if kind === "tall"}<OptRow key="interior" />{/if}
+      {#each fixedPanels as p, k}
+        <div class="fixed-panel">
+          <label for={`fixed-panel-${k}`}>{t("ui.fixed_panel")} {k + 1}</label>
+          <input id={`fixed-panel-${k}`} class="mono" type="text" inputmode="decimal" value={p.y} title={t("ui.fixed_panel_y")} aria-label={t("ui.fixed_panel_y")} onchange={(e) => setPanelY(k, (e.target as HTMLInputElement).value)} />
+          <button class="quiet" aria-label={`${t("ui.delete")}: ${t("ui.fixed_panel")} ${k + 1}`} onclick={() => c.construction.panels.splice(k, 1)}>×</button>
+        </div>
+      {/each}
+      {#if fixedPanels.length}<p class="muted small">{t("ui.fixed_panels_hint")}</p>{/if}
+      <button class="quiet link" onclick={addFixedPanel}>{t("ui.add_fixed_panel")}</button>
     </section>
 
     <button class="primary construct" onclick={openConstruction}>{t("ui.open_construction")}</button>
@@ -140,4 +174,6 @@
   .construct { margin-top: 4px; }
   .link { align-self: flex-start; color: var(--accent-fg); font-size: 12px; padding: 2px 4px; }
   .pad { padding: 12px; }
+  .fixed-panel { display: grid; grid-template-columns: 1fr 96px auto; gap: 4px; align-items: center; }
+  .fixed-panel input { width: 100%; }
 </style>

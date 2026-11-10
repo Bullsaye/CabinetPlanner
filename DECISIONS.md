@@ -949,3 +949,74 @@ the earlier entries stay as written.
   (`store.ui.highlight`, by part role).
 - `diagnosticText` (i18n) translates enumerated parameters of findings
   (opening kind, cutout kind, layer).
+
+### D57 · 2026-11-10 · Fixed shelves between fronts, shelves per compartment, box height, blind panel fixing, leg fixing, through bores
+
+Corrections from the first shop test. The earlier entries stay as written.
+
+- Fixed shelves between fronts (supersedes the list of cases in D30): a
+  fixed shelf lies at every boundary between two front zones, in every
+  cabinet kind, except between two drawers. Position as in D30 (under /
+  over an appliance niche, else centred on the gap). `construction.fixed["i"]`
+  with `panel: false` leaves the shelf under zone i out; an entry with
+  `panel: true` (the default of an entry) between two drawers, where the
+  rule puts none, adds one. An entry for a boundary that does not exist
+  warns (`construction_fixed_unknown`). A drawer over a shelf stands on it
+  (slide `axisMin` above the shelf), so its box is lower than before.
+- Flaps count like doors. The fitting sees the flap's compartment as its
+  cabinet: `H` = from the underside of the panel below the flap to the top
+  face of the panel above it (carcase bottom / top at the ends), and `LF`,
+  `H_in`, `FAo`, `flap_top` follow; mount `side` measures `a` below that
+  top face; cup hinges of a flap (D42) go into the underside of the panel
+  above it (top, flat front rail or fixed shelf). A flap whose shelf above
+  was left out is an error (`flap_no_panel_above`, nothing drilled for the
+  fitting), one whose shelf below was left out a warning
+  (`flap_no_panel_below`).
+- Shelves per compartment: a door, open or flap zone may set `shelves`
+  (number or formula, whole number from 0); it wins for that zone. Without
+  it the rule of D30 applies (flap zones: none). Other zone types ignore
+  the value. Extra panels (`construction.panels`, D38) inside a zone split
+  it into compartments; the zone's shelves are shared out by compartment
+  height (largest remainders, the lower compartment first on a tie), so no
+  shelf lands on a panel. The simple editor adds such panels ("+ fixed
+  shelf": middle of the tallest compartment between lying carcase panels).
+- Drawer box height: `drawer_box_h` (0 = as high as fits, the factory
+  value), per drawer zone `boxH` (number or formula; wins). Wooden boxes
+  get exactly that side height when it fits under `drawer_clearance` and
+  the panel above (`drawer_box_too_high` otherwise, built as high as fits)
+  and is at least `drawer_box_min_h` (`drawer_box_too_small`). Metal sides:
+  the largest height of the system that fits and is not above the value.
+  An inner front too low for two rows of front screws (D26) gets one row
+  at mid-height.
+- Fixed blind panels (role `blind_panel`: blind corner, panel zones),
+  option `blind_panel.fixing` = `auto` (factory) or `none`. A carcase part
+  standing behind the panel with its face (upright front rail, free
+  frontal part) is screwed through from inside like a drawer's inner front
+  (D26): Ø `front_screw_d` through holes, `front_screw_side` /
+  `front_screw_edge` inside the area both share, one row or column where
+  that is too small. A part that meets the panel only with its front edge
+  (side, bottom, top or flat front rail, fixed shelf, middle panel, lying
+  or standing free part) is dowelled to it (item `hardware.connector`,
+  face depth into the panel, edge depth into the edge), on the part's
+  mid-thickness line where the panel covers it with Ø/2 + `bore_min_wall`:
+  first and last `blind_dowel_offset` from the ends of the shared stretch,
+  at most `blind_dowel_max_spacing` apart, on whole millimetres; a
+  position meeting other machining is left out. The dowels are in the
+  hardware list. A panel lying on nothing warns (`blind_panel_not_fixed`).
+  Screws from inside into a panel that only lies on edges are not possible
+  without an extra part; the box rule adds none (a post is a free part).
+- Leg fixing: the item's `bottom` drilling (D31) is a list, so one item
+  expresses a knock-in socket (one bore of the socket's Ø and depth per
+  leg, `generic-leg-knock-in`), a plate with pilot holes (several bores
+  around the leg centre, `generic-leg-screw-plate`) or nothing drilled
+  (`generic-leg-100-screwed`). The two new items carry placeholder sizes,
+  marked as such in `source`.
+- Through bores: a through bore (D23) is an opening in both faces. Part
+  sheets draw it solid on the sheet of the far face too (dimensioned only
+  on its own sheet); the scene lists its far opening as a second entry
+  (`exit`, same hole, opposite face and direction) and marks both
+  `through`, so the 3D view shows it from both sides.
+- Golden files changed: reference `base-600-dynapro-drawer-door` (fixed
+  shelf FS1 between drawer and door, 8 dowels more, rail axis one grid
+  line higher, drawer box 133 → 101 high) and the example kitchen's BOM
+  (10 dowels more: the blind corner panel of B05).

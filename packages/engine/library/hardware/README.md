@@ -30,3 +30,5 @@ Rules (DECISIONS.md D15, D18):
 | grass-nova-pro-scala-40 | Grass | Nova Pro Scala 40 kg, metal sides, front hooks Ø10 × 12 |
 | generic-bar-128 / -160 / -192 | – | Bar handles, two through holes Ø5 |
 | generic-knob | – | Knob, one through hole Ø5 |
+| generic-leg-knock-in | – | Leg with knock-in socket: one bore per leg; placeholder sizes, measure your leg |
+| generic-leg-screw-plate | – | Leg with screw-on plate: four pilot holes per leg; placeholder sizes |

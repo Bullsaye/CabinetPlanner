@@ -155,6 +155,9 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "drawer_side_t", group: "drawers", unit: "mm", factory: "mat_drawer_t", min: 8, max: 25 }),
   v({ name: "drawer_bottom_t", group: "drawers", unit: "mm", factory: "mat_drawer_bottom_t", min: 3, max: 25 }),
   v({ name: "drawer_clearance", group: "drawers", unit: "mm", factory: 40, min: 0, max: 200, step: 5 }),
+  // Side height of the drawer box; 0 = as high as fits under drawer_clearance (D57).
+  v({ name: "drawer_box_h", group: "drawers", unit: "mm", factory: 0, min: 0, max: 600, step: 1 }),
+  v({ name: "drawer_box_min_h", group: "drawers", unit: "mm", factory: 40, min: 20, max: 300, step: 1 }),
   v({ name: "drawer_setback", group: "drawers", unit: "mm", factory: 3, min: 0, max: 100 }),
   v({ name: "drawer_axis_offset", group: "drawers", unit: "mm", factory: 25, min: 0, max: 300, step: 1 }),
   v({ name: "drawer_bottom_offset", group: "drawers", unit: "mm", factory: 12, min: 0, max: 60 }),
@@ -162,6 +165,9 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "front_screw_d", group: "drawers", unit: "mm", factory: 4, min: 2, max: 10, step: 0.5 }),
   v({ name: "front_screw_side", group: "drawers", unit: "mm", factory: 40, min: 10, max: 300 }),
   v({ name: "front_screw_edge", group: "drawers", unit: "mm", factory: 25, min: 8, max: 200 }),
+  // Fixed blind panels (D57): dowels into the front edges of the carcase parts they lie on.
+  v({ name: "blind_dowel_offset", group: "fronts", unit: "mm", factory: 50, min: 10, max: 500, step: 1 }),
+  v({ name: "blind_dowel_max_spacing", group: "fronts", unit: "mm", factory: 300, min: 50, max: 2000, step: 10 }),
 
   // Machining limits.
   v({ name: "bore_min_wall", group: "machining", unit: "mm", factory: 2, min: 0, max: 20, step: 0.5 }),
@@ -278,6 +284,8 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   /** Corner unit: which side is blind (hidden behind the perpendicular run). */
   { key: "corner", group: "fronts", kind: { type: "enum", values: ["none", "blind_left", "blind_right"] }, factory: "none" },
+  /** Fixed blind panels (corner units, panel zones): joined to the carcase behind them, or nothing drilled (D57). */
+  { key: "blind_panel.fixing", group: "fronts", kind: { type: "enum", values: ["auto", "none"] }, factory: "auto" },
   /** Passblende above the fronts up to the ceiling (D44). */
   { key: "ceiling_filler", group: "room", kind: { type: "enum", values: ["none", "front"] }, factory: "none" },
   /** Cutout in the worktop above a base unit (sink or hob), sized by cutout_* variables. */

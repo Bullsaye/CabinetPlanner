@@ -506,8 +506,10 @@ export function machineBox(
         const s = num("front_screw_side");
         const e = num("front_screw_edge");
         const src: OpSource = { kind: "joint", ref: `DI${d.index}-DF${d.index}` };
+        // A low box (drawer_box_h) has no room for two rows: one row at mid-height (D57).
+        const rows = b.dy >= 2 * e + num("front_screw_d") + num("bore_min_wall") ? [b.y + e, b.y + b.dy - e] : [b.y + b.dy / 2];
         for (const x of [b.x + s, b.x + b.dx - s]) {
-          for (const y of [b.y + e, b.y + b.dy - e]) {
+          for (const y of rows) {
             addThroughBore(inner, { x, y, z: b.z }, "+z", num("front_screw_d"), "one_side", 0, src);
           }
         }
@@ -546,19 +548,27 @@ export function machineBox(
   // --- Lift-up flaps (D39): mechanism by power factor, drilled into both sides ---
   if (layout.flaps.length) {
     const item = library.hardware.get(opt<string>("hardware.flap"))!;
-    const H = num("H");
     const source: OpSource = { kind: "hardware", ref: item.id };
     for (const f of layout.flaps) {
       const front = byCode.get(f.code)!;
+      // A flap closes against the panel below it and its fitting hangs under the panel above (D57).
+      if (!f.panelBelow) diagnostics.push({ severity: "warning", code: "flap_no_panel_below", params: { part: front.id }, ...at, part: front.id });
+      if (!f.panelAbove) {
+        diagnostics.push({ severity: "error", code: "flap_no_panel_above", params: { part: front.id, item: item.id }, ...at, part: front.id });
+        continue;
+      }
+      // The item sees the flap's compartment as its cabinet: H from the panel below to the panel above.
+      const H = f.top - f.bottom;
       const density = library.materials.get(front.material)?.density;
       if (density === undefined) diagnostics.push({ severity: "warning", code: "material_no_density", params: { material: front.material }, ...at });
       const kg = (front.length * front.width * front.thickness * (density ?? 750)) / 1e9 + 2 * num("flap_handle_weight");
       const scope = new Map(rc.values);
       scope.set("front_kg", Math.round(kg * 100) / 100);
+      scope.set("H", H);
       scope.set("LF", Math.round(H * kg));
-      scope.set("FAo", Math.max(0, front.box.y + front.box.dy - (H - t)));
+      scope.set("FAo", Math.max(0, front.box.y + front.box.dy - (f.top - t)));
       scope.set("H_in", H - 2 * t);
-      scope.set("flap_top", front.box.y + front.box.dy);
+      scope.set("flap_top", front.box.y + front.box.dy - f.bottom);
       const params = evaluateItemParams(item, scope, at);
       diagnostics.push(...params.diagnostics, ...checkLimits(item, params.values, { ...at, part: front.id }));
       const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
@@ -568,7 +578,7 @@ export function machineBox(
         if (!side) continue;
         for (const dr of drills) {
           if (dr.mount !== "side") continue;
-          addBore(side, { x, y: H - dr.a, z: D - dr.b }, dir, dr.d, dr.depth, source);
+          addBore(side, { x, y: f.top - dr.a, z: D - dr.b }, dir, dr.d, dr.depth, source);
         }
       }
       // Mount "front": into the flap's inner face, `a` below its top edge, `b` from the side's inner face.
@@ -584,7 +594,7 @@ export function machineBox(
       // Fittings without their own pivot hang the flap on cup hinges at its top edge (D42).
       if ((params.values.get("hinges") ?? 0) > 0) {
         const hingeItem = library.hardware.get(opt<string>("hardware.hinge"))!;
-        use(hingeItem, placeFlapHinges(rc, hingeItem, front, parts, params.values.get("hinge_min_from_side") ?? 0, diagnostics));
+        use(hingeItem, placeFlapHinges(rc, hingeItem, front, parts, f.top, params.values.get("hinge_min_from_side") ?? 0, diagnostics));
       }
       const fits = (p: string, min?: number, max?: number): boolean => {
         const val = params.values.get(p);
@@ -673,6 +683,74 @@ export function machineBox(
       }
     }
     use(item, xs.length * zs.length);
+  }
+
+  // --- Fixed blind panels (D57): joined to the carcase parts they lie on ----------------------
+  // A carcase part standing behind the panel with its face (upright front
+  // rail, free frontal part) is screwed through from inside like a drawer's
+  // inner front (D26); a part that only meets it with its front edge (side,
+  // bottom, top or flat rail, fixed shelf, middle panel) gets dowels.
+  if (opt<string>("blind_panel.fixing") === "auto") {
+    const minWall = num("bore_min_wall");
+    const dowelItem = library.hardware.get(opt<string>("hardware.connector"))!;
+    const dp = evaluateItemParams(dowelItem, rc.values, at).values;
+    const dowel = dp.has("d") && dp.has("face_depth") && dp.has("edge_depth") ? { d: dp.get("d")!, face: dp.get("face_depth")!, edge: dp.get("edge_depth")! } : undefined;
+    const carcase = new Set(["side_left", "side_right", "bottom", "top", "rail_front", "fixed_shelf", "partition", "custom"]);
+    for (const panel of parts.filter((p) => p.role === "blind_panel")) {
+      const b = panel.box;
+      let fixings = 0;
+      let dowels = 0;
+      for (const q of parts) {
+        if (!carcase.has(q.role) || Math.abs(q.box.z + q.box.dz - b.z) > 0.011) continue;
+        const x0 = Math.max(b.x, q.box.x);
+        const x1 = Math.min(b.x + b.dx, q.box.x + q.box.dx);
+        const y0 = Math.max(b.y, q.box.y);
+        const y1 = Math.min(b.y + b.dy, q.box.y + q.box.dy);
+        if (x1 - x0 <= 1e-6 || y1 - y0 <= 1e-6) continue;
+        const source: OpSource = { kind: "joint", ref: `${q.code}-${panel.code}` };
+        const ax = thicknessAxis(q.lengthAxis, q.widthAxis);
+        if (ax === "z") {
+          // Screws from inside through the part, front_screw_side / front_screw_edge inside the shared area.
+          const s = num("front_screw_side");
+          const e = num("front_screw_edge");
+          const d = num("front_screw_d");
+          const xs = x1 - x0 >= 2 * s + d ? [x0 + s, x1 - s] : [(x0 + x1) / 2];
+          const ys = y1 - y0 >= 2 * e + d ? [y0 + e, y1 - e] : [(y0 + y1) / 2];
+          for (const x of xs) {
+            for (const y of ys) {
+              if (boreWouldCollide(q, { x, y, z: q.box.z }, "+z", d, q.thickness, minWall)) continue;
+              addThroughBore(q, { x, y, z: q.box.z }, "+z", d, "one_side", 0, source);
+              fixings++;
+            }
+          }
+          continue;
+        }
+        if (!dowel) continue;
+        // Dowels on the part's mid-thickness line, where the panel covers it with enough wall.
+        const mid = ax === "x" ? q.box.x + q.box.dx / 2 : q.box.y + q.box.dy / 2;
+        const need = dowel.d / 2 + minWall;
+        const [lo, hi] = ax === "x" ? [b.x, b.x + b.dx] : [b.y, b.y + b.dy];
+        if (mid - need < lo - 1e-6 || mid + need > hi + 1e-6) continue;
+        const [a0, a1] = ax === "x" ? [y0, y1] : [x0, x1];
+        const off = num("blind_dowel_offset");
+        const len = a1 - a0;
+        if (len < 2 * need) continue;
+        const n = len < 2 * off + dowel.d ? 1 : Math.max(2, Math.ceil((len - 2 * off) / num("blind_dowel_max_spacing") - 1e-9) + 1);
+        for (let k = 0; k < n; k++) {
+          // Whole millimetres along the edge.
+          const a = Math.round(n === 1 ? (a0 + a1) / 2 : a0 + off + ((len - 2 * off) * k) / (n - 1));
+          const at3 = (z: number): Point3 => (ax === "x" ? { x: mid, y: a, z } : { x: a, y: mid, z });
+          // A position that meets other machining (joint dowels, system holes) is left out.
+          if (boreWouldCollide(panel, at3(b.z), "+z", dowel.d, dowel.face, minWall) || boreWouldCollide(q, at3(b.z), "-z", dowel.d, dowel.edge, minWall)) continue;
+          addBore(panel, at3(b.z), "+z", dowel.d, dowel.face, source);
+          addBore(q, at3(b.z), "-z", dowel.d, dowel.edge, source);
+          fixings++;
+          dowels++;
+        }
+      }
+      use(dowelItem, dowels);
+      if (fixings === 0) diagnostics.push({ severity: "warning", code: "blind_panel_not_fixed", params: { part: panel.id }, ...at, part: panel.id });
+    }
   }
 
   // --- Shelf supports ----------------------------------------------------------------
@@ -990,22 +1068,22 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
 /**
  * Cup hinges along a flap's top edge (D42): the hinge item's "door" drilling
  * goes into the flap (hinge edge = top edge, `a` along it), its "side"
- * drilling into the underside of the panel above (top or front rail), `b`
+ * drilling into the underside of the panel above (top, front rail, or the
+ * fixed shelf over a flap under another front; `top` is its top face), `b`
  * from the carcase front. Two hinges, each at least `minFromSide` and
  * hinge_end_offset from the sides' inner faces.
  */
-function placeFlapHinges(rc: ResolvedCabinet, item: HardwareItem, flap: Part, parts: Part[], minFromSide: number, diagnostics: Diagnostic[]): number {
+function placeFlapHinges(rc: ResolvedCabinet, item: HardwareItem, flap: Part, parts: Part[], top: number, minFromSide: number, diagnostics: Diagnostic[]): number {
   const at = { cabinet: rc.cabinet.id };
   const num = (n: string): number => rc.values.get(n)!;
   const W = num("W");
-  const H = num("H");
   const t = num("t_carcase");
   const D = num("D");
   const context = new Map(rc.values);
   context.set("door_h", flap.width);
   context.set("door_w", flap.length);
   context.set("door_t", flap.thickness);
-  context.set("hinge_overlay", flap.box.y + flap.box.dy - (H - t));
+  context.set("hinge_overlay", flap.box.y + flap.box.dy - (top - t));
   const params = evaluateItemParams(item, context, at);
   diagnostics.push(...params.diagnostics);
   const off = Math.max(minFromSide, num("hinge_end_offset"));
@@ -1022,9 +1100,16 @@ function placeFlapHinges(rc: ResolvedCabinet, item: HardwareItem, flap: Part, pa
       if (dr.mount === "door") {
         addBore(flap, { x: xc + dr.a, y: fy1 - dr.b, z: flap.box.z }, "+z", dr.d, dr.depth, source);
       } else if (dr.mount === "side") {
-        const p = { x: xc + dr.a, y: H - t, z: D - dr.b };
+        const p = { x: xc + dr.a, y: top - t, z: D - dr.b };
         const host = parts.find(
-          (q) => (q.role === "top" || q.role === "rail_front") && q.box.y + q.box.dy >= H - 1e-6 && p.z >= q.box.z && p.z <= q.box.z + q.box.dz && q.box.dy <= t + 1e-6,
+          (q) =>
+            (q.role === "top" || q.role === "rail_front" || q.role === "fixed_shelf") &&
+            Math.abs(q.box.y - p.y) < 0.011 &&
+            q.box.dy <= t + 1e-6 &&
+            p.z >= q.box.z &&
+            p.z <= q.box.z + q.box.dz &&
+            p.x >= q.box.x &&
+            p.x <= q.box.x + q.box.dx,
         );
         if (!host) {
           diagnostics.push({ severity: "error", code: "flap_hinge_no_top", params: { item: item.id }, ...at });

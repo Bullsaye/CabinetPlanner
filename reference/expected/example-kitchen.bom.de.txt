@@ -5,7 +5,7 @@ Platte    mel-white-16            Melamin weiß 16                              
 Platte    mel-white-19            Melamin weiß 19                                                                                                        46      18.22  20.95  m²       9.5          199.03
 Platte    worktop-laminate-38     Arbeitsplatte Schichtstoff 38                                                                                          2       2.52   2.9    m²       45           130.5
 Kante     abs-white-1             ABS weiß 1 mm                                                                                                          114     78.5   84.2   m        0.45         37.89
-Beschlag  dowel-8x35              Dübel Ø8 × 35                                                                                                                         162    Stk.
+Beschlag  dowel-8x35              Dübel Ø8 × 35                                                                                                                         172    Stk.
 Beschlag  grass-tiomos-110-screw  Grass Tiomos 110°, aufliegend, zum Anschrauben, Kreuzmontageplatte H2 (Euroschrauben)  F028138519, F058139757                         26     Stk.
 Beschlag  grass-dynapro-40        Grass Dynapro Soft-close, Vollauszug, 40 kg (Holzschubkästen)                          F130107820, F130107829                         3      Sätze
 Beschlag  shelf-pin-5             Bodenträger Ø5                                                                                                                        52     Stk.
