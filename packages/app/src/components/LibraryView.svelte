@@ -15,7 +15,7 @@
   import { parseInput, store, templateBody } from "../lib/store.svelte.ts";
   import { optionChoices, optionDef } from "../lib/fields.ts";
 
-  type Section = "materials" | "edgebands" | "hardware" | "presets";
+  type Section = "materials" | "edgebands" | "surfaces" | "hardware" | "presets";
   type Doc = Record<string, any>;
 
   const t = $derived(store.tr.t);
@@ -26,7 +26,7 @@
   function lib(): Doc {
     store.shop.library ??= {};
     const l = store.shop.library;
-    for (const k of ["materials", "edgebands", "hardware", "presets", "templates"]) l[k] ??= [];
+    for (const k of ["materials", "edgebands", "surfaces", "hardware", "presets", "templates"]) l[k] ??= [];
     return l;
   }
   const shopIds = (k: string): Set<string> => new Set((store.shop.library?.[k] ?? []).map((x: Doc) => x.id));
@@ -68,6 +68,11 @@
   function addMaterial(): void {
     const id = uniqueId("materials", "material");
     lib().materials.push({ id, name: t("ui.new_material"), thickness: 19, grain: false });
+  }
+  const surfaces = $derived([...(store.result?.library.surfaces.values() ?? [])]);
+  const SURFACE_KINDS = ["melamine", "hpl", "lacquer", "veneer", "oil", "other"] as const;
+  function addSurface(): void {
+    lib().surfaces.push({ id: uniqueId("surfaces", "surface"), name: t("ui.new_surface"), kind: "lacquer", ref: "RAL ", color: "#d9d9d9" });
   }
   function addEdgeband(): void {
     const id = uniqueId("edgebands", "band");
@@ -247,7 +252,7 @@
 <section class="panel lv">
   <div class="bar">
     <div role="group" aria-label={t("ui.library")}>
-      {#each ["materials", "edgebands", "hardware", "presets"] as s}
+      {#each ["materials", "edgebands", "surfaces", "hardware", "presets"] as s}
         <button aria-pressed={section === s} onclick={() => (section = s as Section)}>{t(`ui.lib.${s}`)}</button>
       {/each}
     </div>
@@ -322,6 +327,42 @@
       </table>
     </div>
     <div class="foot"><button onclick={addEdgeband}>{t("ui.add_edgeband")}</button></div>
+  {:else if section === "surfaces"}
+    <p class="muted small pad">{t("ui.surfaces_hint")}</p>
+    <div class="scroll-x">
+      <table class="grid">
+        <thead><tr><th>{t("ui.colour")}</th><th>{t("ui.name")}</th><th>{t("ui.surface_kind")}</th><th>{t("ui.surface_ref")}</th><th></th><th></th></tr></thead>
+        <tbody>
+          {#each surfaces as sf (sf.id)}
+            {@const src = sourceOf("surfaces", sf.id)}
+            {@const own = src === "shop" ? shopItem("surfaces", sf.id) : undefined}
+            <tr>
+              {#if own}
+                <td><input type="color" aria-label={t("ui.colour")} value={own.color ?? "#d9d9d9"} onchange={(e) => (own.color = (e.target as HTMLInputElement).value)} /></td>
+                <td><input type="text" aria-label={t("ui.name")} value={name(own.name)} onchange={(e) => { const v = (e.target as HTMLInputElement).value.trim(); if (v) own.name = v; }} /></td>
+                <td>
+                  <select aria-label={t("ui.surface_kind")} value={own.kind ?? "other"} onchange={(e) => (own.kind = (e.target as HTMLSelectElement).value)}>
+                    {#each SURFACE_KINDS as k}<option value={k}>{t(`ui.surface.${k}`)}</option>{/each}
+                  </select>
+                </td>
+                <td><input class="mono" type="text" aria-label={t("ui.surface_ref")} value={own.ref ?? ""} onchange={(e) => { const v = (e.target as HTMLInputElement).value.trim(); if (v) own.ref = v; else delete own.ref; }} /></td>
+              {:else}
+                <td><span class="swatch" style={`background:${sf.color ?? "transparent"}`}></span></td>
+                <td>{name(sf.name)}</td>
+                <td>{t(`ui.surface.${sf.kind}`)}</td>
+                <td class="mono">{sf.ref ?? ""}</td>
+              {/if}
+              <td><span class="pill {src}">{t(`layer.${src}`)}</span></td>
+              <td class="acts">
+                {#if src === "factory"}<button class="quiet" onclick={() => toShop("surfaces", sf)}>{t("ui.edit_in_shop")}</button>{/if}
+                {#if src === "shop"}<button class="quiet" onclick={() => removeShop("surfaces", sf.id)}>{t("ui.remove")}</button>{/if}
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+    <div class="foot"><button onclick={addSurface}>{t("ui.add_surface")}</button></div>
   {:else if section === "hardware"}
     <div class="hwbar">
       <select id="hw-cat" aria-label={t("ui.category")} bind:value={cat}>
@@ -579,6 +620,8 @@
   textarea { width: 100%; min-height: 50vh; font-size: 12px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
   .err { color: var(--err); white-space: pre-wrap; font-size: 12px; }
   .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .swatch { display: inline-block; width: 28px; height: 18px; border: 1px solid var(--line); border-radius: 4px; vertical-align: middle; }
+  .pad { padding: 8px 10px 0; margin: 0; }
   .hwform { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 10px; }
   .f { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--muted); min-width: 0; }
   .f.w2 { grid-column: span 2; }

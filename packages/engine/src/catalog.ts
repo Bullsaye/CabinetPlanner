@@ -195,6 +195,7 @@ export type OptionKind =
   | { type: "material" }
   | { type: "hardware"; category: HardwareCategory; nullable?: boolean }
   | { type: "edgeband" } // edgeband id, or null for "no banding"
+  | { type: "surface" } // surface id, or null: the board as it comes (D53)
   | { type: "boolean" };
 
 export interface OptionDef {
@@ -304,6 +305,10 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "material.plinth", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer_bottom", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
+  // Surface finishes (D53); null = the board as it comes.
+  { key: "surface.carcase", group: "materials", kind: { type: "surface" }, factory: null },
+  { key: "surface.front", group: "materials", kind: { type: "surface" }, factory: null },
+  { key: "surface.visible_side", group: "materials", kind: { type: "surface" }, factory: null },
   { key: "edge.carcase", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
   { key: "edge.shelf", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },
   { key: "edge.front", group: "edges", kind: { type: "edgeband" }, factory: "abs-white-1" },

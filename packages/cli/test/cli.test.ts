@@ -39,8 +39,8 @@ describe("cli", () => {
     const io = fakeIo();
     expect(run(["cutlist", "examples/kitchen-basic.project.json"], io)).toBe(0);
     const lines = io.out.trimEnd().split("\n");
-    expect(lines[0]).toBe("Part,Cabinet,Name,Material,L,W,T,Cut L,Cut W,Qty,Grain,Edge L1,Edge L2,Edge W1,Edge W2,Note");
-    expect(lines[1]).toBe("B01-SL,B01,Side L,Melamine white 19,720,560,19,720,559,1,,,W1,,,");
+    expect(lines[0]).toBe("Part,Cabinet,Name,Qty,L,W,T,Material,Surface,Cut L,Cut W,Grain,Edge L1,Edge L2,Edge W1,Edge W2,Note");
+    expect(lines[1]).toBe("B01-SL,B01,Side L,1,720,560,19,Melamine white 19,,720,559,,,W1,,,");
     expect(io.err).toBe("");
   });
 
@@ -48,7 +48,7 @@ describe("cli", () => {
     const io = fakeIo();
     run(["cutlist", "examples/kitchen-basic.project.json", "--lang", "de", "--group", "--delimiter", ";"], io);
     expect(io.out.split("\n")[0]).toContain("Teil;Schrank;Bezeichnung");
-    expect(io.out).toContain("B01-SL B01-SR;B01;Seite L/R;Melamin weiß 19;720;560;19;720;559;2");
+    expect(io.out).toContain("B01-SL B01-SR;B01;Seite L/R;2;720;560;19;Melamin weiß 19;;720;559");
   });
 
   it("refuses to write a cutlist when there are errors", () => {

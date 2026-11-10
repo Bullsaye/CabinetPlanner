@@ -329,3 +329,41 @@ describe("parameters in presets, layout variables, fittings (D45)", () => {
     expect(c).toContain("error:fitting_outside");
   });
 });
+
+describe("surface finishes (D53)", () => {
+  const surf = (r: ReturnType<typeof buildOne>, code: string): string | undefined => partsByCode(r)[code]?.surface;
+  it("fronts, carcase and visible sides take their surface; backs and drawer boxes none", () => {
+    const r = buildOne({
+      vars: { shelf_count: 1 },
+      options: { "surface.front": "lacquer-ral-7016", "surface.carcase": "hpl-white", "surface.visible_side": "hpl-oak", "side.left": "visible", "side.right": "hidden" },
+      fronts: [{ type: "drawer", h: 150 }, { type: "door" }],
+    });
+    expect(codes(r)).toEqual([]);
+    expect(surf(r, "DO1")).toBe("lacquer-ral-7016");
+    expect(surf(r, "DF1")).toBe("lacquer-ral-7016");
+    expect(surf(r, "SL")).toBe("hpl-oak");
+    expect(surf(r, "SR")).toBe("hpl-white");
+    expect(surf(r, "BO")).toBe("hpl-white");
+    expect(surf(r, "SH1")).toBe("hpl-white");
+    expect(surf(r, "BK")).toBeUndefined();
+    expect(surf(r, "DL1")).toBeUndefined();
+    const row = cutlistRows(r.parts, r.library).find((x) => x.part === "C1-DO1")!;
+    expect(row.surface).toBe("lacquer-ral-7016");
+  });
+  it("without surfaces nothing is set; a part override and a free part's own surface win; unknown ids are findings", () => {
+    expect(buildOne().parts.every((p) => p.surface === undefined)).toBe(true);
+    const r = buildOne({
+      options: { "surface.front": "lacquer-ral-7016" },
+      parts: { DO1: { surface: "lacquer-ral-6021" }, SL: { surface: null } },
+      construction: { parts: [{ id: "Q", plane: "horizontal", x: "t_carcase", y: 300, z: 40, dx: "W - 2 * t_carcase", dz: 300, surface: "surface.front" }] },
+    });
+    expect(surf(r, "DO1")).toBe("lacquer-ral-6021");
+    expect(surf(r, "Q")).toBe("lacquer-ral-7016");
+    expect(codes(buildOne({ options: { "surface.front": "nope" } }))).toContain("error:surface_unknown");
+    expect(codes(buildOne({ parts: { DO1: { surface: "nope" } } }))).toContain("error:surface_unknown");
+  });
+  it("two doors that differ only in their surface are separate rows", () => {
+    const r = buildOne({ vars: { W: 800, door_count: 2 }, parts: { DO2: { surface: "lacquer-ral-6021" } } });
+    expect(cutlistRows(r.parts, r.library, { group: true }).filter((x) => x.role === "door")).toHaveLength(2);
+  });
+});

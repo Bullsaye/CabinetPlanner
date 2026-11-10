@@ -1,9 +1,9 @@
-Part,Cabinet,Name,Material,L,W,T,Cut L,Cut W,Qty,Grain,Edge L1,Edge L2,Edge W1,Edge W2,Note
-B01-SL,B01,Side L,Melamine white 19,720,552,19,720,552,1,,,W1,,,
-B01-SR,B01,Side R,Melamine white 19,720,552,19,720,552,1,,,W1,,,
-B01-BO,B01,Bottom,Melamine white 19,562,552,19,562,552,1,,,W1,,,
-B01-RF,B01,Front rail,Melamine white 19,562,100,19,562,100,1,,,W1,,,
-B01-RR,B01,Rear rail,Melamine white 19,562,100,19,562,100,1,,,,,,
-B01-BK,B01,Back,HDF white 8,720,600,8,720,600,1,,,,,,
-B01-SH1,B01,Shelf,Melamine white 19,560,540,19,560,540,1,,,W1,,,
-B01-DO1,B01,Door,Lacquer MDF 19,717,597,19,717,597,1,,W1,W1,W1,W1,
+Part,Cabinet,Name,Qty,L,W,T,Material,Surface,Cut L,Cut W,Grain,Edge L1,Edge L2,Edge W1,Edge W2,Note
+B01-SL,B01,Side L,1,720,552,19,Melamine white 19,,720,552,,,W1,,,
+B01-SR,B01,Side R,1,720,552,19,Melamine white 19,,720,552,,,W1,,,
+B01-BO,B01,Bottom,1,562,552,19,Melamine white 19,,562,552,,,W1,,,
+B01-RF,B01,Front rail,1,562,100,19,Melamine white 19,,562,100,,,W1,,,
+B01-RR,B01,Rear rail,1,562,100,19,Melamine white 19,,562,100,,,,,,
+B01-BK,B01,Back,1,720,600,8,HDF white 8,,720,600,,,,,,
+B01-SH1,B01,Shelf,1,560,540,19,Melamine white 19,,560,540,,,W1,,,
+B01-DO1,B01,Door,1,717,597,19,Lacquer MDF 19,,717,597,,W1,W1,W1,W1,

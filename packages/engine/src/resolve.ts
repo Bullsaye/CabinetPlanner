@@ -285,5 +285,8 @@ function validateOption(
     case "edgeband":
       if (value !== null && (typeof value !== "string" || !library.edgebands.has(value))) bad("edgeband_unknown");
       return;
+    case "surface":
+      if (value !== null && (typeof value !== "string" || !library.surfaces.has(value))) bad("surface_unknown");
+      return;
   }
 }

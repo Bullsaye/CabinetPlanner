@@ -58,6 +58,11 @@
         { value: "null", label: t("option.edge.none") },
         ...[...(lib?.edgebands.values() ?? [])].map((e) => ({ value: JSON.stringify(e.id), label: `${e.code} · ${localName(e.name, store.tr.locale)}` })),
       ];
+    if (k.type === "surface")
+      return [
+        { value: "null", label: t("option.surface.none") },
+        ...[...(lib?.surfaces.values() ?? [])].map((x) => ({ value: JSON.stringify(x.id), label: localName(x.name, store.tr.locale) })),
+      ];
     const items = [...(lib?.hardware.values() ?? [])].filter((h) => h.category === k.category);
     return [
       ...(k.nullable ? [{ value: "null", label: t("ui.none") }] : []),

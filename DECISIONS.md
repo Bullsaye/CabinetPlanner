@@ -865,3 +865,27 @@ the earlier entries stay as written.
   doors keep the handle at the top, wall unit doors at the bottom (as
   before); a door spanning the grip height gets it at that height (upper
   and full-height doors of tall units, which had it at their top end).
+
+### D53 · 2026-11-10 · Surface finishes; cutlist columns
+
+- The library holds `surfaces` (finishes on top of the board): id, name,
+  kind (melamine, hpl, lacquer, veneer, oil, other), `ref` (RAL / NCS
+  tone, decor number) and a display `color`. Materials may carry a display
+  `color` too. Colours are for views only.
+- Options `surface.carcase`, `surface.front`, `surface.visible_side`
+  (surface id, or null: the board as it comes). Fronts (doors, drawer
+  fronts, blind panels, appliance fronts, flaps, ceiling fillers) take
+  the front surface; sides, bottom, top, rails, middle panels, fixed and
+  loose shelves the carcase surface; a side that is visible (`side.left` /
+  `side.right`, or seen from the room, D37) the visible-side surface when
+  one is set. Backs, drawer boxes, worktops and plinths have none.
+- A part override (`parts.<code>.surface`, null = none) wins; free parts
+  may name a surface option or id, else they follow their material option.
+- `Part.surface` holds the id. Parts that differ only in their surface
+  are separate cutlist rows.
+- Cutlist columns, in this order: part, cabinet, name, qty, L, W, T,
+  material, surface, cut L, cut W, grain, edges L1 L2 W1 W2, note. The
+  golden cutlists changed with this entry: column order and the new
+  (empty) surface column; no size, quantity or edge changed.
+- Not yet: surfaces per face (inside/outside), surface area and cost in
+  the BOM.

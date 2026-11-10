@@ -1,4 +1,5 @@
 import type { HandlePlacement } from "../cabinet/machining.ts";
+import type { Library } from "../library.ts";
 import type { CabinetResult } from "../project.ts";
 import { faceAxes, toCabinet, type Face } from "../ops.ts";
 import { thicknessAxis, type Axis, type Box, type Part, type PartRole } from "../part.ts";
@@ -23,6 +24,8 @@ export interface ScenePart {
   code: string;
   role: PartRole;
   material: string;
+  /** Display colour (#rrggbb) from the surface finish, else the board (D53). */
+  color?: string;
   box: Box;
   /** Non-rectangular parts: contour on the t0 face (cabinet coordinates) and the thickness axis. */
   outline?: { points: { x: number; y: number; z: number }[]; normal: Axis; thickness: number };
@@ -45,7 +48,9 @@ function cabinetAxisOf(part: Part, local: "u" | "v" | "w"): Axis {
 
 const atMax = (f: Face): boolean => f === "t1" || f === "l2" || f === "w2";
 
-export function sceneOf(c: CabinetResult): Scene {
+export function sceneOf(c: CabinetResult, library?: Library): Scene {
+  const colorOf = (p: Part): string | undefined =>
+    (p.surface ? library?.surfaces.get(p.surface)?.color : undefined) ?? library?.materials.get(p.material)?.color;
   const v = (n: string): number => c.resolved.values.get(n) ?? 0;
   return {
     cabinet: c.resolved.cabinet.id,
@@ -56,6 +61,7 @@ export function sceneOf(c: CabinetResult): Scene {
       code: p.code,
       role: p.role,
       material: p.material,
+      ...(colorOf(p) ? { color: colorOf(p)! } : {}),
       box: p.box,
       ...(p.outline
         ? { outline: { points: p.outline.map(([u, v]) => toCabinet(p, { u, v, w: 0 })), normal: cabinetAxisOf(p, "w"), thickness: p.thickness } }

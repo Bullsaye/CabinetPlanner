@@ -3,7 +3,7 @@ import { DrawingStyleSchema } from "./drawing/style.ts";
 import { DxfProfileSchema } from "./output/dxf.ts";
 import { PlacementSchema, RoomSchema } from "./room/room.ts";
 import { HardwareItem } from "./hardware/schema.ts";
-import { Edgeband, Material } from "./library.ts";
+import { Edgeband, Material, Surface } from "./library.ts";
 import { LocalizedText } from "./text.ts";
 
 /**
@@ -68,6 +68,8 @@ export const PartOverride = z.object({
   edges: z
     .object({ l1: EdgeRef.optional(), l2: EdgeRef.optional(), w1: EdgeRef.optional(), w2: EdgeRef.optional() })
     .optional(),
+  /** Surface finish of this part (D53); null: the board as it comes. */
+  surface: z.string().nullable().optional(),
   note: z.string().optional(),
 });
 export type PartOverride = z.infer<typeof PartOverride>;
@@ -122,6 +124,8 @@ export const CustomPartSchema = z.object({
   edges: z
     .object({ front: EdgeInput.optional(), rear: EdgeInput.optional(), left: EdgeInput.optional(), right: EdgeInput.optional(), top: EdgeInput.optional(), bottom: EdgeInput.optional() })
     .default({}),
+  /** A surface option key ("surface.front"), a surface id, or null for none; default: by the material option. */
+  surface: z.string().min(1).nullable().optional(),
   /** Present only when this formula is not 0. */
   when: VarInputSchema.optional(),
   /** Number of copies; formulas then see `i` and `n`. */
@@ -258,6 +262,7 @@ export const LibraryFragmentSchema = z.object({
   materials: z.array(Material).default([]),
   edgebands: z.array(Edgeband).default([]),
   hardware: z.array(HardwareItem).default([]),
+  surfaces: z.array(Surface).default([]),
   presets: z.array(Preset).default([]),
   /** Drawing styles, usually `extends` a factory style plus taught rules. */
   drawingStyles: z.array(DrawingStyleSchema).default([]),
@@ -267,11 +272,11 @@ export const LibraryFragmentSchema = z.object({
   templates: z.array(CabinetTemplateSchema).default([]),
 });
 export type LibraryFragment = z.infer<typeof LibraryFragmentSchema>;
-export const LIBRARY_KINDS = ["presets", "templates", "hardware", "materials", "edgebands", "drawingStyles", "dxfProfiles"] as const;
+export const LIBRARY_KINDS = ["presets", "templates", "hardware", "materials", "edgebands", "surfaces", "drawingStyles", "dxfProfiles"] as const;
 export type LibraryKind = (typeof LIBRARY_KINDS)[number];
 
 /** Library section of a project or shop file; later layers replace items with the same id. */
-const LibraryFile = LibraryFragmentSchema.default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
+const LibraryFile = LibraryFragmentSchema.default({ materials: [], edgebands: [], hardware: [], surfaces: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
 
 /** A community pack installed into the shop library (D49): which version, and which items came with it. */
 export const InstalledPackSchema = z.object({

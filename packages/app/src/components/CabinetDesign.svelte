@@ -60,6 +60,14 @@
     </section>
 
     <section>
+      <h3 class="label">{t("ui.surfaces")}</h3>
+      <OptRow key="surface.carcase" />
+      <OptRow key="surface.front" />
+      <OptRow key="surface.visible_side" />
+      <p class="muted small">{t("ui.surfaces_hint")}</p>
+    </section>
+
+    <section>
       <h3 class="label">{t("ui.gaps")}</h3>
       <VarRow name="front_gap" label={t("ui.gap_horizontal")} />
       <VarRow name="front_gap_v" label={t("ui.gap_vertical")} />

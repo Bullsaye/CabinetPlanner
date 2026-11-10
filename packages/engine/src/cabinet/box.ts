@@ -16,6 +16,7 @@ import type { FrontZone } from "../schema.ts";
 import { evaluateGraph } from "../graph.ts";
 import type { LocalizedText } from "../text.ts";
 import { buildCustomParts } from "./custom.ts";
+import { assignSurfaces } from "./surface.ts";
 import { buildDrawer } from "./drawer.ts";
 import type { CabinetContext } from "./machining.ts";
 
@@ -761,6 +762,7 @@ export function buildBox(
 
   // --- Free parts (D45), then the parts left out ------------------------------------
   const custom = buildCustomParts({ rc, library, scope: zoneVars, add, parts, diagnostics });
+  assignSurfaces(rc, library, parts, context, diagnostics);
   const omit = new Set(cons?.omit ?? []);
   for (const code of omit) {
     if (!parts.some((p) => p.code === code)) diagnostics.push({ severity: "warning", code: "construction_omit_unknown", params: { code }, cabinet: cab });

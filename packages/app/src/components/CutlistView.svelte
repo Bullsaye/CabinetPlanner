@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cutlistCsv, cutlistRows, cutlistTable, localName, type CutlistRow } from "@cabinet-planner/engine";
+  import { cutlistCsv, cutlistRows, formatNumber, localName, type CutlistRow } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
   import { csvForDownload } from "../lib/export.ts";
 
@@ -23,10 +23,19 @@
       return t(`role.${row.role}`);
     },
   });
-  const table = $derived(
-    store.result ? cutlistTable(cutlistRows(parts, store.result.library, { group }), store.result.library, text) : [],
-  );
-  const NUMERIC = new Set([4, 5, 6, 7, 8, 9]);
+  const rows = $derived(store.result ? cutlistRows(parts, store.result.library, { group }) : []);
+  const lib = $derived(store.result?.library);
+  const fmt = (x: number): string => formatNumber(x);
+  const materialName = (id: string): string => localName(lib?.materials.get(id)?.name ?? id, store.tr.locale);
+  const surfaceOf = (id: string) => (id ? lib?.surfaces.get(id) : undefined);
+  /** Shown part numbers: a grouped row lists its codes without repeating the cabinet. */
+  const partLabel = (r: CutlistRow): string => (r.parts.length > 1 ? `${r.cabinet}-${r.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)).join("/")}` : r.part);
+  const noteOf = (r: CutlistRow): string => [r.note, r.outline ? t("cutlist.shaped") : ""].filter(Boolean).join("; ");
+  /** Edge picture: the part as a rectangle in its proportions (clamped), banded edges drawn heavy. */
+  function edgeBox(r: CutlistRow): { w: number; h: number } {
+    const ratio = Math.min(3, Math.max(1 / 3, r.length / r.width));
+    return ratio >= 1 ? { w: 36, h: Math.max(12, 36 / ratio) } : { w: Math.max(12, 36 * ratio), h: 36 };
+  }
 
   function csv(): string {
     return store.result ? cutlistCsv(cutlistRows(parts, store.result.library, { group }), store.result.library, text, { delimiter: ";" }) : "";
@@ -52,10 +61,41 @@
   {#if note}<p class="note muted">{note}</p>{/if}
   <div class="scroll-x tbl">
     <table class="grid">
-      <thead><tr>{#each table[0] ?? [] as h}<th>{h}</th>{/each}</tr></thead>
+      <thead>
+        <tr>
+          <th>{t("col.part")}</th><th>{t("col.role")}</th><th class="n">{t("ui.pieces")}</th><th class="n">{t("col.length")}</th><th class="n">{t("col.width")}</th><th class="n">{t("col.thickness")}</th>
+          <th>{t("col.material")}</th><th>{t("col.surface")}</th><th>{t("ui.edges")}</th><th class="n">{t("ui.cut_size")}</th><th>{t("col.note")}</th>
+        </tr>
+      </thead>
       <tbody>
-        {#each table.slice(1) as row}
-          <tr>{#each row as cell, i}<td class:n={NUMERIC.has(i)}>{cell}</td>{/each}</tr>
+        {#each rows as r (r.part)}
+          {@const sf = surfaceOf(r.surface)}
+          {@const eb = edgeBox(r)}
+          <tr>
+            <td class="mono">{partLabel(r)}</td>
+            <td>{text.role(r)}</td>
+            <td class="n">{r.qty}</td>
+            <td class="n">{fmt(r.length)}</td>
+            <td class="n">{fmt(r.width)}</td>
+            <td class="n">{fmt(r.thickness)}</td>
+            <td>{materialName(r.material)}{#if r.grain}<span class="muted" title={t("col.grain")}> ↔</span>{/if}</td>
+            <td>{#if sf}<span class="swatch" style={`background:${sf.color ?? "transparent"}`}></span> {localName(sf.name, store.tr.locale)}{/if}</td>
+            <td class="edges">
+              <svg width="30" height="30" viewBox="-4 -4 44 44" role="img" aria-label={`${t("ui.edges")}: ${r.edges.map((e, k) => `${["L1", "L2", "B1", "B2"][k]} ${e || "–"}`).join(", ")}`}>
+                <g transform={`translate(${(36 - eb.w) / 2} ${(36 - eb.h) / 2})`}>
+                  <rect class="eb-part" x="0" y="0" width={eb.w} height={eb.h} />
+                  <!-- Length runs left to right: L1 bottom, L2 top, W1 left, W2 right (D4). -->
+                  {#if r.edges[0]}<line class="eb-on" x1="0" y1={eb.h} x2={eb.w} y2={eb.h} />{/if}
+                  {#if r.edges[1]}<line class="eb-on" x1="0" y1="0" x2={eb.w} y2="0" />{/if}
+                  {#if r.edges[2]}<line class="eb-on" x1="0" y1="0" x2="0" y2={eb.h} />{/if}
+                  {#if r.edges[3]}<line class="eb-on" x1={eb.w} y1="0" x2={eb.w} y2={eb.h} />{/if}
+                </g>
+              </svg>
+              <span class="mono small">{[...new Set(r.edges.filter(Boolean))].join(" ")}</span>
+            </td>
+            <td class="n muted">{fmt(r.cutLength)} × {fmt(r.cutWidth)}</td>
+            <td>{noteOf(r)}</td>
+          </tr>
         {/each}
       </tbody>
     </table>
@@ -72,5 +112,13 @@
   .sp { flex: 1; }
   .note { margin: 6px 10px 0; font-size: 12px; }
   .tbl { flex: 1; overflow: auto; }
+  .tbl :global(table.grid td), .tbl :global(table.grid th) { padding: 3px 8px; }
+  .edges { display: flex; align-items: center; gap: 6px; }
+  .edges svg { flex: none; }
+  .eb-part { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
+  .eb-on { stroke: var(--accent); stroke-width: 3.5; stroke-linecap: square; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -2px; }
+  .small { font-size: 11px; }
+  th.n { text-align: right; }
   .sum { display: flex; flex-wrap: wrap; gap: 16px; padding: 8px 10px; border-top: 1px solid var(--line); font-size: 12px; }
 </style>

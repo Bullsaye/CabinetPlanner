@@ -18,6 +18,8 @@ export interface CutlistRow {
   /** Free parts: the name their author gave them (shown in place of the role). */
   label?: LocalizedText;
   material: string;
+  /** Surface finish id, "" for none (D53). */
+  surface: string;
   length: number;
   width: number;
   thickness: number;
@@ -46,6 +48,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     role: p.role,
     ...(p.label !== undefined ? { label: p.label } : {}),
     material: p.material,
+    surface: p.surface ?? "",
     length: p.length,
     width: p.width,
     thickness: p.thickness,
@@ -68,6 +71,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     const key = JSON.stringify([
       r.cabinet,
       r.material,
+      r.surface,
       r.length,
       r.width,
       r.thickness,
@@ -100,6 +104,7 @@ export type CutlistColumn =
   | "cabinet"
   | "role"
   | "material"
+  | "surface"
   | "length"
   | "width"
   | "thickness"
@@ -113,17 +118,19 @@ export type CutlistColumn =
   | "edge_w2"
   | "note";
 
+/** Order as on a shop list (D53): what, how many, size, board, finish, cut size, edges, remark. */
 export const DEFAULT_COLUMNS: readonly CutlistColumn[] = [
   "part",
   "cabinet",
   "role",
-  "material",
+  "qty",
   "length",
   "width",
   "thickness",
+  "material",
+  "surface",
   "cut_length",
   "cut_width",
-  "qty",
   "grain",
   "edge_l1",
   "edge_l2",
@@ -164,6 +171,10 @@ export function cutlistTable(
       case "material": {
         const m = library.materials.get(r.material);
         return m ? localName(m.name, text.locale) : r.material;
+      }
+      case "surface": {
+        const s = library.surfaces.get(r.surface);
+        return s ? localName(s.name, text.locale) : r.surface;
       }
       case "length":
         return formatNumber(r.length);

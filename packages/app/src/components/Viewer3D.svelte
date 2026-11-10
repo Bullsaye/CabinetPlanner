@@ -75,7 +75,7 @@
     addRoom(root);
 
     for (const c of cabs) {
-      const sc = sceneOf(c);
+      const sc = sceneOf(c, store.result.library);
       const id = c.resolved.cabinet.id;
       const g = new THREE.Group();
       const m = pos.get(id);
@@ -91,7 +91,7 @@
         const pg = new THREE.Group();
         const isPart = store.ui.part === p.id;
         const base =
-          p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : isFront ? partColor.clone().lerp(accent, 0.12) : partColor;
+          p.color ? new THREE.Color(p.color) : p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : isFront ? partColor.clone().lerp(accent, 0.12) : partColor;
         const color = isPart ? partColor.clone().lerp(accent, 0.45) : selected ? base.clone().lerp(accent, 0.1) : base;
         const geo = p.outline ? outlineGeometry(p.outline, b) : new THREE.BoxGeometry(b.dx, b.dy, b.dz);
         const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color, flatShading: true, side: p.outline ? THREE.DoubleSide : THREE.FrontSide }));
