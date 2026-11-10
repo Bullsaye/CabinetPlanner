@@ -48,7 +48,11 @@
   }
   function uniqueId(k: string, base: string): string {
     const used = new Set([...(store.result?.library[k as "materials"]?.keys() ?? []), ...shopIds(k)]);
-    for (let i = 1; ; i++) if (!used.has(`${base}-${i}`)) return `${base}-${i}`;
+    // Shared items meet other people's libraries: a random suffix instead of a counter keeps ids from clashing.
+    for (;;) {
+      const id = `${base}-${Math.random().toString(36).slice(2, 8)}`;
+      if (!used.has(id)) return id;
+    }
   }
   function setNum(item: Doc, key: string, text: string, min = 0): void {
     const v = parseInput(text);
