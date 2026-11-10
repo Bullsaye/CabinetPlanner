@@ -409,18 +409,29 @@ export function openConstruction(): void {
   constructionSnapshot = cabinetJson();
   store.ui.construction = store.ui.selected;
   store.ui.pane = "cabinet";
+  // The construction is about the furniture itself: show it alone in 3D while the editor is open.
+  viewBefore = { viewMode: store.ui.viewMode, cabinet3d: store.ui.cabinet3d };
+  store.ui.viewMode = "cabinet";
+  store.ui.cabinet3d = true;
+}
+let viewBefore: { viewMode: typeof store.ui.viewMode; cabinet3d: boolean } | undefined;
+function restoreView(): void {
+  if (viewBefore) Object.assign(store.ui, viewBefore);
+  viewBefore = undefined;
 }
 export const constructionChanged = (): boolean => !!store.ui.construction && cabinetJson() !== constructionSnapshot;
 
 /** Leaves the editor; the cabinet keeps its changes. */
 export function closeConstruction(): void {
   store.ui.construction = null;
+  restoreView();
 }
 export function discardConstruction(): void {
   const list = store.project.cabinets as Doc[];
   const i = list.findIndex((c) => c.id === store.ui.construction);
   if (i >= 0 && constructionSnapshot) list[i] = JSON.parse(constructionSnapshot);
   store.ui.construction = null;
+  restoreView();
 }
 
 /** Template content of a cabinet: everything except id, name, place and template. */
