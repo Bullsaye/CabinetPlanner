@@ -865,3 +865,28 @@ the earlier entries stay as written.
   doors keep the handle at the top, wall unit doors at the bottom (as
   before); a door spanning the grip height gets it at that height (upper
   and full-height doors of tall units, which had it at their top end).
+
+### D53 · 2026-11-10 · Value rows show what applies
+
+- A value row (variable or option, in every editor and layer) shows the
+  value that applies: the resolved number, or the applying choice. There is
+  no "inherited" entry and no placeholder. What a row writes is unchanged:
+  a number, a formula, or nothing (= inherit).
+- Own values of the layer are set in bold with "own" and a reset control;
+  values from elsewhere are slightly muted with a short origin label
+  (factory, shop, project, preset name, template/parameter). A tap on the
+  label explains the origin in a sentence; nothing depends on hover.
+- A formula shows its result in the field and `ƒ = formula` under it; with
+  focus the field holds the formula. Variable names are offered while
+  typing. Findings that carry `variable` are shown under their field.
+- The project and shop panes show the values of their own layer (resolved
+  without a cabinet), not those of the selected cabinet.
+- The construction editor follows the furniture: carcase, top and bottom,
+  back, panels and compartments, fronts, joints, fittings, free
+  construction. Settings about the room (visible sides, linking to
+  neighbours, ceiling filler, worktop cutout) sit in a collapsed "In the
+  room" section at its end.
+- While a row has focus, the parts it is about are highlighted in 3D
+  (`store.ui.highlight`, by part role).
+- `diagnosticText` (i18n) translates enumerated parameters of findings
+  (opening kind, cutout kind, layer).

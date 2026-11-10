@@ -72,6 +72,49 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; }
 .pill.cabinet { background: var(--warn-soft); color: var(--warn); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.shop { background: #2a3038; color: #c3c9d1; } }
 :root[data-theme="dark"] .pill.shop { background: #2a3038; color: #c3c9d1; }
+/* Value rows (D53): label · value that applies · origin or reset. Used by VarRow, OptRow and the editors. */
+.vrow { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.25fr) 78px; gap: 2px 6px; align-items: start; }
+.vrow > label { padding-top: 5px; line-height: 1.3; overflow-wrap: anywhere; hyphens: auto; }
+.vrow .vctl { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.vrow .vfield { position: relative; display: flex; min-width: 0; gap: 2px; }
+.vrow input[type="text"], .vrow select { flex: 1; width: 100%; min-width: 0; color: color-mix(in srgb, var(--fg) 72%, var(--muted)); background: var(--surface-2); }
+.vrow.own input[type="text"], .vrow.own select { color: var(--fg); background: var(--surface); font-weight: 600; border-color: color-mix(in srgb, var(--line) 55%, var(--accent)); }
+.vrow input[type="text"]:focus { color: var(--fg); background: var(--surface); }
+.vrow.bad input[type="text"] { border-color: var(--err); background: var(--err-soft); color: var(--fg); }
+.vrow .vstep { display: none; padding: 0 8px; flex: none; }
+.vrow .vstep.always { display: inline-block; }
+.vrow .vfield.typing .vstep { display: none; }
+.vrow .vfx { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; line-height: 1.35; padding-left: 2px; }
+.vrow .vf { color: var(--accent-fg); font-style: italic; font-family: var(--font-ui); }
+.vrow .vorg { display: flex; justify-content: flex-end; align-items: center; min-height: 28px; min-width: 0; }
+.vrow .vsrc {
+  border: 0; background: transparent; padding: 2px 3px; border-radius: 4px; font-size: 11px; color: var(--muted); max-width: 100%; min-height: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: underline dotted; text-underline-offset: 3px;
+}
+.vrow .vsrc:hover, .vrow .vsrc[aria-expanded="true"] { color: var(--accent-fg); background: var(--accent-soft); }
+.vrow .vreset { padding: 0 6px; color: var(--accent-fg); min-height: 0; line-height: 24px; }
+.vrow .vmsg, .vrow .vdesc, .vrow .vexplain { grid-column: 1 / -1; margin: 0; font-size: 11.5px; line-height: 1.4; }
+.vrow .vmsg.error { color: var(--err); }
+.vrow .vmsg.warning { color: var(--warn); }
+.vrow .vexplain { color: var(--muted); background: var(--surface-2); border-left: 2px solid var(--accent); border-radius: 0 4px 4px 0; padding: 4px 6px; margin-bottom: 2px; }
+.vrow .vref { display: block; }
+.vrow .vin { position: relative; display: flex; flex: 1; min-width: 0; }
+.vrow .vkeys { display: none; position: absolute; right: 3px; top: 3px; bottom: 3px; min-height: 0; padding: 0 10px; color: var(--accent-fg); background: var(--accent-soft); font-style: italic; }
+.vrow .vsrc.mine { color: var(--accent-fg); text-decoration: none; font-weight: 600; }
+.vrow .vsug { position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 12; list-style: none; margin: 0; padding: 3px; box-shadow: 0 8px 24px rgb(0 0 0 / .16); min-width: 15em; }
+.vrow .vsug button { display: flex; flex-direction: column; width: 100%; text-align: left; padding: 3px 6px; font-size: 12px; min-height: 0; line-height: 1.3; }
+.vrow .vsug .muted { font-size: 11px; }
+@media (pointer: coarse) {
+  .vrow { grid-template-columns: minmax(0, .9fr) minmax(0, 1.5fr) 86px; }
+  .vrow > label { padding-top: 10px; }
+  .vrow .vstep { display: inline-block; }
+  .vrow .vfield.typing .vstep { display: none; }
+  .vrow .vorg { min-height: 40px; }
+  .vrow .vsrc { padding: 6px 4px; font-size: 12px; }
+  .vrow .vreset { line-height: 36px; padding: 0 8px; }
+  .vrow .vkeys { display: inline-block; }
+  .vrow .vsug button { padding: 8px; }
+}
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
 table.grid { border-collapse: collapse; width: 100%; font-size: 12px; }
 table.grid th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; background: var(--surface); }

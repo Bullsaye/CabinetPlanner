@@ -326,7 +326,7 @@
   .f { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 11px; color: var(--muted); }
   .f.w2 { flex: 2; }
   .f.w3 { flex: 3; }
-  .f span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .f span { overflow-wrap: anywhere; line-height: 1.25; }
   .f input, .f select { width: 100%; min-width: 0; font-size: 13px; }
   .check { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; padding-bottom: 4px; }
   .x { padding: 2px 6px; flex: none; }

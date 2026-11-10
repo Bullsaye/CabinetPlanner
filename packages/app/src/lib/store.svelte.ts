@@ -98,6 +98,8 @@ class Store {
     layer: "cabinet" as Layer,
     selected: "B01" as string | null,
     part: null as string | null,
+    /** Parts highlighted in 3D while a setting about them has focus (D53). */
+    highlight: [] as string[],
     explode: false,
     ops: true,
     fronts: true,

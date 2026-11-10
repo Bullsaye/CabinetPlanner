@@ -51,6 +51,14 @@
       <button class="quiet" role="menuitem" onclick={run(() => save("project"))}>{t("ui.save_project")}</button>
       <button class="quiet" role="menuitem" onclick={run(() => save("shop"))}>{t("ui.save_shop")}</button>
       <button class="quiet" role="menuitem" onclick={run(copyDoc)}>{t("ui.copy_project")}</button>
+      <hr />
+      <label class="lang">
+        <span>{t("ui.language")}</span>
+        <select id="lang" bind:value={store.ui.lang}>
+          <option value="en">English</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </label>
       {#if note}<p class="note" role="status">{note}</p>{/if}
     </div>
   {/if}
@@ -62,5 +70,6 @@
   .pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; padding: 6px; display: flex; flex-direction: column; min-width: 230px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
   .pop button { text-align: left; }
   hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+  .lang { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 10px; }
   .note { margin: 6px 4px 2px; font-size: 12px; color: var(--muted); max-width: 30ch; }
 </style>
