@@ -42,7 +42,8 @@ interface Sheet {
   P(x: number, y: number): [number, number];
 }
 
-function sheet(title: string, sub: string, bounds: [number, number, number, number], margins: { l: number; r: number; t: number; b: number }, css: boolean): Sheet {
+/** Scale and paper origin for model bounds on the A3 sheet. */
+function fit(bounds: [number, number, number, number], margins: { l: number; r: number; t: number; b: number }): { den: number; ox: number; oy: number } {
   const [x0, y0, x1, y1] = bounds;
   const areaW = PAGE.W - 2 * M - margins.l - margins.r;
   const areaH = PAGE.H - 2 * M - 20 - margins.t - margins.b;
@@ -50,6 +51,13 @@ function sheet(title: string, sub: string, bounds: [number, number, number, numb
   const s = 1 / den;
   const ox = M + margins.l + (areaW - (x1 - x0) * s) / 2;
   const oy = M + 20 + margins.t + (areaH - (y1 - y0) * s) / 2;
+  return { den, ox, oy };
+}
+
+function sheet(title: string, sub: string, bounds: [number, number, number, number], margins: { l: number; r: number; t: number; b: number }, css: boolean): Sheet {
+  const [x0, , , y1] = bounds;
+  const { den, ox, oy } = fit(bounds, margins);
+  const s = 1 / den;
   const out: string[] = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PAGE.W} ${PAGE.H}" width="${PAGE.W}mm" height="${PAGE.H}mm" class="rm">`);
   if (css) out.push(`<style>${ROOM_CSS}</style>`);
@@ -102,15 +110,46 @@ function chain(sh: Sheet, a: [number, number], u: [number, number], n: [number, 
 
 // ---------------------------------------------------------------------------
 
-export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText, css = true): string {
-  const num = (x: number): string => (text_.number ? text_.number(x, 1) : formatNumber(x, 1));
-  const t = text_.t;
+function planBounds(room: RoomLayout): [number, number, number, number] {
   const all = room.walls.flatMap((w) => [w.start, w.end, outer(w, w.start), outer(w, w.end)]);
   const xs = all.map((p) => p[0]);
   const ys = all.map((p) => p[1]);
   const pad = 1100; // room for dimension chains and wall names
-  const bounds: [number, number, number, number] = [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad];
-  const sh = sheet(title, "", bounds, { l: 0, r: 0, t: 0, b: 0 }, css);
+  return [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad];
+}
+
+/**
+ * Where the floor plan puts the room on its sheet: the sheet size (the SVG
+ * viewBox, paper mm), the scale 1:den and both mappings between plan
+ * coordinates (D28) and the sheet. For clients that lay something over the
+ * drawing (the app's drag and drop); the drawing itself stays plain.
+ */
+export interface FloorPlanFrame {
+  width: number;
+  height: number;
+  den: number;
+  /** The part of the sheet with the room and its dimensions: x, y, width, height (a viewBox to zoom to). */
+  view: [number, number, number, number];
+  toPaper(x: number, y: number): [number, number];
+  toPlan(px: number, py: number): [number, number];
+}
+export function floorPlanFrame(room: RoomLayout): FloorPlanFrame {
+  const b = planBounds(room);
+  const { den, ox, oy } = fit(b, { l: 0, r: 0, t: 0, b: 0 });
+  return {
+    width: PAGE.W,
+    height: PAGE.H,
+    den,
+    view: [ox, oy, (b[2] - b[0]) / den, (b[3] - b[1]) / den],
+    toPaper: (x, y) => [ox + (x - b[0]) / den, oy + (b[3] - y) / den],
+    toPlan: (px, py) => [b[0] + (px - ox) * den, b[3] - (py - oy) * den],
+  };
+}
+
+export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText, css = true): string {
+  const num = (x: number): string => (text_.number ? text_.number(x, 1) : formatNumber(x, 1));
+  const t = text_.t;
+  const sh = sheet(title, "", planBounds(room), { l: 0, r: 0, t: 0, b: 0 }, css);
   sh.out[sh.out.length - 2] = `<text class="rm-sub" x="${M}" y="${M + 11}" font-size="${TH}">${esc(`${t("room.plan")} · ${t("drawing.scale", { n: sh.den })} · mm`)}</text>`;
   const o = sh.out;
 
