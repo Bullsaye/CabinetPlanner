@@ -102,8 +102,10 @@ describe("performance budget", () => {
       ms = Math.min(ms, performance.now() - t0);
     }
     expect(r.ok).toBe(true);
-    // Target is < 50 ms on a mid-range tablet (docs/PLAN.md). CI machines
-    // vary, so this only catches gross regressions.
-    expect(ms).toBeLessThan(250);
+    // Target is < 50 ms on a mid-range tablet (docs/PLAN.md); today it is about
+    // 110 ms on a desktop core. CI machines vary (Windows runners take about
+    // twice as long), so this only catches gross regressions; the installer
+    // workflows widen the limit with PERF_BUDGET_MS.
+    expect(ms).toBeLessThan(Number(process.env["PERF_BUDGET_MS"] ?? 250));
   });
 });

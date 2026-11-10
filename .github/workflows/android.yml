@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_CLOUD_URL: ${{ vars.CLOUD_URL }}
+      # Shared runners are slow and uneven; the timing budget is checked by the CI workflow.
+      PERF_BUDGET_MS: 1000
       HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4

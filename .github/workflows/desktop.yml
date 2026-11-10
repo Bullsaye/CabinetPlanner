@@ -27,6 +27,8 @@ jobs:
     env:
       # Default account/community server of the build (repository variable; may be empty).
       VITE_CLOUD_URL: ${{ vars.CLOUD_URL }}
+      # Shared runners are slow and uneven; the timing budget is checked by the CI workflow.
+      PERF_BUDGET_MS: 1000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
