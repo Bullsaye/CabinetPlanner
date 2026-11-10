@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "name": "Attic wardrobe",
+  "revision": 1,
+  "vars": {
+    "room_height": 2400
+  },
+  "options": {
+    "hardware.leg": "generic-leg-60"
+  },
+  "library": {
+    "hardware": [
+      {
+        "schemaVersion": 1,
+        "id": "generic-leg-60",
+        "name": { "en": "Adjustable leg 60 (generic)", "de": "Stellfuß 60 (generisch)" },
+        "category": "leg",
+        "manufacturer": "Generic",
+        "articles": [],
+        "trust": "untested",
+        "source": "Low plinth leg, plug-in base plate in a Ø10 bore, adjustable about 55–75 mm. Replace with the leg you use.",
+        "params": { "min_h": 55, "max_h": 75, "d": 40 },
+        "drilling": [{ "mount": "bottom", "d": 10, "depth": 12, "a": 0, "b": 0 }],
+        "limits": [{ "name": "plinth_h", "value": "plinth_h", "min": "min_h", "max": "max_h" }],
+        "bom": { "perPlacement": 1, "unit": "pcs" }
+      }
+    ]
+  },
+  "room": {
+    "walls": [
+      { "id": "A", "length": 3000 },
+      { "id": "B", "length": 2500 },
+      { "id": "C", "length": 3000 },
+      { "id": "D", "length": 2500 }
+    ],
+    "ceiling": {
+      "slopes": [{ "wall": "B", "knee": 1500, "angle": 45 }]
+    }
+  },
+  "cabinets": [
+    {
+      "id": "K01",
+      "type": "box",
+      "kind": "tall",
+      "name": "Kleiderschrank",
+      "presets": ["tall-unit", "wardrobe"],
+      "vars": {
+        "W": 1050,
+        "H": 1720,
+        "D": 475,
+        "plinth_h": 60,
+        "partition_count": 1,
+        "shelf_count": 3,
+        "front_gap": 4,
+        "front_gap_v": 4,
+        "front_gap_side": 2,
+        "front_gap_bottom": 4.5,
+        "back_groove_offset": 12,
+        "back_groove_depth": 10,
+        "back_play": 0,
+        "shelf_back_gap": 0,
+        "shelf_gap": 0.5
+      },
+      "options": {
+        "interior": "hanging_last",
+        "back_extent": "inside"
+      },
+      "fronts": [
+        { "type": "open" },
+        { "type": "door", "doors": 2, "h": 1025 },
+        { "type": "drawer", "h": 161 },
+        { "type": "drawer", "h": 235 }
+      ],
+      "construction": {
+        "fixed": { "1": { "panel": false }, "2": { "panel": false } },
+        "panels": [
+          { "y": "H - 2 * t_carcase - 269" },
+          { "y": "t_carcase + 375" }
+        ]
+      },
+      "place": { "wall": "A", "x": "3000 - 1050" }
+    }
+  ]
+}
