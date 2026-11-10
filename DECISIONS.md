@@ -916,3 +916,11 @@ the earlier entries stay as written.
   wall. Floor, worktops and plinth panels stay.
 - UI preferences kept (D33): language, drawing style, machining, fronts,
   view mode, cabinet 3D, walls, hinge symbol.
+
+### D55 · 2026-11-10 · Arranging by dragging
+
+- In the app's floor plan a cabinet without `place.x` is one of a run:
+  dragging it changes the project order (and `place.wall`), never writes
+  an x, so runs stay gap-free. A cabinet with `place.x` moves its x, with
+  snapping to wall ends, neighbours of its level and opening edges. A
+  drag does not turn one kind into the other; the table does.
