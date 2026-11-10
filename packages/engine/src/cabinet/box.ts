@@ -1038,6 +1038,6 @@ export function buildBox(
     parts,
     diagnostics,
     layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, doors, drawers, applianceFronts, flaps, rails,
-      zones: sectioned ? [] : laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
+      zones: laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
   };
 }

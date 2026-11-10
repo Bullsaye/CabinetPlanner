@@ -13,6 +13,12 @@
     if (!c) return;
     c.vars = { ...(c.vars ?? {}), H: kind === "wall" ? "ceiling_h - wall_bottom - ceiling_gap" : "ceiling_h - plinth_h - ceiling_gap" };
   }
+  /** Sloped corner down to the ceiling over that side (D47): H stays, the corner drops. */
+  function fitSlope(side: "left" | "right"): void {
+    if (!c) return;
+    const base = kind === "wall" ? "wall_bottom" : "plinth_h";
+    c.vars = { ...(c.vars ?? {}), [`slope_${side}_drop`]: `max(0, H + ${base} - ceiling_h + ceiling_gap)` };
+  }
   const template = $derived.by(() => {
     const id = c?.template;
     if (!id) return undefined;
@@ -43,6 +49,20 @@
       <VarRow name="t_carcase" label={t("ui.material_thickness")} />
       <button class="quiet link" onclick={fitToCeiling} title={t("ui.fit_to_ceiling_hint")}>{t("ui.fit_to_ceiling")}</button>
     </section>
+
+    {#if kind !== "base"}
+      <section>
+        <h3 class="label">{t("ui.slope")}</h3>
+        <VarRow name="slope_right_drop" />
+        <VarRow name="slope_right_angle" />
+        <VarRow name="slope_left_drop" />
+        <VarRow name="slope_left_angle" />
+        <div class="links">
+          <button class="quiet link" onclick={() => fitSlope("right")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_right")}</button>
+          <button class="quiet link" onclick={() => fitSlope("left")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_left")}</button>
+        </div>
+      </section>
+    {/if}
 
     <section>
       <h3 class="label">{t("ui.fronts")}</h3>
@@ -112,6 +132,7 @@
   details[open] { display: flex; flex-direction: column; gap: 4px; }
   .small { font-size: 12px; margin: 0; }
   .construct { margin-top: 4px; }
+  .links { display: flex; flex-wrap: wrap; gap: 4px; }
   .link { align-self: flex-start; color: var(--accent-fg); font-size: 12px; padding: 2px 4px; }
   .pad { padding: 12px; }
 </style>
