@@ -104,6 +104,8 @@ export interface CabinetPlacement {
   depth: number;
   /** Carcase depth without fronts. */
   carcaseD: number;
+  /** Sloped top corners (D47). */
+  slopes?: { left?: { drop: number; angle: number }; right?: { drop: number; angle: number } };
   /** Sink or hob cutout in the worktop above (D31). */
   cutout?: { kind: "sink" | "hob"; w: number; d: number; front: number; offset: number; r: number };
 }
@@ -153,6 +155,29 @@ export interface WorktopSettings {
 export interface CeilingLayout {
   height: number;
   slopes: { wall: string; knee: number; angle: number; at: Vec2; n: Vec2; rise: number }[];
+}
+
+/**
+ * Height of a placed cabinet's carcase top at x (0…W along its front), less
+ * its sloped corners (D47), above the carcase bottom.
+ */
+export function carcaseTopAt(q: Pick<CabinetPlacement, "W" | "H" | "slopes">, x: number): number {
+  let h = q.H;
+  const r = q.slopes?.right;
+  if (r) h = Math.min(h, q.H - r.drop + (q.W - x) * Math.tan((r.angle * Math.PI) / 180));
+  const l = q.slopes?.left;
+  if (l) h = Math.min(h, q.H - l.drop + x * Math.tan((l.angle * Math.PI) / 180));
+  return h;
+}
+
+/** x positions (0…W) where a placed cabinet's top changes slope. */
+export function carcaseTopKinks(q: Pick<CabinetPlacement, "W" | "slopes">): number[] {
+  const xs = [0, q.W];
+  const r = q.slopes?.right;
+  if (r) xs.push(q.W - r.drop / Math.tan((r.angle * Math.PI) / 180));
+  const l = q.slopes?.left;
+  if (l) xs.push(l.drop / Math.tan((l.angle * Math.PI) / 180));
+  return xs.filter((x) => x >= 0 && x <= q.W);
 }
 
 /** Ceiling height above the floor at a plan point. */
@@ -341,6 +366,14 @@ export function layoutRoom(
       W,
       H: v("H"),
       depth: roundMm(depth),
+      ...(v("slope_left_drop") > 0 || v("slope_right_drop") > 0
+        ? {
+            slopes: {
+              ...(v("slope_left_drop") > 0 ? { left: { drop: v("slope_left_drop"), angle: v("slope_left_angle") } } : {}),
+              ...(v("slope_right_drop") > 0 ? { right: { drop: v("slope_right_drop"), angle: v("slope_right_angle") } } : {}),
+            },
+          }
+        : {}),
     });
     if (x < -1e-6 || x + W > wall.length + 1e-6) {
       diagnostics.push({ severity: "warning", code: "room_cabinet_outside_wall", params: { wall: wall.id, x: roundMm(x), length: roundMm(wall.length) }, cabinet: id });

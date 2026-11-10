@@ -103,7 +103,9 @@
         "back_groove_depth": 10,
         "back_play": 0,
         "shelf_back_gap": 0,
-        "shelf_gap": 0.5
+        "shelf_gap": 0.5,
+        "slope_right_drop": "max(0, H + plinth_h - ceiling_h)",
+        "slope_right_angle": 45
       },
       "options": {
         "back_extent": "inside",

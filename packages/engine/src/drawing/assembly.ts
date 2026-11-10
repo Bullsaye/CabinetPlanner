@@ -68,6 +68,7 @@ function offset(role: PartRole, c: { W: number; H: number; D: number }, e: numbe
     case "side_right":
       return [0.42 * c.W * k, 0, 0];
     case "top":
+    case "top_slope":
     case "rail_front":
     case "rail_rear":
       return [0, 0.32 * c.H * k, 0];
@@ -148,15 +149,29 @@ export function drawAssembly(input: AssemblyInput): AssemblyDrawing {
       }
       return { pts, cls: cls + roleCls, area: Math.abs(a / 2) };
     };
-    // Visible faces for a viewer at +x, +y, +z.
-    const faces = [
+    // Visible faces for a viewer at +x, +y, +z. A part cut by a slope (D47):
+    // its cross-section at the front and the side faces seen from above/right.
+    const prof = part.profile?.points.map(([px, py]) => [px + o[0], py + o[1]] as [number, number]);
+    const faces = prof
+      ? [
+          quad(prof.map(([px, py]) => pr(px, py, z1)), "asm-front"),
+          ...prof.flatMap(([ax, ay], i) => {
+            const [bx, by] = prof[(i + 1) % prof.length]!;
+            // Outward normal of a counter-clockwise edge: (dy, −dx).
+            const nx = by - ay;
+            const ny = -(bx - ax);
+            if (nx <= 1e-9 && ny <= 1e-9) return [];
+            return [quad([pr(ax, ay, z0), pr(bx, by, z0), pr(bx, by, z1), pr(ax, ay, z1)], ny > Math.abs(nx) ? "asm-top" : "asm-side")];
+          }),
+        ]
+      : [
       quad([pr(x0, y1, z0), pr(x1, y1, z0), pr(x1, y1, z1), pr(x0, y1, z1)], "asm-top"),
       quad([pr(x0, y0, z1), pr(x1, y0, z1), pr(x1, y1, z1), pr(x0, y1, z1)], "asm-front"),
       quad([pr(x1, y0, z0), pr(x1, y0, z1), pr(x1, y1, z1), pr(x1, y1, z0)], "asm-side"),
-    ];
+        ];
     const big = faces.reduce((a, f) => (f.area > a.area ? f : a));
-    const cx = big.pts.reduce((s, q) => s + q[0], 0) / 4;
-    const cy = big.pts.reduce((s, q) => s + q[1], 0) / 4;
+    const cx = big.pts.reduce((s, q) => s + q[0], 0) / big.pts.length;
+    const cy = big.pts.reduce((s, q) => s + q[1], 0) / big.pts.length;
     const centre: Vec = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
     return { part, depth: dot(centre, V), faces, anchor: [cx, cy] };
   });

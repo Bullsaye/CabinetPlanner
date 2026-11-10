@@ -27,6 +27,8 @@ export interface CutlistRow {
   note: string;
   /** Not a rectangle: cut from the bounding size to the part's outline (D43). */
   outline: boolean;
+  /** Bevel (mitre) cuts per edge in degrees (D47). */
+  bevels: Partial<Record<"l1" | "l2" | "w1" | "w2", number>>;
 }
 
 export interface CutlistOptions {
@@ -52,6 +54,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     edges: [code(p.edges.l1), code(p.edges.l2), code(p.edges.w1), code(p.edges.w2)],
     note: p.note ?? "",
     outline: !!p.outline,
+    bevels: p.bevels ?? {},
   }));
   if (!opts.group) return rows;
 
@@ -71,6 +74,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.edges,
       r.note,
       r.outline,
+      r.bevels,
       groupRole(r.role),
     ]);
     const g = groups.get(key);
@@ -174,8 +178,14 @@ export function cutlistTable(
         return r.edges[2];
       case "edge_w2":
         return r.edges[3];
-      case "note":
-        return r.note;
+      case "note": {
+        // Mitres in a language-neutral form after the note, e.g. "W2 ∠22.5°" (D47).
+        const bevel = (["l1", "l2", "w1", "w2"] as const)
+          .filter((e) => r.bevels[e] !== undefined)
+          .map((e) => `${e.toUpperCase()} ∠${formatNumber(r.bevels[e]!)}°`)
+          .join(" ");
+        return [r.note, bevel].filter((x) => x !== "").join("; ");
+      }
     }
   };
   return [columns.map(text.header), ...rows.map((r) => columns.map((c) => cell(r, c)))];

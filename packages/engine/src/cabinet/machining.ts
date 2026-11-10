@@ -134,6 +134,29 @@ export function machineBox(
     }
   }
 
+  // Sloped panels (D47): the back's groove or rebate along the inner face,
+  // in the panel's own frame (u along the slope, v along Z, w from the inner face).
+  if ((backMount === "groove" || backMount === "rebate") && opt<string>("back_extent") !== "behind_horizontals" && parts.some((p) => p.role === "back")) {
+    const c = num("back_groove_clearance") / 2;
+    const tb = num("t_back");
+    const z0 = backMount === "groove" ? num("back_groove_offset") - c : layout.carcaseZ0;
+    const z1 = (backMount === "groove" ? num("back_groove_offset") : layout.carcaseZ0) + tb + c;
+    const depth = backMount === "groove" ? num("back_groove_depth") : num("back_rebate_depth");
+    for (const ts of parts.filter((p) => p.role === "top_slope")) {
+      ts.operations.push({
+        kind: "pocket",
+        face: "t0",
+        u0: 0,
+        u1: ts.length,
+        v0: roundMm(Math.max(0, z0 - ts.box.z)),
+        v1: roundMm(z1 - ts.box.z),
+        w0: 0,
+        w1: depth,
+        sources: [{ kind: "back", ref: backMount }],
+      });
+    }
+  }
+
   // --- Cabinet hangers (D39): rail notch in hidden sides, before the joints so dowels keep clear ---
   const hangerId = opt<string | null>("hardware.hanger");
   const hanger = hangerId !== null && rc.cabinet.kind === "wall" ? library.hardware.get(hangerId) : undefined;
@@ -343,10 +366,13 @@ export function machineBox(
     }
     for (const [side, x, dir] of faces) {
       if (!side) continue;
+      // A side under a slope ends lower (D47).
+      const top = layout.innerTop[side.code];
+      const faceYs = top === undefined ? ys : ys.filter((y) => y <= top - num("sys_margin") + 1e-6);
       for (const z of rows) {
         if (z < side.box.z || z > side.box.z + side.box.dz) continue;
         const r = num("sys_hole_d") / 2 + num("bore_min_wall");
-        for (const y of ys) {
+        for (const y of faceYs) {
           // No holes behind the end of a fixed shelf: it would cover them and meet its dowels.
           const covered = fixedShelves.some(
             (fs) =>

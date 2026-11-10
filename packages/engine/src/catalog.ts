@@ -19,7 +19,7 @@ export type VarGroup =
   | "hardware"
   | "drawers"
   | "machining";
-export type VarUnit = "mm" | "count" | "kg";
+export type VarUnit = "mm" | "count" | "kg" | "deg";
 
 export interface VarDef {
   name: string;
@@ -70,6 +70,11 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "fridge_h", group: "room", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
   v({ name: "wardrobe_h", group: "room", unit: "mm", factory: "tall_h", min: 500, max: 2800, step: 10 }),
   v({ name: "wardrobe_d", group: "room", unit: "mm", factory: 580, min: 300, max: 900, step: 10 }),
+  // Sloped top corners (D47): how far the outer corner drops at the side, and the slope angle from the horizontal.
+  v({ name: "slope_left_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
+  v({ name: "slope_left_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
+  v({ name: "slope_right_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
+  v({ name: "slope_right_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),

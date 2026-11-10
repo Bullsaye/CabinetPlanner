@@ -35,6 +35,8 @@ export interface BoxLayout {
   /** Interior between bottom and top/rails. */
   innerBottomY: number;
   innerTopY: number;
+  /** Vertical panels whose inner face ends lower (sides under a slope, D47): code → top of the inner face. */
+  innerTop: Record<string, number>;
   /** Doors with the side their hinges are on and the panel (side or middle panel) the hinges go into. */
   doors: { code: string; hinge: "left" | "right"; panel: string }[];
   /** Drawers: slide item, nominal length, rail screw axis height and the clear width (x0…x1) they run in. */
@@ -133,6 +135,8 @@ export type AddPart = (
   widthAxis: Axis,
   materialKey: string,
   edges: PartEdges,
+  /** Board sizes when the box is only a bounding box (parts at an angle, D47). */
+  sizes?: { length: number; width: number; thickness: number },
 ) => void;
 
 export function buildBox(
@@ -198,6 +202,7 @@ export function buildBox(
     widthAxis: Axis,
     materialKey: string,
     edges: PartEdges,
+    sizes?: { length: number; width: number; thickness: number },
   ): void => {
     const code = ROLE_CODES[role] + (index ?? "");
     const override = rc.cabinet.parts[code];
@@ -217,9 +222,9 @@ export function buildBox(
       dy: roundMm(box.dy),
       dz: roundMm(box.dz),
     };
-    const length = boxSize(rounded, lengthAxis);
-    const width = boxSize(rounded, widthAxis);
-    const thickness = boxSize(rounded, thicknessAxis(lengthAxis, widthAxis));
+    const length = sizes ? roundMm(sizes.length) : boxSize(rounded, lengthAxis);
+    const width = sizes ? roundMm(sizes.width) : boxSize(rounded, widthAxis);
+    const thickness = sizes ? roundMm(sizes.thickness) : boxSize(rounded, thicknessAxis(lengthAxis, widthAxis));
     const id = `${cab}-${code}`;
 
     const mat = library.materials.get(material);
@@ -842,6 +847,147 @@ export function buildBox(
     }
   }
 
+  // --- Sloped top corners (Schräge, D47) ---------------------------------------------
+  const innerTop: Record<string, number> = {};
+  for (const side of ["left", "right"] as const) {
+    const drop = num(`slope_${side}_drop`);
+    if (drop <= 0) continue;
+    applySlope(side, drop, num(`slope_${side}_angle`));
+  }
+  function applySlope(side: "left" | "right", drop: number, angleDeg: number): void {
+    const where = { cabinet: cab };
+    const a = (angleDeg * Math.PI) / 180;
+    const sn = Math.sin(a);
+    const cs = Math.cos(a);
+    const run = drop / Math.tan(a);
+    const otherRun = (() => {
+      const o = side === "left" ? "right" : "left";
+      const d = num(`slope_${o}_drop`);
+      return d > 0 ? d / Math.tan((num(`slope_${o}_angle`) * Math.PI) / 180) : 0;
+    })();
+    if (top !== "full") {
+      diagnostics.push({ severity: "error", code: "slope_needs_full_top", params: {}, ...where });
+      return;
+    }
+    if (drop > H - sideY - 2 * t - 1e-6 || run + otherRun > W - 2 * t - 1e-6) {
+      diagnostics.push({ severity: "error", code: "slope_too_large", params: { side, drop: roundMm(drop), run: roundMm(run) }, ...where });
+      return;
+    }
+    // Work as if the slope were on the right; m() mirrors X for a left slope.
+    const m = (x: number): number => (side === "right" ? x : W - x);
+    const pt = (x: number, y: number): [number, number] => [roundMm(m(x)), roundMm(y)];
+    const ccw = (pts: [number, number][]): [number, number][] => {
+      let area = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, ay] = pts[i]!;
+        const [bx, by] = pts[(i + 1) % pts.length]!;
+        area += ax * by - bx * ay;
+      }
+      return area < 0 ? [...pts].reverse() : pts;
+    };
+    // Outer slope line: sn·x + cs·y = k; the inner face is t further in.
+    const k = sn * W + cs * (H - drop);
+    const P1 = { x: W - run, y: H }; // upper end (outer)
+    const P2 = { x: W, y: H - drop }; // lower end at the side (outer)
+    const Q1 = { x: P1.x - t * Math.tan(a / 2), y: H - t }; // mitre with the top, inner
+    const Q2 = { x: W - t, y: H - drop - (t * (1 - sn)) / cs }; // mitre with the side, inner
+    const bevelTop = roundMm(angleDeg / 2);
+    const bevelSide = roundMm((90 - angleDeg) / 2);
+    const resize = (p: Part, box: Box): void => {
+      const rounded: Box = { x: roundMm(box.x), y: roundMm(box.y), z: roundMm(box.z), dx: roundMm(box.dx), dy: roundMm(box.dy), dz: roundMm(box.dz) };
+      const length = boxSize(rounded, p.lengthAxis);
+      const width = boxSize(rounded, p.widthAxis);
+      p.cutLength = roundMm(p.cutLength + length - p.length);
+      p.cutWidth = roundMm(p.cutWidth + width - p.width);
+      p.length = length;
+      p.width = width;
+      p.box = rounded;
+    };
+    // Side: up to the slope's lower end, mitred.
+    const sideCode = side === "right" ? ROLE_CODES.side_right : ROLE_CODES.side_left;
+    const sp = parts.find((p) => p.code === sideCode)!;
+    resize(sp, { ...sp.box, y: sideY, dy: P2.y - sideY });
+    sp.profile = { points: ccw([pt(W - t, sideY), pt(W, sideY), pt(W, P2.y), pt(W - t, Q2.y)]) };
+    // The side's length runs along Y from the bottom: its top end is w2.
+    sp.bevels = { ...sp.bevels, w2: bevelSide };
+    innerTop[sideCode] = roundMm(Q2.y);
+    // Top (the piece reaching into the slope): up to the slope's upper end, mitred.
+    const tops = parts.filter((p) => p.role === "top");
+    const tp = side === "right" ? tops.reduce((a2, b) => (b.box.x > a2.box.x ? b : a2)) : tops.reduce((a2, b) => (b.box.x < a2.box.x ? b : a2));
+    const tx0 = side === "right" ? tp.box.x : W - (tp.box.x + tp.box.dx); // far end, in slope coordinates
+    if (Q1.x <= tx0 + 1e-6) {
+      diagnostics.push({ severity: "error", code: "slope_too_large", params: { side, drop: roundMm(drop), run: roundMm(run) }, ...where });
+      return;
+    }
+    resize(tp, side === "right" ? { ...tp.box, dx: P1.x - tp.box.x } : { ...tp.box, x: m(P1.x), dx: tp.box.x + tp.box.dx - m(P1.x) });
+    tp.profile = { points: ccw([pt(tx0, H - t), pt(Q1.x, H - t), pt(P1.x, H), pt(tx0, H)]) };
+    tp.bevels = { ...tp.bevels, [side === "right" ? "w2" : "w1"]: bevelTop };
+    // The sloped panel: outer face from P1 to P2, mitred at both ends.
+    // Its box is the board laid flat in the top plane (the frame for machining,
+    // part sheets and DXF); the profile gives its real position.
+    const slopeLen = drop / sn;
+    const z0 = tp.box.z;
+    add(
+      "top_slope",
+      side === "right" ? (num("slope_left_drop") > 0 ? 2 : undefined) : num("slope_right_drop") > 0 ? 1 : undefined,
+      { x: side === "right" ? W - slopeLen : 0, y: H - t, z: z0, dx: slopeLen, dy: t, dz: D - z0 },
+      "x",
+      "z",
+      "material.carcase",
+      front(edgeCarcase),
+    );
+    const ts = parts[parts.length - 1]!;
+    ts.profile = { points: ccw([pt(P1.x, P1.y), pt(Q1.x, Q1.y), pt(Q2.x, Q2.y), pt(P2.x, P2.y)]), rotated: true };
+    ts.bevels = { w1: bevelTop, w2: bevelSide };
+    // Back(s): cut along the slope, reaching into the slope panel's groove
+    // (inner face + engage), or up to the outer face for a surface back or
+    // a back behind the horizontals.
+    const engage = backMount === "groove" ? num("back_groove_depth") - play : backMount === "rebate" ? num("back_rebate_depth") - play : 0;
+    const limit = backMount === "surface" || backBehind ? k : k - t + engage;
+    for (const bk of parts.filter((p) => p.role === "back")) {
+      const b = bk.box;
+      const corners: [number, number][] = [[b.x, b.y], [b.x + b.dx, b.y], [b.x + b.dx, b.y + b.dy], [b.x, b.y + b.dy]];
+      const val = ([x, y]: [number, number]): number => sn * m(x) + cs * y - limit;
+      if (corners.every((q) => val(q) <= 1e-6)) continue;
+      // Clip the rectangle by the half-plane (Sutherland–Hodgman, one edge).
+      const out: [number, number][] = [];
+      const base = bk.outline
+        ? bk.outline.map(([u, v]) => [b[bk.widthAxis === "x" ? "x" : "y"] + (bk.widthAxis === "x" ? v : u), b.y + (bk.widthAxis === "x" ? u : v)] as [number, number])
+        : corners;
+      for (let i = 0; i < base.length; i++) {
+        const A = base[i]!;
+        const B = base[(i + 1) % base.length]!;
+        const va = val(A);
+        const vb = val(B);
+        if (va <= 1e-9) out.push(A);
+        if ((va < -1e-9 && vb > 1e-9) || (va > 1e-9 && vb < -1e-9)) {
+          const f = va / (va - vb);
+          out.push([A[0] + f * (B[0] - A[0]), A[1] + f * (B[1] - A[1])]);
+        }
+      }
+      // Part-local (u along the back's length = Y, v along X), counter-clockwise.
+      const local = out.map(([x, y]) => [roundMm(y - b.y), roundMm(x - b.x)] as [number, number]);
+      bk.outline = ccw(local);
+    }
+    // Parts the slope would cut, and fronts reaching above it.
+    const inner = k - t;
+    for (const p of parts) {
+      if (p === sp || p === tp || p === ts || p.role === "back" || p.role.startsWith("drawer_")) continue;
+      const b = p.box;
+      const xr = side === "right" ? b.x + b.dx : W - b.x; // end towards the slope, in slope coordinates
+      const yt = b.y + b.dy;
+      const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
+      if (isFront) {
+        if (sn * xr + cs * yt > k + 1e-6) diagnostics.push({ severity: "warning", code: "slope_cuts_front", params: { part: p.id }, ...where, part: p.id });
+      } else if (["side_left", "side_right", "top", "bottom", "top_slope"].includes(p.role)) {
+        continue;
+      } else if (sn * xr + cs * yt > inner + 1e-6) {
+        diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+      }
+    }
+    diagnostics.push({ severity: "warning", code: "slope_joints_manual", params: { parts: [tp.code, ts.code, sp.code].join(", ") }, ...where });
+  }
+
   // --- Ceiling filler (Passblende, D44) -----------------------------------------------
   // Flush with the fronts, one horizontal gap above the top front, up to the
   // ceiling line minus ceiling_filler_gap; cut to the slope where the ceiling slopes.
@@ -891,7 +1037,7 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, flaps, rails,
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, doors, drawers, applianceFronts, flaps, rails,
       zones: sectioned ? [] : laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
   };
 }

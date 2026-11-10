@@ -707,3 +707,38 @@ Two shop settings, because they are used for different things:
   rails are split per section (codes BO1, BO2, TO1, …), dowelled into the
   middle panel faces. Legs go into the bottom piece above them and move
   off a middle panel.
+
+### D47 · 2026-11-10 · Sloped top corners (Schräge)
+
+- Variables `slope_left_drop` / `slope_right_drop` (mm the outer top
+  corner drops at that side; 0 = none) and `slope_left_angle` /
+  `slope_right_angle` (degrees from the horizontal, factory 45) cut the
+  carcase's top corner in the front view, for cabinets under a roof slope
+  that rises from a side wall. Under a room slope:
+  `max(0, H + plinth_h - ceiling_h)` (ceiling_h is the flat ceiling in the
+  first pass).
+- Construction (needs `top: full`): mitred all round, long points on the
+  outer faces. The side ends at the slope's lower end (length H − drop,
+  from its bottom edge), the top at its upper end; the sloped panel (role
+  `top_slope`, TS; TS1 / TS2 with both slopes) runs between them, full
+  carcase depth like the top. Mitre angles: top/slope a/2, slope/side
+  (90° − a)/2 (45°: 22.5° each). Parts carry `bevels` (degrees per edge);
+  the cutlist note shows them language-neutral (`W2 ∠22.5°`), part sheets
+  in the subtitle.
+- Parts cut by a slope carry a `profile`: the cross-section in cabinet
+  X/Y extruded along Z, used by the 3D view and the assembly drawing. The
+  sloped panel is `rotated`: its box is the board laid flat in the top
+  plane (frame for its operations, part sheet and DXF).
+- The back gets an outline cut parallel to the slope: `engage` beyond the
+  sloped panel's inner face (groove/rebate), or to the outer face for a
+  surface back or a back behind the horizontals. The sloped panel gets the
+  back's groove/rebate on its inner face (t0) over its full length.
+- System holes in a shortened side stop `sys_margin` below the top of its
+  inner face.
+- Mitre joints are not drilled (that needs angled bores): warning
+  `slope_joints_manual`. Parts reaching into the sloped corner (middle
+  panels, fixed shelves, shelves) are an error (`slope_cuts_part`); fronts
+  above the outer slope line a warning.
+- Room: placements carry the slopes; the ceiling check compares the cut
+  carcase top with the ceiling over its rear and front edges at every
+  kink, and the elevation draws the cut outline.

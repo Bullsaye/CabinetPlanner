@@ -21,6 +21,7 @@ const Role = z.enum([
   "side_right",
   "bottom",
   "top",
+  "top_slope",
   "rail_front",
   "rail_rear",
   "rail_bottom",
