@@ -305,7 +305,8 @@ describe("hinges and fixed panels (D51)", () => {
     expect(plate.length).toBeGreaterThan(0);
     for (const o of plate) {
       const y = side.box.y + (o as { u: number }).u;
-      for (const p of panels) expect(y < p.box.y - 2 || y > p.box.y + p.box.dy + 2).toBe(true);
+      // Clear of the panel end by the hole radius plus the remaining wall (2.5 + 2).
+      for (const p of panels) expect(y <= p.box.y - 4.5 || y >= p.box.y + p.box.dy + 4.5).toBe(true);
     }
     // The fridge front itself carries no hinges: it is fixed to the appliance door (D30).
     const front = r.parts.find((p) => p.role === "appliance_front")!;
