@@ -1,6 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { FACTORY_TEMPLATES } from "../src/index.ts";
+import { anyCabinet, practicalCabinet } from "./arbitraries.ts";
 import { buildOne } from "./helpers.ts";
+import { violations } from "./invariants.ts";
 
 /**
  * Invariants across random sizes and construction variants. When the engine
@@ -116,4 +119,70 @@ describe("machining invariants", () => {
       { numRuns: 400, seed: 3 },
     );
   });
+});
+
+/**
+ * The same questions over the whole option space: kinds, joints, tops and
+ * rails, back mounts, joint methods, middle panels, corners, wardrobes,
+ * hangers, handles and front stacks. Whatever the input, the engine answers
+ * with diagnostics, never with an exception; whatever it accepts satisfies
+ * the geometric invariants in invariants.ts.
+ */
+describe("invariants over the option space", () => {
+  const check = (cab: Record<string, unknown>): void => {
+    const r = buildOne(cab);
+    // No NaN anywhere in the production data (JSON turns NaN into null).
+    expect(JSON.stringify(r.parts).replace(/"(l1|l2|w1|w2)":null/g, "")).not.toMatch(/null|NaN/);
+    if (!r.ok) {
+      expect(r.diagnostics.some((d) => d.severity === "error")).toBe(true);
+      return;
+    }
+    expect(violations(r)).toEqual([]);
+  };
+
+  it("any input within the variable ranges builds without an exception; accepted cabinets are sound", () => {
+    fc.assert(fc.property(anyCabinet, check), { numRuns: 250, seed: 11 });
+  }, 60_000);
+
+  it("cabinets a shop would draw are sound when accepted", () => {
+    fc.assert(fc.property(practicalCabinet, check), { numRuns: 250, seed: 12 });
+  }, 60_000);
+
+  it("the factory templates are sound at any width", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...FACTORY_TEMPLATES), fc.integer({ min: 300, max: 1200 }), (tpl, W) => {
+        const r = buildOne({ ...tpl.cabinet, vars: { ...tpl.cabinet.vars, W } });
+        if (r.ok) expect(violations(r), tpl.id).toEqual([]);
+      }),
+      { numRuns: 100, seed: 13 },
+    );
+  }, 60_000);
+
+  it("sizes off the 0.01 mm grid build without an exception", () => {
+    const frac = fc.oneof(
+      fc.integer({ min: 0, max: 999 }).map((n) => n / 1000),
+      fc.constantFrom(0.005, 0.335, 0.995, 1 / 3, 2 / 3),
+    );
+    fc.assert(
+      fc.property(practicalCabinet, frac, frac, frac, frac, (cab, w, h, d, t) => {
+        const vars = cab["vars"] as Record<string, number>;
+        const r = buildOne({ ...cab, vars: { ...vars, W: vars["W"]! + w, H: vars["H"]! + h, D: vars["D"]! + d, t_carcase: 18 + t } });
+        if (r.ok) expect(violations(r)).toEqual([]);
+      }),
+      { numRuns: 150, seed: 14 },
+    );
+  }, 60_000);
+
+  it("is deterministic: parts, machining, hardware and findings", () => {
+    fc.assert(
+      fc.property(practicalCabinet, (cab) => {
+        const out = (): string => {
+          const r = buildOne(cab);
+          return JSON.stringify([r.parts, r.diagnostics, r.cabinets[0]!.hardware, r.cabinets[0]!.handles, r.cabinets[0]!.fittings]);
+        };
+        expect(out()).toBe(out());
+      }),
+      { numRuns: 40, seed: 15 },
+    );
+  }, 60_000);
 });
