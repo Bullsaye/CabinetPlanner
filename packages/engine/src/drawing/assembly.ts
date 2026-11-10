@@ -309,7 +309,8 @@ export function drawAssembly(input: AssemblyInput): AssemblyDrawing {
       pos: String(r.pos),
       qty: String(r.qty),
       name: roleLabel(r, text),
-      size: `${num(r.length)} × ${num(r.width)} × ${num(r.thickness)}`,
+      // Mitred parts (D47): the bevel angles after the size, e.g. "∠22.5°".
+      size: `${num(r.length)} × ${num(r.width)} × ${num(r.thickness)}${Object.keys(r.bevels).length ? ` ∠${[...new Set(Object.values(r.bevels))].map((x) => `${num(x!)}°`).join("/")}` : ""}`,
       material: text.materialName?.(r.material) ?? r.material,
       edges: [part.edges.l1, part.edges.l2, part.edges.w1, part.edges.w2].map(edgeCode).join(" "),
     };

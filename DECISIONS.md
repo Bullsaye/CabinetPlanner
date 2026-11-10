@@ -729,8 +729,8 @@ Two shop settings, because they are used for different things:
   `top_slope`, TS; TS1 / TS2 with both slopes) runs between them, full
   carcase depth like the top. Mitre angles: top/slope a/2, slope/side
   (90° − a)/2 (45°: 22.5° each). Parts carry `bevels` (degrees per edge);
-  the cutlist note shows them language-neutral (`W2 ∠22.5°`), part sheets
-  in the subtitle.
+  the cutlist note shows them (`W2 ∠22.5°`, localized edge names), part
+  sheets in the subtitle, the assembly part list after the size.
 - Parts cut by a slope carry a `profile`: the cross-section in cabinet
   X/Y extruded along Z, used by the 3D view and the assembly drawing. The
   sloped panel is `rotated`: its box is the board laid flat in the top

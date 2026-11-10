@@ -136,8 +136,6 @@ horizontals, rebate, surface back, grid dowels, hat shelf on.
   are slopes meeting in the middle (gable).
 - **Bevels are not in the DXF.** They are saw operations; the cutlist note
   and part sheet show them.
-- **The mitre in the top/slope part list** of the assembly drawing is not
-  shown (cutlist and part sheets only).
 - **With sections:** flaps, blind corners and backs left out per zone
   (`noBack`) are not supported yet (diagnostics say so).
 - **Section construction in the app:** the construction editor edits the
