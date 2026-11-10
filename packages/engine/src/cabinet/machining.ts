@@ -371,9 +371,12 @@ export function machineBox(
       const top = layout.innerTop[side.code];
       const faceYs = top === undefined ? ys : ys.filter((y) => y <= top - num("sys_margin") + 1e-6);
       for (const z of rows) {
+        // Under a roof sloping to the rear (D49): no holes above the slope's inner face.
+        const rs = layout.rearSlope;
+        const yMax = rs ? (rs.line - rs.sn * (rs.D - z)) / rs.cs - num("sys_margin") : Infinity;
         if (z < side.box.z || z > side.box.z + side.box.dz) continue;
         const r = num("sys_hole_d") / 2 + num("bore_min_wall");
-        for (const y of faceYs) {
+        for (const y of faceYs.filter((v) => v <= yMax + 1e-6)) {
           // No holes behind the end of a fixed shelf: it would cover them and meet its dowels.
           const covered = fixedShelves.some(
             (fs) =>

@@ -2,7 +2,7 @@ import type { HardwareUse } from "../cabinet/machining.ts";
 import type { Library } from "../library.ts";
 import { cutlistRows, type CutlistRow } from "../output/cutlist.ts";
 import { formatNumber } from "../output/format.ts";
-import type { Part, PartRole } from "../part.ts";
+import { thicknessAxis, type Part, type PartRole } from "../part.ts";
 import type { DrawingText } from "./render.ts";
 import { spread } from "./render.ts";
 import { cross, dot, type Vec } from "./view.ts";
@@ -57,6 +57,26 @@ export const ASSEMBLY_CSS = `
 .asm-title{fill:#1b1f24;font-weight:600}.asm-sub{fill:#4a525c}.asm-head{fill:#1b1f24;font-weight:600}
 .asm-cell{fill:#1b1f24}.asm-mono{fill:#1b1f24;font-family:"JetBrains Mono",ui-monospace,monospace}
 .asm-rule{stroke:#c9ced6;stroke-width:.2}.asm-rule-strong{stroke:#1b1f24;stroke-width:.3}`;
+
+/** An outlined part standing in a vertical plane as a cross-section: (z, y) along X, or (x, y) along Z. */
+function outlineAsProfile(part: Part): { axis: "x" | "z"; points: [number, number][] } | undefined {
+  if (!part.outline) return undefined;
+  const n = thicknessAxis(part.lengthAxis, part.widthAxis);
+  if (n === "y") return undefined;
+  const pts = part.outline.map(([u, v]) => {
+    const c = { x: part.box.x, y: part.box.y, z: part.box.z };
+    c[part.lengthAxis] += u;
+    c[part.widthAxis] += v;
+    return (n === "x" ? [c.z, c.y] : [c.x, c.y]) as [number, number];
+  });
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [ax, ay] = pts[i]!;
+    const [bx, by] = pts[(i + 1) % pts.length]!;
+    area += ax * by - bx * ay;
+  }
+  return { axis: n === "x" ? "x" : "z", points: area < 0 ? pts.reverse() : pts };
+}
 
 /** Explode offset per role, in cabinet mm. Forward moves scale with the larger of depth and height. */
 function offset(role: PartRole, c: { W: number; H: number; D: number }, e: number): Vec {
@@ -151,17 +171,23 @@ export function drawAssembly(input: AssemblyInput): AssemblyDrawing {
     };
     // Visible faces for a viewer at +x, +y, +z. A part cut by a slope (D47):
     // its cross-section at the front and the side faces seen from above/right.
-    const prof = part.profile?.points.map(([px, py]) => [px + o[0], py + o[1]] as [number, number]);
+    // Cross-section along Z (profile in X/Y) or along X (profile in Z/Y, D49).
+    // Non-rectangular parts standing in a vertical plane are drawn the same
+    // way from their outline (D43: sides cut by a rear slope, Passblenden).
+    const profile = part.profile ?? outlineAsProfile(part);
+    const prof = profile?.points.map(([pa, py]) => [pa + (profile!.axis === "x" ? o[2] : o[0]), py + o[1]] as [number, number]);
+    const alongX = profile?.axis === "x";
+    const P3 = (pa: number, py: number, far: boolean): [number, number] => (alongX ? pr(far ? x1 : x0, py, pa) : pr(pa, py, far ? z1 : z0));
     const faces = prof
       ? [
-          quad(prof.map(([px, py]) => pr(px, py, z1)), "asm-front"),
-          ...prof.flatMap(([ax, ay], i) => {
-            const [bx, by] = prof[(i + 1) % prof.length]!;
-            // Outward normal of a counter-clockwise edge: (dy, −dx).
-            const nx = by - ay;
-            const ny = -(bx - ax);
-            if (nx <= 1e-9 && ny <= 1e-9) return [];
-            return [quad([pr(ax, ay, z0), pr(bx, by, z0), pr(bx, by, z1), pr(ax, ay, z1)], ny > Math.abs(nx) ? "asm-top" : "asm-side")];
+          quad(prof.map(([pa, py]) => P3(pa, py, true)), alongX ? "asm-side" : "asm-front"),
+          ...prof.flatMap(([aa, ay], i) => {
+            const [ba, by] = prof[(i + 1) % prof.length]!;
+            // Outward normal of a counter-clockwise edge in (a, y): (dy, −da); a = x or z.
+            const na = by - ay;
+            const ny = -(ba - aa);
+            if (na <= 1e-9 && ny <= 1e-9) return [];
+            return [quad([P3(aa, ay, false), P3(ba, by, false), P3(ba, by, true), P3(aa, ay, true)], ny > Math.abs(na) ? "asm-top" : alongX ? "asm-front" : "asm-side")];
           }),
         ]
       : [

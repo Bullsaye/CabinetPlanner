@@ -59,7 +59,9 @@ export function sceneOf(c: CabinetResult): Scene {
       box: p.box,
       // Parts cut by a slope (D47): their cross-section extruded along Z.
       ...(p.profile
-        ? { outline: { points: p.profile.points.map(([x, y]) => ({ x, y, z: p.box.z })), normal: "z" as const, thickness: p.box.dz } }
+        ? p.profile.axis === "x"
+          ? { outline: { points: p.profile.points.map(([z, y]) => ({ x: p.box.x, y, z })), normal: "x" as const, thickness: p.box.dx } }
+          : { outline: { points: p.profile.points.map(([x, y]) => ({ x, y, z: p.box.z })), normal: "z" as const, thickness: p.box.dz } }
         : p.outline
         ? { outline: { points: p.outline.map(([u, v]) => toCabinet(p, { u, v, w: 0 })), normal: cabinetAxisOf(p, "w"), thickness: p.thickness } }
         : {}),

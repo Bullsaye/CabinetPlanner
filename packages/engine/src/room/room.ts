@@ -105,7 +105,7 @@ export interface CabinetPlacement {
   /** Carcase depth without fronts. */
   carcaseD: number;
   /** Sloped top corners (D47). */
-  slopes?: { left?: { drop: number; angle: number }; right?: { drop: number; angle: number } };
+  slopes?: { left?: { drop: number; angle: number }; right?: { drop: number; angle: number }; rear?: { drop: number; angle: number } };
   /** Sink or hob cutout in the worktop above (D31). */
   cutout?: { kind: "sink" | "hob"; w: number; d: number; front: number; offset: number; r: number };
 }
@@ -158,11 +158,14 @@ export interface CeilingLayout {
 }
 
 /**
- * Height of a placed cabinet's carcase top at x (0…W along its front), less
- * its sloped corners (D47), above the carcase bottom.
+ * Height of a placed cabinet's carcase top at x (0…W along its front) and z
+ * (from its rear; omitted: the front view), less its sloped corners (D47,
+ * D49), above the carcase bottom.
  */
-export function carcaseTopAt(q: Pick<CabinetPlacement, "W" | "H" | "slopes">, x: number): number {
+export function carcaseTopAt(q: Pick<CabinetPlacement, "W" | "H" | "slopes">, x: number, z?: number): number {
   let h = q.H;
+  const b = q.slopes?.rear;
+  if (b && z !== undefined) h = Math.min(h, q.H - b.drop + z * Math.tan((b.angle * Math.PI) / 180));
   const r = q.slopes?.right;
   if (r) h = Math.min(h, q.H - r.drop + (q.W - x) * Math.tan((r.angle * Math.PI) / 180));
   const l = q.slopes?.left;
@@ -366,11 +369,12 @@ export function layoutRoom(
       W,
       H: v("H"),
       depth: roundMm(depth),
-      ...(v("slope_left_drop") > 0 || v("slope_right_drop") > 0
+      ...(v("slope_left_drop") > 0 || v("slope_right_drop") > 0 || v("slope_rear_drop") > 0
         ? {
             slopes: {
               ...(v("slope_left_drop") > 0 ? { left: { drop: v("slope_left_drop"), angle: v("slope_left_angle") } } : {}),
               ...(v("slope_right_drop") > 0 ? { right: { drop: v("slope_right_drop"), angle: v("slope_right_angle") } } : {}),
+              ...(v("slope_rear_drop") > 0 ? { rear: { drop: v("slope_rear_drop"), angle: v("slope_rear_angle") } } : {}),
             },
           }
         : {}),

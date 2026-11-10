@@ -117,3 +117,57 @@ describe("sloped top corner (D47)", () => {
     expect(partsByCode(cut).SR!.length).toBe(1440);
   });
 });
+
+describe("roof sloping to the rear (D49)", () => {
+  const room = { walls: [{ id: "A", length: 3000 }, { id: "B", length: 2500 }, { id: "C", length: 3000 }, { id: "D", length: 2500 }], ceiling: { slopes: [{ wall: "A", knee: 1500, angle: 45 }] } };
+  const kneeWall = (extra: Record<string, unknown> = {}) =>
+    buildOne(
+      {
+        kind: "tall",
+        presets: ["tall-unit"],
+        vars: { W: 1000, H: 1900, D: 580, plinth_h: 100, shelf_count: 4, door_count: 2, slope_rear_drop: "max(0, H + plinth_h - ceiling_h)" },
+        place: { wall: "A", x: 500 },
+        ...extra,
+      },
+      { room },
+    );
+
+  it("cuts sides, top, back and shelves to a slope falling to the rear", () => {
+    const r = kneeWall();
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.diagnostics.map((d) => d.code)).not.toContain("room_above_ceiling");
+    const p = partsByCode(r);
+    // 1900 + 100 − 1500 = 500 down, 500 deep at 45°.
+    expect(p.TS!.width).toBeCloseTo(500 * Math.SQRT2, 1);
+    expect(p.TS!.length).toBe(962);
+    expect(p.TS!.bevels).toEqual({ l2: 22.5 });
+    expect(p.TO!.width).toBe(80);
+    expect(p.TO!.bevels).toEqual({ l1: 22.5 });
+    // Sides keep their size, outline cut along the outer slope line.
+    expect(p.SL!.length).toBe(1900);
+    expect(p.SL!.outline).toHaveLength(5);
+    expect(p.SL!.outline).toContainEqual([1400, 0]);
+    expect(p.SL!.outline).toContainEqual([1900, 500]);
+    // The back stops under the slope's inner face.
+    expect(p.BK!.box.y + p.BK!.box.dy).toBeLessThan(1400);
+    // Shelves high up are shorter at the rear.
+    expect(Math.min(...r.parts.filter((x) => x.role === "shelf").map((x) => x.width))).toBeLessThan(500);
+  });
+
+  it("keeps the rear row of system holes under the slope", () => {
+    const p = partsByCode(kneeWall());
+    for (const o of p.SL!.operations) {
+      if (o.kind !== "bore" || !o.sources.some((s) => s.kind === "system")) continue;
+      // Part-local u = y, v = z: below the inner line sn·(D − z) + cs·y = k − t.
+      const y = o.u;
+      const z = o.v as number;
+      expect(Math.SQRT1_2 * (580 - z) + Math.SQRT1_2 * y).toBeLessThanOrEqual(Math.SQRT1_2 * 580 + Math.SQRT1_2 * 1400 - 19 + 1e-6);
+    }
+  });
+
+  it("works with the back behind bottom and top, and not together with a side slope", () => {
+    expect(kneeWall({ options: { back_extent: "behind_horizontals" } }).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const both = kneeWall({ vars: { W: 1000, H: 1900, D: 580, slope_rear_drop: 300, slope_right_drop: 200 } });
+    expect(both.diagnostics.map((d) => d.code)).toContain("slope_rear_with_side");
+  });
+});

@@ -763,3 +763,28 @@ Two shop settings, because they are used for different things:
   option `hardware.handle` as before. Unknown items and items of another
   category are errors. Placement rules (handle.door / handle.drawer,
   offsets) stay cabinet-wide.
+
+### D49 · 2026-11-10 · Roof sloping to the rear; outlines in assembly drawings
+
+- `slope_rear_drop` / `slope_rear_angle`: a roof falling towards the wall
+  behind the cabinet cuts its top rear corner in the side view (not yet
+  together with a left or right slope: error `slope_rear_with_side`).
+- Sides and middle panels keep their size and get an outline (D43) along
+  the slope: the outer face where they reach the top's upper face (sides
+  over, middle panels through), else the inner face. The top runs from the
+  slope's upper end to the front, its rear edge (l1) mitred a/2. The sloped
+  panel (TS) lies across the width between the sides like the top, from
+  the top down to the rear edge; upper edge (l2) mitred a/2, lower edge
+  square at the rear; its box is the board laid flat (D47), its profile a
+  Z/Y cross-section extruded along X (`profile.axis: "x"`).
+- The back stops `back_play` under the sloped panel's inner face at the
+  back's rear face (a surface back at the outer rear corner); it is held by
+  the side and bottom grooves only. Adjustable shelves are shortened at the
+  rear (`shelf_gap` clear), fixed shelves bevelled 90° − a at the rear
+  edge; other parts reaching into the corner are an error.
+- System holes stay `sys_margin` below the slope's inner face.
+- Room: the ceiling check samples the depth as well (rear edge, kink, ten
+  steps), `carcaseTopAt` takes z.
+- Assembly drawings draw outlined parts standing in a vertical plane
+  (sides, backs, Passblenden) as prisms of their outline instead of their
+  bounding box.

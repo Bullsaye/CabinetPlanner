@@ -14,7 +14,7 @@
     c.vars = { ...(c.vars ?? {}), H: kind === "wall" ? "ceiling_h - wall_bottom - ceiling_gap" : "ceiling_h - plinth_h - ceiling_gap" };
   }
   /** Sloped corner down to the ceiling over that side (D47): H stays, the corner drops. */
-  function fitSlope(side: "left" | "right"): void {
+  function fitSlope(side: "left" | "right" | "rear"): void {
     if (!c) return;
     const base = kind === "wall" ? "wall_bottom" : "plinth_h";
     c.vars = { ...(c.vars ?? {}), [`slope_${side}_drop`]: `max(0, H + ${base} - ceiling_h + ceiling_gap)` };
@@ -57,9 +57,12 @@
         <VarRow name="slope_right_angle" />
         <VarRow name="slope_left_drop" />
         <VarRow name="slope_left_angle" />
+        <VarRow name="slope_rear_drop" />
+        <VarRow name="slope_rear_angle" />
         <div class="links">
           <button class="quiet link" onclick={() => fitSlope("right")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_right")}</button>
           <button class="quiet link" onclick={() => fitSlope("left")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_left")}</button>
+          <button class="quiet link" onclick={() => fitSlope("rear")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_rear")}</button>
         </div>
       </section>
     {/if}

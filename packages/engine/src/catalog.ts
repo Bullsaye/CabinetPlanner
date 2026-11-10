@@ -75,6 +75,8 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "slope_left_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
   v({ name: "slope_right_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
   v({ name: "slope_right_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
+  v({ name: "slope_rear_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
+  v({ name: "slope_rear_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),

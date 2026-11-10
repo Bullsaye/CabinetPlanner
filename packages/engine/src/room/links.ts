@@ -136,7 +136,10 @@ export function aboveCeiling(room: RoomLayout): Diagnostic[] {
     // its rear and front edge at every kink of either.
     const lines = [0, q.carcaseD].map((z) => ceilingAlong(room.ceiling, at(0, z), at(q.W, z)));
     const xs = [...carcaseTopKinks(q), ...lines.flatMap((l) => l.map(([t]) => t))].filter((x) => x >= -1e-6 && x <= q.W + 1e-6);
-    const over = Math.max(...xs.flatMap((x) => [0, q.carcaseD].map((z) => q.baseY + carcaseTopAt(q, x) - ceilingAt(room.ceiling, at(x, z)))));
+    // Across the depth: both edges, the rear slope's kink and a few steps between (D49).
+    const rear = q.slopes?.rear;
+    const zs = [...new Set([0, q.carcaseD, ...(rear ? [rear.drop / Math.tan((rear.angle * Math.PI) / 180)] : []), ...Array.from({ length: 9 }, (_, i) => ((i + 1) * q.carcaseD) / 10)])].filter((z) => z <= q.carcaseD);
+    const over = Math.max(...xs.flatMap((x) => zs.map((z) => q.baseY + carcaseTopAt(q, x, z) - ceilingAt(room.ceiling, at(x, z)))));
     if (over > 0.5) out.push({ severity: "warning", code: "room_above_ceiling", params: { over: roundMm(over) }, cabinet: q.cabinet });
   }
   return out;
