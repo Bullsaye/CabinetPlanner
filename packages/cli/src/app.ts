@@ -34,7 +34,7 @@ import {
   type Shop,
   type Source,
 } from "@cabinet-planner/engine";
-import { createTranslator, type Translator } from "@cabinet-planner/i18n";
+import { createTranslator, diagnosticText, type Translator } from "@cabinet-planner/i18n";
 import { parseArgs } from "node:util";
 
 /**
@@ -479,7 +479,7 @@ function sourceLabel(s: Source, tr: Translator): string {
 function printDiagnostics(diags: readonly Diagnostic[], tr: Translator, io: Io): void {
   for (const d of diags) {
     const where = [d.cabinet, d.part ?? d.variable].filter(Boolean).join(" ");
-    io.stderr(`${tr.t(`severity.${d.severity}`)}${where ? ` [${where}]` : ""}: ${tr.t(`diag.${d.code}`, d.params)}\n`);
+    io.stderr(`${tr.t(`severity.${d.severity}`)}${where ? ` [${where}]` : ""}: ${diagnosticText(tr, d.code, d.params)}\n`);
   }
   const errors = diags.filter((d) => d.severity === "error").length;
   const warnings = diags.length - errors;

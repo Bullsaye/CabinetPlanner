@@ -119,14 +119,10 @@
         <button class="only-narrow" aria-pressed={store.ui.panel === "list"} onclick={() => (store.ui.panel = store.ui.panel === "list" ? null : "list")}>{t("ui.cabinets")}</button>
         <button class="only-tablet" class:gone={inlinePane} aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
       </span>
-      <span class="status" class:bad={counts.errors > 0}>
-        {#if counts.errors}{t("ui.errors", { n: counts.errors })}{:else if counts.warnings}{t("ui.warnings", { n: counts.warnings })}{:else}{t("ui.checks_ok")}{/if}
+      <span class="status" class:bad={counts.errors > 0} class:warn={!counts.errors && counts.warnings > 0} title={counts.errors || counts.warnings ? t("cli.summary", { errors: counts.errors, warnings: counts.warnings }) : t("ui.checks_ok")}>
+        {#if counts.errors}{t("ui.errors", { n: counts.errors })}{:else if counts.warnings}{t("ui.warnings", { n: counts.warnings })}{:else}{t("ui.checks_ok_short")}{/if}
       </span>
       {/if}
-      <select id="lang" class:hide-narrow={store.screen === "project"} aria-label={t("ui.language")} bind:value={store.ui.lang}>
-        <option value="en">English</option>
-        <option value="de">Deutsch</option>
-      </select>
       <AccountMenu />
       <FileMenu />
     </div>
@@ -199,14 +195,25 @@
   .loading { padding: 40px; text-align: center; }
   .name { font-weight: 600; font-size: 14px; white-space: nowrap; }
   .sep { color: var(--muted); }
-  .project-name { border-color: transparent; font-weight: 500; width: 14em; }
+  .project-name { border-color: transparent; font-weight: 500; width: 14em; flex: 0 1 14em; min-width: 5em; text-overflow: ellipsis; }
   .project-name:hover, .project-name:focus { border-color: var(--line); }
-  nav { display: flex; gap: 4px; flex-wrap: wrap; }
-  .tab { border-color: transparent; background: transparent; }
+  nav { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tab { border-color: transparent; background: transparent; white-space: nowrap; }
   .tab[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-fg); border-color: transparent; }
   .right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .status { font-size: 12px; color: var(--ok); }
+  .status { font-size: 12px; color: var(--ok); white-space: nowrap; }
+  .status.warn { color: var(--warn); }
   .status.bad { color: var(--err); }
+  /* Desktop: one row. The tabs keep their place; the project name gives way first. */
+  @media (min-width: 1101px) {
+    header { flex-wrap: nowrap; gap: 8px 10px; }
+    nav { flex-wrap: nowrap; }
+    .right { flex-wrap: nowrap; flex: none; }
+  }
+  @media (min-width: 1101px) and (max-width: 1340px) {
+    .tab { padding-left: 7px; padding-right: 7px; }
+    .name { display: none; }
+  }
   .fatal { margin: 12px 16px; padding: 12px; border: 1px solid var(--err); background: var(--err-soft); border-radius: 8px; }
   .fatal pre { white-space: pre-wrap; font-size: 12px; }
   .body {
@@ -253,9 +260,9 @@
     .project-name { width: auto; flex: 1; min-width: 0; }
     nav { order: 10; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .tab { white-space: nowrap; }
-    .right { margin-left: 0; gap: 6px; }
+    .right { margin-left: 0; gap: 6px; flex-wrap: nowrap; flex: 1 1 100%; }
+    .right :global(button) { padding-left: 8px; padding-right: 8px; white-space: nowrap; }
     .status { display: none; }
-    .hide-narrow { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { .right-pane, .left { transition: none; } }
 </style>

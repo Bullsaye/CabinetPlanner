@@ -45,6 +45,7 @@
       <VarRow name="D" steppers />
       <VarRow name="t_carcase" label={t("ui.material_thickness")} />
       <button class="quiet link" onclick={fitToCeiling} title={t("ui.fit_to_ceiling_hint")}>{t("ui.fit_to_ceiling")}</button>
+      <p class="muted small">{t("ui.value.formula_hint")}</p>
     </section>
 
     {#if params.length}
@@ -128,7 +129,7 @@
   .head { display: flex; flex-direction: column; gap: 6px; }
   .name { font-weight: 600; font-size: 14px; }
   .seg { display: flex; }
-  .seg button { flex: 1; border-radius: 0; }
+  .seg button { flex: 1; min-width: 0; padding-left: 4px; padding-right: 4px; border-radius: 0; }
   .seg button:first-child { border-radius: 6px 0 0 6px; }
   .seg button:last-child { border-radius: 0 6px 6px 0; }
   section { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }

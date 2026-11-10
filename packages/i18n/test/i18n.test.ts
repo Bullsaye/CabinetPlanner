@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTranslator, de, en, interpolate, matchLocale } from "../src/index.ts";
+import { createTranslator, de, diagnosticText, en, interpolate, matchLocale } from "../src/index.ts";
 
 describe("translator", () => {
   it("translates with placeholders", () => {
@@ -18,6 +18,12 @@ describe("translator", () => {
 
   it("returns the key for unknown messages", () => {
     expect(createTranslator("en").t("does.not.exist")).toBe("does.not.exist");
+  });
+
+  it("translates enumerated parameters of findings", () => {
+    const tr = createTranslator("de");
+    expect(diagnosticText(tr, "room_cabinet_in_opening", { kind: "window", wall: "A" })).toBe("Steht vor einer Öffnung (Fenster) an Wand A.");
+    expect(diagnosticText(tr, "var_below_min", { name: "W", value: 50, min: 100 })).toBe("W ist 50, unter dem Minimum von 100.");
   });
 
   it("leaves unknown placeholders visible", () => {

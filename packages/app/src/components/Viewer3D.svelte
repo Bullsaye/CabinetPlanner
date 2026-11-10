@@ -104,7 +104,7 @@
         if (isFront && !store.ui.fronts) continue;
         const b = p.box;
         const pg = new THREE.Group();
-        const isPart = store.ui.part === p.id;
+        const isPart = store.ui.part === p.id || store.ui.highlight.includes(p.id);
         const base =
           p.color ? new THREE.Color(p.color) : p.role === "back" ? partColor.clone().offsetHSL(0, 0, -0.06) : isFront ? partColor.clone().lerp(accent, 0.12) : partColor;
         const color = isPart ? partColor.clone().lerp(accent, 0.45) : selected ? base.clone().lerp(accent, 0.1) : base;
@@ -413,6 +413,7 @@
     store.result;
     store.ui.selected;
     store.ui.part;
+    store.ui.highlight;
     store.ui.explode;
     store.ui.ops;
     store.ui.fronts;

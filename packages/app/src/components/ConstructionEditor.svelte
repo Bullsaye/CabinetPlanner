@@ -126,13 +126,14 @@
     {/if}
     {#if saved}<p class="small muted" role="status">{saved}</p>{/if}
 
+    <p class="muted small">{t("ui.construction_hint")} {t("ui.value.formula_hint")}</p>
+
     <section>
       <h3 class="label">{t("ui.carcase")}</h3>
-      <OptRow key="carcase_joint" />
       <OptRow key="material.carcase" />
       <VarRow name="t_carcase" />
-      <OptRow key="side.left" />
-      <OptRow key="side.right" />
+      <OptRow key="carcase_joint" />
+      <OptRow key="edge.carcase" />
     </section>
 
     <section>
@@ -148,7 +149,6 @@
       <VarRow name="bottom_setback_front" />
       <OptRow key="rail.bottom" />
       {#if cab?.resolved.options.get("rail.bottom")?.value !== "none"}<VarRow name="rail_bottom_w" />{/if}
-      <p class="muted small">{t("ui.formula_hint")}</p>
     </section>
 
     <section>
@@ -161,26 +161,12 @@
     </section>
 
     <section>
-      <h3 class="label">{t("ui.joints")}</h3>
-      <OptRow key="joint_method" />
-      <OptRow key="hardware.fastener" />
-      <OptRow key="hardware.connector" label={t("ui.dowel")} />
-      <OptRow key="dowel_pattern" />
-      <VarRow name="dowel_offset_front" />
-      <VarRow name="dowel_second" />
-      <VarRow name="dowel_raster" />
-      <VarRow name="dowel_offset_rear" />
-      <OptRow key="joint_screws" />
-      {#if cab?.resolved.options.get("joint_screws")?.value !== "none"}
-        <OptRow key="hardware.joint_screw" />
-        <VarRow name="joint_screw_every" />
-      {/if}
-      <OptRow key="cabinet_link" />
-    </section>
-
-    <section>
-      <h3 class="label">{t("ui.panels_and_back")}</h3>
+      <h3 class="label">{t("ui.shelves_and_panels")}</h3>
+      <OptRow key="material.shelf" />
+      <VarRow name="shelf_front_setback" />
+      <VarRow name="shelf_back_gap" />
       <p class="muted small">{t("ui.panels_hint")}</p>
+      <div class="scroll-x">
       <table class="grid zones">
         <thead><tr><th>{t("ui.zone")}</th><th>{t("ui.back")}</th><th>{t("ui.panel_below")}</th><th>{t("ui.setback_front")}</th><th>{t("ui.setback_rear")}</th></tr></thead>
         <tbody>
@@ -200,6 +186,7 @@
           {/each}
         </tbody>
       </table>
+      </div>
       <h4 class="label">{t("ui.extra_panels")}</h4>
       {#each c.construction?.panels ?? [] as p, k}
         <div class="panelrow">
@@ -216,6 +203,32 @@
     </section>
 
     <section>
+      <h3 class="label">{t("ui.fronts_construction")}</h3>
+      <OptRow key="material.front" />
+      <OptRow key="edge.front" />
+      {#if hasType("drawer")}<OptRow key="drawer_front.fixing" />{/if}
+      <OptRow key="corner" />
+      {#if cab?.resolved.options.get("corner")?.value !== "none"}<VarRow name="blind_w" />{/if}
+    </section>
+
+    <section>
+      <h3 class="label">{t("ui.joints")}</h3>
+      <OptRow key="joint_method" />
+      <OptRow key="hardware.fastener" />
+      <OptRow key="hardware.connector" label={t("ui.dowel")} />
+      <OptRow key="dowel_pattern" />
+      <VarRow name="dowel_offset_front" />
+      <VarRow name="dowel_second" />
+      <VarRow name="dowel_raster" />
+      <VarRow name="dowel_offset_rear" />
+      <OptRow key="joint_screws" />
+      {#if cab?.resolved.options.get("joint_screws")?.value !== "none"}
+        <OptRow key="hardware.joint_screw" />
+        <VarRow name="joint_screw_every" />
+      {/if}
+    </section>
+
+    <section>
       <h3 class="label">{t("ui.fittings")}</h3>
       {#if hasType("door")}<OptRow key="hardware.hinge" />{/if}
       {#if hasType("drawer")}<OptRow key="hardware.slide" />{/if}
@@ -223,10 +236,23 @@
       <OptRow key="hardware.shelf_support" />
       {#if kind === "wall"}<OptRow key="hardware.hanger" />{:else}<OptRow key="hardware.leg" />{/if}
       {#if kind === "tall"}<OptRow key="hardware.rail" />{/if}
-      <OptRow key="corner" />
     </section>
 
     <FreeConstruction />
+
+    <details>
+      <summary class="label">{t("ui.in_room")}</summary>
+      <div class="rows">
+        <p class="muted small">{t("ui.in_room_hint")}</p>
+        <OptRow key="side.left" />
+        <OptRow key="side.right" />
+        <OptRow key="cabinet_link" />
+        {#if cab?.resolved.options.get("cabinet_link")?.value !== "none"}<OptRow key="hardware.link" />{/if}
+        <OptRow key="ceiling_filler" />
+        <VarRow name="ceiling_gap" />
+        {#if kind === "base"}<OptRow key="worktop_cutout" />{/if}
+      </div>
+    </details>
 
     <details>
       <summary class="label">{t("ui.all_settings")}</summary>
@@ -239,11 +265,15 @@
   .ce { display: flex; flex-direction: column; gap: 12px; position: relative; }
   .top { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
   h2 { margin: 0; font-size: 16px; }
+  /* The wide editor has room for preset names as origin. */
+  @media (min-width: 1101px) { .ce :global(.vrow) { grid-template-columns: minmax(0, .85fr) minmax(0, 1.25fr) 112px; } }
   h3, h4 { margin: 0 0 2px; }
   section { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
   .small { font-size: 12px; margin: 0; }
   .zones td input.num { width: 4.5em; }
   .zones td, .zones th { padding: 4px 6px; }
+  .zones th { white-space: normal; position: static; vertical-align: bottom; }
+  .rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 6px; }
   .panelrow { display: grid; grid-template-columns: 1.6fr 1fr 1fr auto; gap: 4px; }
   .panelrow input { width: 100%; min-width: 0; }
   details { border-top: 1px solid var(--line); padding-top: 6px; }

@@ -1,5 +1,5 @@
-import { localName, OPTION_BY_KEY, VARIABLE_BY_NAME, type OptionDef } from "@cabinet-planner/engine";
-import { setVar, store, type Layer } from "./store.svelte.ts";
+import { localName, OPTION_BY_KEY, type OptionDef } from "@cabinet-planner/engine";
+import { store } from "./store.svelte.ts";
 
 /** Choices of an option for a select: value is the JSON of the option value. */
 export function optionChoices(o: OptionDef): { value: string; label: string }[] {
@@ -22,15 +22,6 @@ export function optionChoices(o: OptionDef): { value: string; label: string }[] 
     ];
   const items = [...(lib?.hardware.values() ?? [])].filter((h) => h.category === k.category);
   return [...(k.nullable ? [{ value: "null", label: t("ui.none") }] : []), ...items.map((h) => ({ value: JSON.stringify(h.id), label: localName(h.name, store.tr.locale) }))];
-}
-
-/** Touch steppers: the resolved value plus or minus the variable's step, within its limits. */
-export function stepVar(layer: Layer, name: string, by: number, current: number | undefined): void {
-  const def = VARIABLE_BY_NAME.get(name);
-  let next = (current ?? 0) + by;
-  if (def?.min !== undefined) next = Math.max(def.min, next);
-  if (def?.max !== undefined) next = Math.min(def.max, next);
-  setVar(layer, name, Math.round(next * 100) / 100);
 }
 
 export const optionDef = (key: string): OptionDef | undefined => OPTION_BY_KEY.get(key);

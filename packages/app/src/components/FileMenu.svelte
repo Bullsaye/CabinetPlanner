@@ -69,6 +69,13 @@
           </button>
         {/each}
       </div>
+      <label class="lang">
+        <span>{t("ui.language")}</span>
+        <select id="lang" bind:value={store.ui.lang}>
+          <option value="en">English</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </label>
       {#if note}<p class="note" role="status">{note}</p>{/if}
     </div>
   {/if}
@@ -84,5 +91,6 @@
   .sym { display: flex; gap: 4px; padding: 2px 6px 4px; }
   .sym button { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 12px; text-align: left; padding: 4px 6px; }
   .sym svg { flex: none; }
+  .lang { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 10px; }
   .note { margin: 6px 4px 2px; font-size: 12px; color: var(--muted); max-width: 30ch; }
 </style>
