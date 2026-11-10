@@ -424,8 +424,9 @@ export function buildBox(
   if (nPart > 0) {
     const z0 = backPerSection ? carcaseZ0 : backFrontZ;
     for (let i = 1; i <= nPart; i++) {
-      const y0 = through ? sideY : t;
-      const y1 = through ? sideY + sideH : H - t;
+      // Through: from the carcase bottom edge to the top edge, whatever the side joint.
+      const y0 = through ? 0 : t;
+      const y1 = through ? H : H - t;
       add("partition", i, { x: sections[i - 1]![1], y: y0, z: z0, dx: t, dy: y1 - y0, dz: D - num("partition_setback") - z0 }, "y", "z", "material.carcase", front(edgeCarcase));
     }
   }

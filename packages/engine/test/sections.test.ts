@@ -129,6 +129,15 @@ describe("middle panels through (D46)", () => {
     expect(deep.diagnostics.map((d) => d.code)).toContain("back_grooves_meet");
   });
 
+  it("runs through from bottom to top edge with sides between too", () => {
+    const r = wardrobe({ options: { partition_joint: "through", carcase_joint: "sides_between" }, vars: { back_groove_depth: 8 } });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const p = partsByCode(r);
+    expect(p.MP1!.box).toMatchObject({ y: 0, dy: 1720 });
+    // Bottom pieces run under the sides, up to the middle panel.
+    expect(p.BO1!.box).toMatchObject({ x: 0, dx: 19 + 496.5 });
+  });
+
   it("keeps one bottom and top without middle panels", () => {
     const p = partsByCode(buildOne({ options: { partition_joint: "through" } }));
     expect(p.BO).toBeDefined();
