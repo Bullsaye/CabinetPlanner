@@ -1,6 +1,6 @@
 name: Android build
 
-# APK of the tablet/phone app (Tauri mobile around the same web app).
+# APK of the tablet and phone app (Tauri mobile around the same web app).
 # Run by hand, or by pushing a tag v*; the APK is attached to the run.
 #
 # Signing: with the repository secrets ANDROID_KEYSTORE_BASE64,

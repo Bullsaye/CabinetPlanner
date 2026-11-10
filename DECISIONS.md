@@ -814,3 +814,33 @@ step, with everything still a formula:
   device that still has the untouched example shop takes the server copy.
 - No e-mail yet: no address verification, no reset by mail (admin command
   `set-password`). Admins are the accounts named in `ADMIN_EMAILS`.
+
+### D50 · 2026-11-09 · Corrections from the rule audit
+
+Refinements of earlier decisions where the output was geometrically wrong;
+the earlier entries stay as written.
+
+- Rear rail at the bottom (D41): a flat rail carries the back's groove or
+  rebate like a bottom does. An upright rail stands in front of the back
+  (at the back's front face, like the upright rear rail at the top), so
+  the bottom must be shortened by the back's offset plus the rail
+  thickness.
+- Upright rails and the interior (D41): the clear interior ends at the
+  lower edge of an upright top rail (`H − rail_w`) and starts at the upper
+  edge of an upright bottom rail. Shelf zones, drawers and automatic or
+  extra fixed shelves keep to it (`fixed_shelf_outside`,
+  `construction_panel_outside` otherwise); a drawer whose floor lies below
+  an upright bottom rail ends in front of the rail. Middle panels keep
+  their size and get a through notch (pocket, source `joint:<rail>`) for
+  every upright rail they cross.
+- Dowel sequence (D35): no position moves in front of `dowel_offset_front`.
+  A blocked position that cannot move forward moves to the rear in pitch
+  steps (up to three, like forward); a rearmost position that cannot keep
+  `dowel_offset_rear` without that is dropped.
+- Connectors (D36): consecutive connectors of a joint keep at least their
+  own length along the joint (slot length or largest Ø) plus
+  `bore_min_wall` apart; positions closer than that are left out. A slot
+  is only placed where it stays a pocket of its part and clear of bores.
+- Item data that cannot be machined is `hardware_drill_invalid`: a
+  diameter, blind depth or slot length that is not positive
+  (`not_positive`), `through` on a connector's `edge` mount (`edge`).

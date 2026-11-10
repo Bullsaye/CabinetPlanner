@@ -357,6 +357,7 @@ export const en = {
   "diag.expr_division_by_zero": "{name}: division by zero.",
   "diag.expr_not_finite": "{name}: the result is not a finite number.",
   "diag.expr_empty": "{name}: the expression is empty.",
+  "diag.expr_too_complex": "{name}: the expression is too long or nested too deeply.",
 
   // Diagnostics: options and presets
   "diag.option_unknown": "Unknown option {key} in the {layer} layer.",
@@ -411,6 +412,7 @@ export const en = {
   "diag.front_height_invalid": "Front {index}: height “{expr}” is not valid.",
   "diag.fronts_sum_mismatch": "The front heights add up to {sum} mm, but {available} mm are available. Leave one height empty to fill the rest.",
   "diag.fronts_too_high": "Front {index} has no room left; {available} mm are available for all fronts.",
+  "diag.shelves_too_close": "{count} shelves do not fit into {space} mm of clear height: they would overlap.",
   "diag.shelves_no_door_zone": "{count} shelf/shelves set, but the cabinet has no door zone for them.",
   "diag.slide_no_length": "{item}: the cabinet is too shallow for any slide ({depth} mm inside, {min} mm needed).",
   "diag.drawer_too_low": "Drawer {index}: the front ({front} mm) is too low for a drawer box with {clearance} mm clearance.",
@@ -471,6 +473,7 @@ export const en = {
   "diag.fixed_shelf_outside": "Fixed shelf {index} would lie outside the carcase interior.",
   "diag.hanging_too_low": "No room for the hat shelf and rail in {space} mm.",
   "diag.blind_too_wide": "The blind panel ({blind} mm) leaves too little room for the door.",
+  "diag.blind_corner_two_doors": "A blind corner unit takes one door: with {doors} doors the one next to the blind panel has no side to hang on.",
   "diag.corner_with_drawers": "Corner settings apply to doors only; the drawers ignore them.",
   "room.plan": "Floor plan",
   "room.elevation": "Elevation",
@@ -926,6 +929,7 @@ export const en = {
   "option.back_mount.none": "No back",
   "role.rail_bottom": "Bottom rail",
   "diag.upright_rail_needs_sides_over": "Upright rail {rail} needs sides running full height.",
+  "diag.upright_rails_too_high": "Upright rails are too high for a carcase of {height} mm (by {over} mm).",
   "diag.bottom_rail_overlap": "The bottom rail needs the bottom shortened by {need} mm at the rear (now {setback}).",
   "ui.top_and_bottom": "Top and bottom",
   "ui.formula_hint": "Sizes may be formulas over the cabinet (e.g. D / 3, rail_w + 20), so a template fits every size.",

@@ -8,6 +8,7 @@ import {
   addThroughBore,
   boreWouldCollide,
   checkOperations,
+  pocketWouldCollide,
   resolveOpposing,
   type Direction,
   type OpSource,
@@ -120,7 +121,11 @@ export function machineBox(
     // Back behind the horizontals: grooves/rebates only in the sides, full height.
     const behind = opt<string>("back_extent") === "behind_horizontals";
     const hosts = parts.filter((p) =>
-      behind ? p.role === "side_left" || p.role === "side_right" : ["side_left", "side_right", "bottom", "top", "fixed_shelf"].includes(p.role),
+      behind
+        ? p.role === "side_left" || p.role === "side_right"
+        : ["side_left", "side_right", "bottom", "top", "fixed_shelf"].includes(p.role) ||
+          // A flat rear rail at the bottom holds the back where the shortened bottom no longer does.
+          (p.role === "rail_bottom" && thicknessAxis(p.lengthAxis, p.widthAxis) === "y"),
     );
     for (const back of parts.filter((p) => p.role === "back")) {
       const b = back.box;
@@ -133,6 +138,14 @@ export function machineBox(
         if (lo <= p.box[ax] + 1e-6 && hi >= p.box[ax] + boxSize(p.box, ax) - 1e-6) continue;
         addPocketFromBox(p, region, source);
       }
+    }
+  }
+
+  // --- Middle panels are notched around upright rails (they join flat horizontals only, D41) ---
+  for (const mp of parts.filter((p) => p.role === "partition")) {
+    for (const r of parts.filter((p) => ["rail_front", "rail_rear", "rail_bottom"].includes(p.role) && thicknessAxis(p.lengthAxis, p.widthAxis) === "z")) {
+      const b = r.box;
+      addPocketFromBox(mp, { x0: mp.box.x, x1: mp.box.x + mp.box.dx, y0: b.y, y1: b.y + b.dy, z0: b.z, z1: b.z + b.dz }, { kind: "joint", ref: r.code }, { through: true });
     }
   }
 
@@ -200,6 +213,21 @@ export function machineBox(
     const fastener = method === "connector" || method === "connector_dowel" ? library.hardware.get(opt<string>("hardware.fastener"))! : undefined;
     const seenLimits = new Set<string>();
     const screw = opt<string>("joint_screws") === "between_dowels" ? library.hardware.get(opt<string>("hardware.joint_screw")) : undefined;
+    /** Findings about item data repeat on every joint: report each once. */
+    const once = (d: Diagnostic): void => {
+      const k = d.code + JSON.stringify(d.params);
+      if (!seenLimits.has(k)) diagnostics.push(d), seenLimits.add(k);
+    };
+    /** The drilling a joint can take. A hole into a panel's end cannot go through the panel (item data). */
+    const jointDrills = (item: HardwareItem, drills: EvaluatedDrill[]): EvaluatedDrill[] =>
+      drills.filter((dr, i) => {
+        if (dr.mount !== "face" && dr.mount !== "edge" && dr.mount !== "edge_face") return false;
+        if (dr.through && dr.mount === "edge") {
+          once({ severity: "error", code: "hardware_drill_invalid", params: { item: item.id, index: i + 1, field: "through", detail: "edge" }, ...at });
+          return false;
+        }
+        return true;
+      });
     /** The screw's drilling for one joint (thicknesses differ per joint). */
     const screwPlan = (j: Joint): ConnectorPlan | undefined => {
       if (!screw) return undefined;
@@ -207,8 +235,9 @@ export function machineBox(
       scope.set("t_edge", j.edgePart.thickness);
       scope.set("t_face", j.facePart.thickness);
       const params = evaluateItemParams(screw, scope, at);
-      const { drills } = evaluateDrilling(screw, params.values, at);
-      return { item: screw, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: 0, spacingMax: Infinity };
+      const { drills, diagnostics: dd } = evaluateDrilling(screw, params.values, at);
+      [...params.diagnostics, ...dd].forEach(once);
+      return { item: screw, drills: jointDrills(screw, drills), endMin: 0, spacingMax: Infinity };
     };
 
     for (const j of [...carcaseJoints(parts, opt<string>("carcase_joint")), ...customJoints(parts, layout.custom)]) {
@@ -255,9 +284,9 @@ export function machineBox(
             diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: fastener.id, mount: dr.mount, category: fastener.category }, ...at });
           }
         }
-        conn = { item: fastener, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+        conn = { item: fastener, drills: jointDrills(fastener, drills), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
       }
-      const geo: JointGeometry = { j, W, H, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
+      const geo: JointGeometry = { j, W, H, D, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
 
       let placed = 0;
       let dowelLine: number[] = [];
@@ -277,7 +306,12 @@ export function machineBox(
           minCount: 2,
         };
         delete (o as { sequence?: unknown }).sequence;
-        const zs = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
+        // Connectors keep at least their own length along the joint apart (the grid alone allows one pitch).
+        const span = Math.max(0, ...c.drills.map((dr) => (dr.op === "groove" ? dr.len : dr.d))) + minWall;
+        const zs: number[] = [];
+        for (const z of dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)))) {
+          if (zs.length === 0 || zs[zs.length - 1]! - z >= span - 1e-9) zs.push(z);
+        }
         for (const z of zs) placeConnector(geo, c, m(z));
         placed = zs.length;
         use(c.item, zs.length);
@@ -609,8 +643,14 @@ export function machineBox(
     const zs = spread(Math.max(layout.backFrontZ, bottom.box.z) + num("leg_inset_rear"), Math.min(D, bottom.box.z + bottom.box.dz) - num("leg_inset_front"));
     const source: OpSource = { kind: "hardware", ref: item.id };
     const minWall = num("bore_min_wall");
+    // Free of other machining, and still on the bottom (a leg must not move off its end, under a side).
+    const onBottom = (x: number, d: number): boolean => x - d / 2 - minWall >= bottom.box.x - 1e-6 && x + d / 2 + minWall <= bottom.box.x + bottom.box.dx + 1e-6;
     const fits = (x: number, z: number): boolean =>
-      drills.every((dr) => dr.mount !== "bottom" || !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall));
+      drills.every(
+        (dr) =>
+          dr.mount !== "bottom" ||
+          (onBottom(x + dr.a, dr.d) && !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall)),
+      );
     for (const x0 of xs) {
       for (const z of zs) {
         // A leg that meets other machining (middle panel dowels) moves sideways in pitch steps.
@@ -831,11 +871,18 @@ function sequencePositions(
     let p = raster[i]!;
     if (p >= L) break;
     const last = i === raster.length - 1;
-    if (last) while (L - p < o.offsetRear - 1e-9) p -= o.pitch;
-    else if (L - p < o.offsetRear - 1e-9) break;
-    // Move off machining in the way (e.g. a groove), towards the front.
+    // No position moves in front of the first one (offsetFront): it would leave the joint or sit in its front edge.
+    if (last) while (L - p < o.offsetRear - 1e-9 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
+    if (L - p < o.offsetRear - 1e-9) break;
+    // Move off machining in the way (e.g. a groove), towards the front; where that is not possible, to the rear.
+    const p0 = p;
     let tries = 0;
-    while (!free(roundMm(zMax - p)) && tries++ < 3) p -= o.pitch;
+    while (!free(roundMm(zMax - p)) && tries++ < 3 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
+    if (!free(roundMm(zMax - p))) {
+      p = p0;
+      tries = 0;
+      while (!free(roundMm(zMax - p)) && tries++ < 3 && L - p - o.pitch >= o.offsetRear - 1e-9) p += o.pitch;
+    }
     if (!free(roundMm(zMax - p))) continue;
     const prev = out.length ? zMax - out[out.length - 1]! : -Infinity;
     if (p - prev < o.pitch - 1e-9) continue;
@@ -855,6 +902,7 @@ interface JointGeometry {
   j: Joint;
   W: number;
   H: number;
+  D: number;
   minWall: number;
   mode: ThroughMode;
   overlap: number;
@@ -874,7 +922,7 @@ const sign = (d: Direction): 1 | -1 => (d[0] === "+" ? 1 : -1);
 function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part: Part; entry: Point3; dir: Direction } {
   const { j } = g;
   const across = j.across.axis;
-  const centre = across === "x" ? g.W / 2 : g.H / 2;
+  const centre = across === "x" ? g.W / 2 : across === "y" ? g.H / 2 : g.D / 2;
   const inner = centre >= j.across.value ? 1 : -1; // edge part's inner face, towards the cabinet centre
   const intoEdge = flip(j.intoFace);
   const p: Point3 = { x: 0, y: 0, z: 0 };
@@ -889,10 +937,26 @@ function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part
   return dr.mount === "face" ? { part: j.facePart, entry: p, dir: j.intoFace } : { part: j.edgePart, entry: p, dir: intoEdge };
 }
 
+/** Slot of width d and length len (D36), `depth` into the part from the entry plane. */
+function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Direction): { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number } {
+  const lo = { ...entry };
+  const hi = { ...entry };
+  const ax = dir[1] as Axis;
+  const across = g.j.across.axis;
+  if (sign(dir) > 0) hi[ax] += dr.depth;
+  else lo[ax] -= dr.depth;
+  lo[across] -= dr.d / 2;
+  hi[across] += dr.d / 2;
+  lo[g.j.line] -= dr.len / 2;
+  hi[g.j.line] += dr.len / 2;
+  return { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z };
+}
+
 function connectorFits(g: JointGeometry, c: ConnectorPlan, z: number): boolean {
   return c.drills.every((dr) => {
-    if (dr.op === "groove") return true;
     const { part, entry, dir } = connectorDrill(g, dr, z);
+    // A slot must stay a pocket of its part (not through it, not off it) and clear of bores.
+    if (dr.op === "groove") return !pocketWouldCollide(part, grooveBox(g, dr, entry, dir), g.minWall);
     const depth = dr.through ? part.thickness : dr.depth;
     // A bore that would leave the part (e.g. too close to the end) does not fit either.
     try {
@@ -909,18 +973,7 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
   for (const dr of c.drills) {
     const { part, entry, dir } = connectorDrill(g, dr, z);
     if (dr.op === "groove") {
-      // Slot of width d and length len, depth into the part from the joint plane.
-      const lo = { ...entry };
-      const hi = { ...entry };
-      const ax = dir[1] as Axis;
-      const across = g.j.across.axis;
-      if (sign(dir) > 0) hi[ax] += dr.depth;
-      else lo[ax] -= dr.depth;
-      lo[across] -= dr.d / 2;
-      hi[across] += dr.d / 2;
-      lo[g.j.line] -= dr.len / 2;
-      hi[g.j.line] += dr.len / 2;
-      addPocketFromBox(part, { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z }, source);
+      addPocketFromBox(part, grooveBox(g, dr, entry, dir), source);
     } else if (dr.through) {
       addThroughBore(part, entry, dir, dr.d, g.mode, g.overlap, source);
     } else {

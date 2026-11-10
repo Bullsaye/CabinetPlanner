@@ -215,13 +215,17 @@ export function buildBox(
         if (e !== undefined) finalEdges[k] = e;
       }
     }
+    // Faces are rounded where they lie, so parts that meet in a plane share it exactly
+    // (x and dx rounded separately can end 0.01 apart); the thickness stays the board's.
+    const tAxis = thicknessAxis(lengthAxis, widthAxis);
+    const span = (a: Axis, lo: number, d: number): number => (a === tAxis ? roundMm(d) : roundMm(roundMm(lo + d) - roundMm(lo)));
     const rounded: Box = {
       x: roundMm(box.x),
       y: roundMm(box.y),
       z: roundMm(box.z),
-      dx: roundMm(box.dx),
-      dy: roundMm(box.dy),
-      dz: roundMm(box.dz),
+      dx: span("x", box.x, box.dx),
+      dy: span("y", box.y, box.dy),
+      dz: span("z", box.z, box.dz),
     };
     const length = boxSize(rounded, lengthAxis);
     const width = boxSize(rounded, widthAxis);
@@ -337,12 +341,22 @@ export function buildBox(
   const rb = opt<"none" | "flat" | "upright">("rail.bottom");
   if (rb !== "none") {
     const bw = num("rail_bottom_w");
-    const depth = rb === "flat" ? bw : t;
+    // An upright rail stands in front of the back, like the upright rear rail at the top.
+    const railZ = rb === "flat" ? hz0 : backFrontZ;
+    const depth = rb === "flat" ? bw : railZ - hz0 + t;
     if (depth > bsRear + 1e-6) {
       diagnostics.push({ severity: "error", code: "bottom_rail_overlap", params: { need: roundMm(depth), setback: roundMm(bsRear) }, cabinet: cab });
     }
     if (rb === "flat") add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: bw }, "x", "z", "material.carcase", none);
-    else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
+    else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: railZ, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
+  }
+  // Clear interior height: upright rails take their height under the top and above the bottom (D50).
+  const uprightTop = top === "rails" && (opt<string>("rail.front") === "upright" || opt<string>("rail.rear") === "upright");
+  const interiorTop = H - (uprightTop ? Math.max(t, num("rail_w")) : t);
+  const interiorBottom = rb === "upright" ? Math.max(t, num("rail_bottom_w")) : t;
+  // Upright rails as high as the carcase (or higher) would run through the bottom or each other.
+  if ((uprightTop || rb === "upright") && interiorTop < interiorBottom - 1e-6) {
+    diagnostics.push({ severity: "error", code: "upright_rails_too_high", params: { height: H, over: roundMm(interiorBottom - interiorTop) }, cabinet: cab });
   }
 
   // --- Middle panels -----------------------------------------------------------
@@ -356,14 +370,16 @@ export function buildBox(
   const LW = W - 2 * t;
   const sw = (LW - nPart * t) / (nPart + 1);
   const sections: [number, number][] = [];
-  for (let k = 0; k <= nPart; k++) sections.push([t + k * (sw + t), t + k * (sw + t) + sw]);
+  // Sections end on the panels' faces as the parts are made (rounded), so shelves and joints meet them exactly.
+  const partitionX = (i: number): number => roundMm(t + i * sw + (i - 1) * t);
+  for (let k = 0; k <= nPart; k++) sections.push([k === 0 ? t : partitionX(k) + t, k === nPart ? W - t : partitionX(k + 1)]);
   if (nPart > 0) {
     const z0 = backFrontZ;
     for (let i = 1; i <= nPart; i++) {
       add(
         "partition",
         i,
-        { x: t + i * sw + (i - 1) * t, y: t, z: z0, dx: t, dy: H - 2 * t, dz: D - num("partition_setback") - z0 },
+        { x: partitionX(i), y: t, z: z0, dx: t, dy: H - 2 * t, dz: D - num("partition_setback") - z0 },
         "y",
         "z",
         "material.carcase",
@@ -405,7 +421,7 @@ export function buildBox(
       (tallUnit && a.type !== b.type);
     if (!needs) continue;
     const y = a.type === "appliance" ? a.y0 - t : b.type === "appliance" ? b.y1 + between : (a.y0 + b.y1) / 2 - t / 2;
-    if (y < t - 1e-6 || y + t > H - t + 1e-6) {
+    if (y < interiorBottom - 1e-6 || y + t > interiorTop + 1e-6) {
       diagnostics.push({ severity: "error", code: "fixed_shelf_outside", params: { index: i + 1 }, cabinet: cab });
       continue;
     }
@@ -445,7 +461,7 @@ export function buildBox(
   }
   const extraPanels = (cons?.panels ?? []).map((pn, k) => {
     const y = roundMm(cval(pn.y, `panel ${k + 1}`));
-    if (y < t - 1e-6 || y + t > H - t + 1e-6) diagnostics.push({ severity: "error", code: "construction_panel_outside", params: { index: k + 1 }, cabinet: cab });
+    if (y < interiorBottom - 1e-6 || y + t > interiorTop + 1e-6) diagnostics.push({ severity: "error", code: "construction_panel_outside", params: { index: k + 1 }, cabinet: cab });
     return { y, front: cval(pn.setbackFront, `panel ${k + 1}`), rear: cval(pn.setbackRear, `panel ${k + 1}`) };
   });
   const noBack = new Set(cons?.noBack ?? []);
@@ -458,12 +474,12 @@ export function buildBox(
     const f = fronts[i]!;
     const below = fixedAt[i];
     const above = i > 0 ? fixedAt[i - 1] : undefined;
-    return [below !== undefined ? below + t : Math.max(t, f.y0), above !== undefined ? above : Math.min(H - t, f.y1)];
+    return [below !== undefined ? below + t : Math.max(interiorBottom, f.y0), above !== undefined ? above : Math.min(interiorTop, f.y1)];
   };
   // Drawers stop at fixed shelves, else at the carcase bottom and top.
   const drawerBounds = (i: number): { floor: number; ceil: number } => ({
     floor: fixedAt[i] !== undefined ? fixedAt[i]! + t : t,
-    ceil: i > 0 && fixedAt[i - 1] !== undefined ? fixedAt[i - 1]! : H - t,
+    ceil: i > 0 && fixedAt[i - 1] !== undefined ? fixedAt[i - 1]! : interiorTop,
   });
 
   const fsEdges = front(edgeCarcase);
@@ -542,7 +558,7 @@ export function buildBox(
     .map((f, i) => ({ f, i, r: zoneRange(i) }))
     .filter((z) => z.f.type === "door" || z.f.type === "open")
     .sort((a, b) => b.r[1] - b.r[0] - (a.r[1] - a.r[0]));
-  const shelfRange: [number, number] | undefined = fronts.length === 0 ? [t, H - t] : shelfZones[0]?.r;
+  const shelfRange: [number, number] | undefined = fronts.length === 0 ? [interiorBottom, interiorTop] : shelfZones[0]?.r;
 
   // --- Wardrobe interior: hat shelf and hanging rail per hanging section --------
   const interior = opt<"shelves" | "hanging" | "hanging_first" | "hanging_last">("interior");
@@ -597,8 +613,10 @@ export function buildBox(
       opt<string>("system_holes") === "full"
         ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
         : [];
+    let crowded = false;
     for (const [k, [sx0, sx1]] of sections.entries()) {
       if (main && hanging.has(k)) continue;
+      let lastTop = innerBottom;
       for (let i = 1; i <= count; i++) {
         const target = innerBottom + i * pitch - tShelf / 2;
         const rest = num("shelf_pin_rest");
@@ -606,6 +624,12 @@ export function buildBox(
           ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
           : undefined;
         const y = nearest !== undefined ? nearest + rest : target;
+        // More shelves than the zone can take: they would overlap each other or the panels around them.
+        if (!crowded && (y < lastTop - 1e-6 || y + tShelf > innerTop + 1e-6)) {
+          crowded = true;
+          diagnostics.push({ severity: "error", code: "shelves_too_close", params: { count, space: roundMm(innerTop - innerBottom) }, cabinet: cab });
+        }
+        lastTop = y + tShelf;
         add(
           "shelf",
           ++shelfNo,
@@ -664,6 +688,8 @@ export function buildBox(
           if (bw > W - num("door_min_w")) {
             diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
           }
+          // The door next to the blind panel would hinge on it: there is no carcase side to carry its hinges.
+          if (n > 1) diagnostics.push({ severity: "error", code: "blind_corner_two_doors", params: { doors: n }, cabinet: cab });
           const split = corner === "blind_right" ? W - bw : bw;
           const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gr - split - gap / 2 } : { x: gl, dx: split - gap / 2 - gl };
           add("blind_panel", fronts.indexOf(f) + 1, { x: panel.x, y: f.y0, z: D, dx: panel.dx, dy: h, dz: tFront }, "y", "x", "material.front", all);
@@ -687,7 +713,9 @@ export function buildBox(
           diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
         }
         add("drawer_front", drawerNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
-        const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
+        // A drawer beside an upright bottom rail ends in front of it.
+        const rear = rb === "upright" && drawerBounds(fi).floor < interiorBottom ? backFrontZ + t : backFrontZ;
+        const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ: rear, ...drawerBounds(fi) }, add, diagnostics);
         if (d) drawers.push(d);
       }
     }

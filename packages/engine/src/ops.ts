@@ -125,9 +125,11 @@ export function addBore(
   const l = toLocal(part, entry);
   const { normal } = faceAxes(face);
   const expected = faceAtMax(face) ? sizeOf(part, normal) : 0;
-  if (Math.abs(l[normal] - expected) > 1e-3) {
+  // One rounding step (0.01) off is still the face: part faces are rounded, entry points are computed.
+  if (Math.abs(l[normal] - expected) > 0.011) {
     throw new Error(`bore entry not on face ${face} of ${part.id}: ${JSON.stringify(l)}`);
   }
+  l[normal] = expected;
   const bore: Bore = { kind: "bore", face, ...l, d: roundMm(d), depth: roundMm(depth), sources: [source] };
   addOperation(part, bore);
   return bore;
@@ -189,9 +191,10 @@ function addOperation(part: Part, op: Operation): void {
       (o): o is Bore =>
         o.kind === "bore" &&
         o.face === op.face &&
-        Math.abs(o.u - op.u) < 1e-3 &&
-        Math.abs(o.v - op.v) < 1e-3 &&
-        Math.abs(o.w - op.w) < 1e-3,
+        // Within one rounding step (0.01): the same hole reached by two computations.
+        Math.abs(o.u - op.u) < 0.011 &&
+        Math.abs(o.v - op.v) < 0.011 &&
+        Math.abs(o.w - op.w) < 0.011,
     );
     if (same) {
       same.depth = Math.max(same.depth, op.depth);
@@ -266,6 +269,34 @@ export function boreWouldCollide(
     w1: b.w1 + margin,
   };
   return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
+}
+
+/**
+ * True when a pocket over `box` (cabinet coordinates) cannot be milled into
+ * the part: it misses the part, is not open to any face, would cut through
+ * the thickness, or comes closer than `margin` to an existing bore. Pockets
+ * may meet other pockets (D17).
+ */
+export function pocketWouldCollide(
+  part: Part,
+  box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number },
+  margin: number,
+): boolean {
+  const lo: Point3 = { x: Math.max(box.x0, part.box.x), y: Math.max(box.y0, part.box.y), z: Math.max(box.z0, part.box.z) };
+  const hi: Point3 = {
+    x: Math.min(box.x1, part.box.x + part.box.dx),
+    y: Math.min(box.y1, part.box.y + part.box.dy),
+    z: Math.min(box.z1, part.box.z + part.box.dz),
+  };
+  if (hi.x - lo.x <= EPS || hi.y - lo.y <= EPS || hi.z - lo.z <= EPS) return true;
+  const a = toLocal(part, lo);
+  const b = toLocal(part, hi);
+  const t0 = a.w <= EPS;
+  const t1 = b.w >= part.thickness - EPS;
+  if (t0 && t1) return true;
+  if (!t0 && !t1 && a.v > EPS && b.v < part.width - EPS && a.u > EPS && b.u < part.length - EPS) return true;
+  const grown: Aabb = { u0: a.u - margin, u1: b.u + margin, v0: a.v - margin, v1: b.v + margin, w0: a.w - margin, w1: b.w + margin };
+  return part.operations.some((o) => o.kind === "bore" && overlaps(grown, opBounds(part, o)));
 }
 
 const isSplitPair = (a: Operation, b: Operation): boolean =>
