@@ -820,12 +820,18 @@ function sequencePositions(
     const last = i === raster.length - 1;
     if (last) while (L - p < o.offsetRear - 1e-9) p -= o.pitch;
     else if (L - p < o.offsetRear - 1e-9) break;
-    // Move off machining in the way (e.g. a groove), towards the front.
-    let tries = 0;
-    while (!free(roundMm(zMax - p)) && tries++ < 3) p -= o.pitch;
-    if (!free(roundMm(zMax - p))) continue;
+    // Move off machining in the way: first towards the front in pitch steps
+    // (a groove), then half a pitch either way and one pitch back (dowels of
+    // the panel on the other face of a middle panel). A moved dowel stays at
+    // least the smaller end offset from either end (D45).
     const prev = out.length ? zMax - out[out.length - 1]! : -Infinity;
-    if (p - prev < o.pitch - 1e-9) continue;
+    const endMin = Math.min(o.offsetFront, o.offsetRear);
+    const ok = (q: number): boolean => q >= endMin - 1e-9 && L - q >= endMin - 1e-9 && q - prev >= o.pitch / 2 - 1e-9 && free(roundMm(zMax - q));
+    const moves = [0, -o.pitch, -2 * o.pitch, -3 * o.pitch, o.pitch / 2, -o.pitch / 2, o.pitch, (3 * o.pitch) / 2];
+    const at = moves.map((d) => p + d).find((q) => (q === p ? free(roundMm(zMax - q)) : ok(q)));
+    if (at === undefined) continue;
+    p = at;
+    if (p - prev < o.pitch / 2 - 1e-9 || (p === raster[i] && p - prev < o.pitch - 1e-9)) continue;
     out.push(roundMm(zMax - p));
   }
   return out;

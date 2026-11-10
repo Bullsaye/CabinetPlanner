@@ -652,3 +652,16 @@ Two shop settings, because they are used for different things:
   every kink. Below `ceiling_filler_min` it is left out (warning).
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
+
+### D45 · 2026-11-10 · Moving blocked sequence dowels
+
+- Supersedes the "moves forward in pitch steps" part of D35 for blocked
+  positions. A sequence dowel whose position is blocked by other machining
+  tries, in this order: one, two, three pitches forward (as before), half a
+  pitch forward, half a pitch back, one pitch back, one and a half pitches
+  back. A moved dowel stays at least min(`dowel_offset_front`,
+  `dowel_offset_rear`) from both ends of the joint and at least half a pitch
+  from the dowel before it. Before, a blocked first dowel could move onto
+  the panel edge: fixed shelves at the same height on both faces of a
+  middle panel (dowels from both faces would meet in the panel) failed the
+  edge check. Now the second face's dowels sit between the first face's.

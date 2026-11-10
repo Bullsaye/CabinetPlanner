@@ -40,6 +40,25 @@ describe("dowel sequence (D35)", () => {
     expect(fromFront(355)).toEqual([32, 64, 192, 288]);
     expect(fromFront(100)).toEqual([32]); // 64 → 32 meets the first one: dropped
   });
+  it("moves dowels blocked from the other face of a middle panel half a pitch, never onto the edge (D45)", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1000, partition_count: 1 },
+      options: { dowel_pattern: "sequence" },
+      fronts: [{ type: "door", doors: 2 }, { type: "door", doors: 2, h: 400 }],
+    });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const vs = (ref: string): number[] => refs(p.MP1!, ref).map((b) => (b.kind === "bore" ? (b.v as number) : 0));
+    const left = vs("MP1-FS1");
+    const right = vs("MP1-FS2");
+    expect(left.length).toBeGreaterThanOrEqual(4);
+    expect(right.length).toBeGreaterThanOrEqual(4);
+    // No two bores of the two faces at the same place; all clear of the front edge.
+    for (const v of right) expect(left.every((u) => Math.abs(u - v) >= 16)).toBe(true);
+    expect(Math.max(...right)).toBeLessThanOrEqual(Math.max(...left));
+  });
   it("is chosen per shop with dowel_pattern", () => {
     const r = buildOne({ options: { dowel_pattern: "sequence" }, vars: { dowel_offset_front: 32, dowel_offset_rear: 30 } });
     expect(r.diagnostics).toEqual([]);
