@@ -144,3 +144,27 @@ describe("middle panels through (D46)", () => {
     expect(p.BO1).toBeUndefined();
   });
 });
+
+describe("handle per front zone (D48)", () => {
+  it("drills the zone's own handle, or none, instead of the cabinet's", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1000 },
+      options: { "hardware.handle": "generic-bar-160" },
+      sections: [
+        { fronts: [{ type: "door", handle: null }, { type: "drawer", h: 200, handle: "generic-knob" }] },
+        { fronts: [{ type: "door" }, { type: "drawer", h: 200 }] },
+      ],
+    });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const c = r.cabinets[0]!;
+    const by = Object.fromEntries(c.handles.map((h) => [h.part.split("-")[1], h.item]));
+    expect(by.DO1).toBeUndefined();
+    expect(by.DF1).toBe("generic-knob");
+    expect(by.DO2).toBe("generic-bar-160");
+    expect(by.DF2).toBe("generic-bar-160");
+    const bad = buildOne({ fronts: [{ type: "door", handle: "generic-hinge-110" }] });
+    expect(bad.diagnostics.map((d) => d.code)).toContain("hardware_wrong_category");
+  });
+});

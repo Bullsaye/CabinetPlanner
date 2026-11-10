@@ -125,11 +125,13 @@
             },
             {
               "type": "drawer",
-              "h": 161
+              "h": 161,
+              "handle": "generic-knob"
             },
             {
               "type": "drawer",
-              "h": 235
+              "h": 235,
+              "handle": "generic-knob"
             }
           ],
           "interior": "shelves",
@@ -147,11 +149,13 @@
             },
             {
               "type": "drawer",
-              "h": 161
+              "h": 161,
+              "handle": "generic-knob"
             },
             {
               "type": "drawer",
-              "h": 235
+              "h": 235,
+              "handle": "generic-knob"
             }
           ],
           "interior": "hanging"

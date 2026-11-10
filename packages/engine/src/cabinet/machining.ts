@@ -398,20 +398,31 @@ export function machineBox(
   }
 
   // --- Handles and knobs ------------------------------------------------------------
+  // The cabinet's handle (option), or the one a front zone sets for its fronts (D48).
   const handleId = opt<string | null>("hardware.handle");
-  if (handleId !== null) {
-    const item = library.hardware.get(handleId)!;
-    const params = evaluateItemParams(item, rc.values, at);
-    diagnostics.push(...params.diagnostics);
-    const cc = params.values.get("cc") ?? 0;
-    const hd = params.values.get("hole_d") ?? 5;
+  {
     const mode = opt<ThroughMode>("bore.through");
     const overlap = num("through_overlap");
-    const source: OpSource = { kind: "hardware", ref: item.id };
-    const drill = (part: Part, pts: { x: number; y: number }[]): void => {
+    const planCache = new Map<string, { item: HardwareItem; params: ReadonlyMap<string, number>; cc: number; hd: number }>();
+    const planFor = (code: string): { item: HardwareItem; params: ReadonlyMap<string, number>; cc: number; hd: number } | undefined => {
+      const id = Object.hasOwn(layout.frontHandles, code) ? layout.frontHandles[code]! : handleId;
+      if (id === null) return undefined;
+      const cached = planCache.get(id);
+      if (cached) return cached;
+      const item = library.hardware.get(id);
+      if (!item) return undefined; // reported by the rule
+      const params = evaluateItemParams(item, rc.values, at);
+      diagnostics.push(...params.diagnostics);
+      const plan = { item, params: params.values, cc: params.values.get("cc") ?? 0, hd: params.values.get("hole_d") ?? 5 };
+      planCache.set(id, plan);
+      return plan;
+    };
+    const drill = (part: Part, plan: NonNullable<ReturnType<typeof planFor>>, pts: { x: number; y: number }[]): void => {
+      const { item, hd } = plan;
+      const source: OpSource = { kind: "hardware", ref: item.id };
       const z = part.box.z + part.box.dz;
       for (const p of pts) addThroughBore(part, { x: p.x, y: p.y, z }, "-z", hd, mode, overlap, source);
-      const pv = (n: string): number | undefined => params.values.get(n);
+      const pv = (n: string): number | undefined => plan.params.get(n);
       handles.push({
         item: item.id,
         part: part.id,
@@ -428,29 +439,38 @@ export function machineBox(
     const endOff = num("handle_end_offset");
     for (const d of [...layout.doors, ...layout.applianceFronts]) {
       const p = byCode.get(d.code)!;
+      const plan = planFor(d.code);
+      if (!plan) continue;
+      const { cc } = plan;
       const b = p.box;
       // Opening edge is opposite the hinges; wall units get the handle low, others high.
       const xOpen = d.hinge === "left" ? b.x + b.dx - edgeOff : b.x + edgeOff;
       const yEnd = wall ? b.y + endOff : b.y + b.dy - endOff;
-      if (cc === 0) drill(p, [{ x: xOpen, y: yEnd }]);
+      if (cc === 0) drill(p, plan, [{ x: xOpen, y: yEnd }]);
       else if (opt<string>("handle.door") === "vertical") {
-        drill(p, wall ? [{ x: xOpen, y: yEnd }, { x: xOpen, y: yEnd + cc }] : [{ x: xOpen, y: yEnd - cc }, { x: xOpen, y: yEnd }]);
+        drill(p, plan, wall ? [{ x: xOpen, y: yEnd }, { x: xOpen, y: yEnd + cc }] : [{ x: xOpen, y: yEnd - cc }, { x: xOpen, y: yEnd }]);
       } else {
         const inward = d.hinge === "left" ? -1 : 1;
-        drill(p, [{ x: xOpen, y: yEnd }, { x: xOpen + inward * cc, y: yEnd }]);
+        drill(p, plan, [{ x: xOpen, y: yEnd }, { x: xOpen + inward * cc, y: yEnd }]);
       }
     }
     for (const p of parts.filter((x) => x.role === "flap")) {
+      const plan = planFor(p.code);
+      if (!plan) continue;
+      const { cc } = plan;
       const b = p.box;
       const xc = b.x + b.dx / 2;
       const y = b.y + num("handle_end_offset");
-      drill(p, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
+      drill(p, plan, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
     }
     for (const p of parts.filter((x) => x.role === "drawer_front")) {
+      const plan = planFor(p.code);
+      if (!plan) continue;
+      const { cc } = plan;
       const b = p.box;
       const y = opt<string>("handle.drawer") === "top" ? b.y + b.dy - num("handle_drawer_top") : b.y + b.dy / 2;
       const xc = b.x + b.dx / 2;
-      drill(p, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
+      drill(p, plan, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
     }
   }
 

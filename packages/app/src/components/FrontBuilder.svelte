@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { formatNumber, layoutFronts } from "@cabinet-planner/engine";
+  import { formatNumber, layoutFronts, localName } from "@cabinet-planner/engine";
   import { parseInput, store } from "../lib/store.svelte.ts";
 
-  type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number };
+  type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number; handle?: string | null };
   type Section = { w?: number | string; fronts?: Zone[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: unknown };
   const TYPES = ["door", "drawer", "flap", "open", "appliance", "panel"] as const;
 
@@ -11,6 +11,15 @@
   const res = $derived(store.cabinet?.resolved);
   const v = (n: string): number => res?.values.get(n) ?? 0;
   const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
+  /** Handle items for a zone's own handle (D48). */
+  const handleItems = $derived([...(store.result?.library.hardware.values() ?? [])].filter((h) => h.category === "handle"));
+  const handleValue = (z: Zone): string => (z.handle === undefined ? "" : z.handle === null ? "none" : z.handle);
+  function setHandle(i: number, v: string): void {
+    edit((l) => {
+      if (v === "") delete l[i]!.handle;
+      else l[i]!.handle = v === "none" ? null : v;
+    });
+  }
 
   /** Sections (D46): each has its own stack; without them the cabinet's stack spans the width. */
   const sections = $derived<Section[] | undefined>((c?.sections as Section[] | undefined)?.length ? (c!.sections as Section[]) : undefined);
@@ -279,6 +288,13 @@
                 edit((l) => (typeof val === "number" ? (l[i]!.shelves = Math.max(0, Math.round(val))) : delete l[i]!.shelves));
               }} />
             {:else}<span></span>{/if}
+            {#if z.type === "door" || z.type === "drawer" || z.type === "flap" || (z.type === "appliance" && z.front)}
+              <select class="handle" aria-label={t("ui.zone_handle")} title={t("ui.zone_handle")} value={handleValue(z)} onchange={(e) => setHandle(i, (e.target as HTMLSelectElement).value)}>
+                <option value="">{t("ui.zone_handle_default")}</option>
+                <option value="none">{t("ui.zone_handle_none")}</option>
+                {#each handleItems as h}<option value={h.id}>{localName(h.name, store.tr.locale)}</option>{/each}
+              </select>
+            {:else}<span></span>{/if}
             <span class="tools">
               <button class="quiet" aria-label={t("ui.move_up")} disabled={i === 0} onclick={() => edit((l) => l.splice(i - 1, 0, ...l.splice(i, 1)))}>↑</button>
               <button class="quiet" aria-label={t("ui.move_down")} disabled={i === zones.length - 1} onclick={() => edit((l) => l.splice(i + 1, 0, ...l.splice(i, 1)))}>↓</button>
@@ -319,7 +335,8 @@
   .swing { fill: none; stroke: var(--muted); stroke-width: .8; stroke-dasharray: 4 2; }
   .h { font: 9px var(--font-mono); fill: var(--fg); }
   .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .row { display: grid; grid-template-columns: minmax(84px, 1fr) 58px auto auto; gap: 4px; align-items: center; }
+  .row { display: grid; grid-template-columns: minmax(84px, 1fr) 58px auto minmax(70px, 1fr) auto; gap: 4px; align-items: center; }
+  .row select.handle { min-width: 0; width: 100%; font-size: 12px; }
   .row input { width: 100%; }
   .row input.shelves { width: 4.5em; }
   .seg { display: flex; }

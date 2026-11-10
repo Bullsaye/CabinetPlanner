@@ -1,6 +1,6 @@
 import type { LocalizedText } from "./text.ts";
 
-type TemplateFront = { type: "door" | "drawer" | "open" | "appliance" | "panel" | "flap"; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number };
+type TemplateFront = { type: "door" | "drawer" | "open" | "appliance" | "panel" | "flap"; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number; handle?: string | null };
 type TemplateConstruction = {
   panels?: { y: number | string; setbackFront?: number | string; setbackRear?: number | string }[];
   fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;

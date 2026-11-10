@@ -68,6 +68,8 @@ export const FrontZone = z.object({
   /** Door zones with one door: the hinge side (default: option door_hinge_side). */
   hinge: z.enum(["left", "right"]).optional(),
   front: z.boolean().optional(),
+  /** Handle (hardware id) on the fronts of this zone; null: none. Default: option hardware.handle (D48). */
+  handle: z.string().nullable().optional(),
   /** Door and open zones: adjustable shelves in this zone (default: shelf_count for the tallest zone, a share for the others). */
   shelves: z.number().int().min(0).max(20).optional(),
 });

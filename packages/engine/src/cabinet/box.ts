@@ -45,6 +45,8 @@ export interface BoxLayout {
   applianceFronts: { code: string; hinge: "left" | "right" }[];
   /** Lift-up flaps (D39). */
   flaps: { code: string }[];
+  /** Fronts whose zone sets its own handle (hardware id, null: none), by part code (D48). */
+  frontHandles: Record<string, string | null>;
   /** Front zones top to bottom, and the automatic fixed shelf under each (bottom face; null: none) before construction changes. */
   zones: { type: FrontZone["type"]; y0: number; y1: number; fixedBelow: number | null }[];
   /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
@@ -57,6 +59,8 @@ export interface PlacedFront {
   front?: boolean;
   /** Door zones: hinge side of a single door. */
   hinge?: "left" | "right";
+  /** Handle of this zone's fronts, when the zone sets one (null: none). */
+  handle?: string | null;
   doors: number;
   /** Front bottom and top edge (cabinet Y). */
   y0: number;
@@ -110,6 +114,7 @@ export function layoutFronts(
       type: z.type,
       ...(z.type === "appliance" ? { front: z.front ?? false } : {}),
       ...(z.hinge ? { hinge: z.hinge } : {}),
+      ...(z.handle !== undefined ? { handle: z.handle } : {}),
       doors: z.doors ?? Math.max(1, doorCount),
       y0: roundMm(top - h),
       y1: roundMm(top),
@@ -785,8 +790,27 @@ export function buildBox(
   const drawers: BoxLayout["drawers"] = [];
   const applianceFronts: BoxLayout["applianceFronts"] = [];
   const flaps: BoxLayout["flaps"] = [];
+  const frontHandles: BoxLayout["frontHandles"] = {};
   {
     const gap = gm;
+    /** The zone's own handle for the front just added (D48). */
+    const ownHandle = (f: PlacedFront, zi: number): void => {
+      if (f.handle === undefined) return;
+      const p = parts[parts.length - 1]!;
+      if (f.handle !== null) {
+        const item = library.hardware.get(f.handle);
+        const key = `fronts ${zi + 1}`;
+        if (!item) {
+          diagnostics.push({ severity: "error", code: "hardware_unknown", params: { key, value: f.handle }, cabinet: cab });
+          return;
+        }
+        if (item.category !== "handle") {
+          diagnostics.push({ severity: "error", code: "hardware_wrong_category", params: { key, value: f.handle, category: "handle" }, cabinet: cab });
+          return;
+        }
+      }
+      frontHandles[p.code] = f.handle;
+    };
     const all: PartEdges = { l1: edgeFront, l2: edgeFront, w1: edgeFront, w2: edgeFront };
     let doorNo = 0;
     let drawerNo = 0;
@@ -807,6 +831,7 @@ export function buildBox(
           }
           flapNo++;
           add("flap", flapNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "x", "y", "material.front", all);
+          ownHandle(f, fi);
           flaps.push({ code: `${ROLE_CODES.flap}${flapNo}` });
           continue;
         }
@@ -818,6 +843,7 @@ export function buildBox(
           if (!f.front) continue;
           applianceNo++;
           add("appliance_front", applianceNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "y", "x", "material.front", all);
+          ownHandle(f, fi);
           applianceFronts.push({ code: `${ROLE_CODES.appliance_front}${applianceNo}`, hinge: col.hingeDefault });
           continue;
         }
@@ -846,6 +872,7 @@ export function buildBox(
             doorNo++;
             const x = x0 + (i - 1) * (doorW + gap);
             add("door", doorNo, { x, y: f.y0, z: D, dx: doorW, dy: h, dz: tFront }, "y", "x", "material.front", all);
+            ownHandle(f, fi);
             // One door: hinge side from the zone, else the section's outer side
             // (or the option); corner units: away from the blind side. Two doors: hinged outwards.
             const single = blind === "blind_right" ? "left" : blind === "blind_left" ? "right" : (f.hinge ?? col.hingeDefault);
@@ -858,6 +885,7 @@ export function buildBox(
             diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
           }
           add("drawer_front", drawerNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "x", "y", "material.front", all);
+          ownHandle(f, fi);
           const d = buildDrawer(rc, library, drawerNo, f, { x0: col.x0, x1: col.x1, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
           if (d) drawers.push(d);
         }
@@ -1055,7 +1083,7 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, doors, drawers, applianceFronts, flaps, rails,
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, doors, drawers, applianceFronts, flaps, frontHandles, rails,
       zones: laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
   };
 }

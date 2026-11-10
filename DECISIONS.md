@@ -748,3 +748,11 @@ Two shop settings, because they are used for different things:
 - Room: placements carry the slopes; the ceiling check compares the cut
   carcase top with the ceiling over its rear and front edges at every
   kink, and the elevation draws the cut outline.
+
+### D48 · 2026-11-10 · Handle per front zone
+
+- A front zone may set `handle`: a handle item id for its fronts, or null
+  for none (push-to-open, grip profiles). Without it the fronts take
+  option `hardware.handle` as before. Unknown items and items of another
+  category are errors. Placement rules (handle.door / handle.drawer,
+  offsets) stay cabinet-wide.
