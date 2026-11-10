@@ -60,9 +60,12 @@ Also found along the way:
 | D46 | **Sections**: each with its own fronts, interior (shelves / hanging), shelf count, width and construction; the middle panel stays with drawers; hinges, slides and drawer front fixing use the section's panels. Option `hat_shelf`. Option `partition_joint: through` (middle panel full height and depth, bottom/top/rails and the back split per section). Zone ranges respect extra construction panels. Zones may set their own shelf count. |
 | D47 | **Sloped top corners**: `slope_left/right_drop` and `_angle`. Side and top shortened and mitred, a sloped panel (TS) with the back's groove, the back cut to the slope, shelves, fixed shelves and middle panels under it cut to it. Mitres in the cutlist note and part sheets. Cross-sections in 3D and the assembly drawing. System holes stop below the cut. The room's ceiling check and wall elevation follow the cut outline. Under a room slope: `max(0, H + plinth_h - ceiling_h)`. |
 | D48 | **Handle per front zone** (item or none). |
-| App | Front builder: split into sections, per-section tabs (width, interior, shelves), per-section stacks, zone shelf count and handle; sloped-top fields with "slope to the ceiling"; preview shows sections and the slope. |
+| D49 | **Roof sloping to the rear** (knee wall behind the cabinet): sides and middle panels outlined, top shortened, a sloped panel across the width, back and shelves under it. Assembly drawings draw outlined parts as prisms. |
+| App | "Fit cabinet" in the 3D view. Front builder: split into sections, per-section tabs (width, interior, shelves), per-section stacks, zone shelf count and handle; sloped-top fields with "slope to the ceiling"; preview shows sections and the slope. |
 
 ## Result – as sketched (variant A)
+
+![The attic wardrobe in the app's 3D view](img/attic-wardrobe-3d.png)
 
 | Part | Sketch | App | |
 | --- | --- | --- | --- |
@@ -131,9 +134,9 @@ horizontals, rebate, surface back, grid dowels, hat shelf on.
   panel is not drilled either. Rails, drawers and fronts are not cut: a
   door reaching above the slope gets a warning, and its top hinge then has
   no side to go into (error).
-- **Slopes only across the width.** A roof sloping down towards the back
-  wall (cutting the side's rear top corner) is not supported, and neither
-  are slopes meeting in the middle (gable).
+- **Slopes:** left, right (also both, a gable) and rear (D49) work; a rear
+  slope cannot yet be combined with a left or right one (hip roof corner).
+  Under a rear slope the back's top edge is held by the side grooves only.
 - **Bevels are not in the DXF.** They are saw operations; the cutlist note
   and part sheet show them.
 - **With sections:** flaps, blind corners and backs left out per zone
@@ -143,7 +146,5 @@ horizontals, rebate, surface back, grid dowels, hat shelf on.
   section's zones; per-section construction only in the file.
 - **Handle placement** rules (vertical/horizontal, offsets) are cabinet-wide;
   only the item can be set per zone.
-- **3D view:** the camera fits the whole room, so a single cabinet looks
-  small; there is no "zoom to cabinet".
 - `svelte-check` does not run with the installed TypeScript 7 (needs TS 6
   alongside), so the app is checked with `vite build` and by driving it.

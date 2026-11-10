@@ -82,6 +82,7 @@
       if (!m) continue;
       g.matrixAutoUpdate = false;
       g.matrix.copy(m);
+      g.userData.cabinetGroup = id;
       const selected = store.ui.selected === id;
       const centre = new THREE.Vector3(sc.size.W / 2, sc.size.H / 2, sc.size.D / 2);
       for (const p of sc.parts) {
@@ -305,11 +306,13 @@
     }
   }
 
-  function frame(): void {
+  function frame(only?: string): void {
     if (!root) return;
-    // Frame the cabinets, not the floor grid (first child).
+    // Frame the cabinets, not the floor grid (first child); or just one cabinet.
     const b = new THREE.Box3();
-    root.children.slice(1).forEach((o) => b.expandByObject(o));
+    root.updateMatrixWorld(true);
+    const objs = only ? root.children.filter((o) => o.userData.cabinetGroup === only) : root.children.slice(1);
+    objs.forEach((o) => b.expandByObject(o));
     if (b.isEmpty()) return;
     const c = b.getCenter(new THREE.Vector3());
     const r = b.getSize(new THREE.Vector3()).length();
@@ -406,7 +409,8 @@
       {@const v = (n: string) => store.cabinet!.resolved.values.get(n)}
       <span class="mono muted dims">{store.cabinet.resolved.cabinet.id} · W {v("W")} · H {v("H")} · D {v("D")}</span>
     {/if}
-    <button onclick={frame}>{t("ui.fit")}</button>
+    {#if store.ui.selected}<button onclick={() => frame(store.ui.selected)}>{t("ui.fit_cabinet")}</button>{/if}
+    <button onclick={() => frame()}>{t("ui.fit")}</button>
   </div>
   {#if failed}
     <p class="muted fail">{t("ui.no_webgl")}</p>

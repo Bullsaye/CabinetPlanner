@@ -841,6 +841,7 @@ export const de: Record<MessageKey, string> = {
   "ui.file": "Datei",
   "ui.file_error": "Die Projektdatei kann nicht gelesen werden.",
   "ui.fit": "Ansicht einpassen",
+  "ui.fit_cabinet": "Schrank einpassen",
   "ui.fix_errors_first": "Dieser Schrank hat Fehler. Erst beheben, dann gibt es Zeichnungen.",
   "ui.fronts": "Fronten",
   "ui.group_identical": "Gleiche Teile zusammenfassen",

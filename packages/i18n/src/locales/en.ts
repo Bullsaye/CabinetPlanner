@@ -861,6 +861,7 @@ export const en = {
   "ui.file": "File",
   "ui.file_error": "The project file cannot be read.",
   "ui.fit": "Fit view",
+  "ui.fit_cabinet": "Fit cabinet",
   "ui.fix_errors_first": "This cabinet has errors. Fix them to see drawings.",
   "ui.fronts": "Fronts",
   "ui.group_identical": "Group identical parts",
