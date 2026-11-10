@@ -413,9 +413,16 @@ export function buildBox(
   }
 
   // --- Middle panels -----------------------------------------------------------
-  // In front of the back; between bottom and top, or through from bottom to top edge.
+  // In front of the back, between bottom and top; or through from bottom to
+  // top edge, full depth with the back split per section into grooves in
+  // its faces (grooved backs; otherwise in front of the back, D46).
+  const backPerSection = through && backMount === "groove";
+  if (backPerSection && 2 * num("back_groove_depth") > t - num("bore_min_wall") + 1e-6) {
+    // The two backs' grooves sit opposite each other in the middle panel.
+    diagnostics.push({ severity: "error", code: "back_grooves_meet", params: { depth: num("back_groove_depth"), thickness: t, wall: num("bore_min_wall") }, cabinet: cab });
+  }
   if (nPart > 0) {
-    const z0 = backFrontZ;
+    const z0 = backPerSection ? carcaseZ0 : backFrontZ;
     for (let i = 1; i <= nPart; i++) {
       const y0 = through ? sideY : t;
       const y1 = through ? sideY + sideH : H - t;
@@ -634,10 +641,21 @@ export function buildBox(
         : yHi >= topFace ? (top === "full" ? H - t + engage : H - play) : yHi + engage;
       return { x: t - engage, y: y0, z: zBack, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
     };
+    // Middle panels through, full depth: one back per section (D46).
+    let backNo = 0;
+    const addBack = (b: Box, many: boolean): void => {
+      if (!backPerSection) {
+        add("back", many ? ++backNo : undefined, b, "y", "x", "material.back", none);
+        return;
+      }
+      for (const [sx0, sx1] of sections) {
+        add("back", ++backNo, { ...b, x: sx0 - engage, dx: sx1 - sx0 + 2 * engage }, "y", "x", "material.back", none);
+      }
+    };
     if (backMount === "none") {
       // No back (sink units): nothing to add.
     } else if (!splitBack) {
-      add("back", undefined, backBox(0, topFace), "y", "x", "material.back", none);
+      addBack(backBox(0, topFace), false);
     } else {
       // Sections between the stops; a section keeps its back unless the zone at its middle has none.
       const { fronts, zoneRange } = laid[0]!;
@@ -646,7 +664,6 @@ export function buildBox(
         const [lo, hi] = zoneRange(i);
         return y >= lo - 1e-6 && y <= hi + 1e-6;
       }) + 1;
-      let k = 0;
       let runStart: number | undefined;
       for (let i = 0; i + 1 < stops.length; i++) {
         const mid = (stops[i]! + (i === 0 ? t : t) + stops[i + 1]!) / 2;
@@ -655,7 +672,7 @@ export function buildBox(
         const last = i + 2 === stops.length;
         if (runStart !== undefined && (!keep || last)) {
           const end = keep ? stops[i + 1]! : stops[i]!;
-          if (end > runStart) add("back", ++k, backBox(runStart, end), "y", "x", "material.back", none);
+          if (end > runStart) addBack(backBox(runStart, end), true);
           runStart = undefined;
         }
       }

@@ -264,6 +264,10 @@ export const de: Record<MessageKey, string> = {
   "col.edge_l1": "Kante L1",
   "col.edge_l2": "Kante L2",
   "col.edge_w1": "Kante B1",
+  "edge.l1": "L1",
+  "edge.l2": "L2",
+  "edge.w1": "B1",
+  "edge.w2": "B2",
   "col.edge_w2": "Kante B2",
   "col.note": "Bemerkung",
 
@@ -376,6 +380,7 @@ export const de: Record<MessageKey, string> = {
   "diag.section_value_invalid": "Feld: {what} „{expr}“ lässt sich nicht berechnen.",
   "diag.sections_width_mismatch": "Die Feldbreiten ergeben {sum} mm, der Innenraum ist {available} mm breit.",
   "diag.sections_too_wide": "Die Feldbreiten lassen für ein Feld keinen Platz (Innenraum {available} mm).",
+  "diag.back_grooves_meet": "Durchgehende Mittelwände: die Nuten der Rückwände ({depth} mm von beiden Seiten) lassen weniger als {wall} mm von der {thickness} mm starken Mittelwand; Nuten flacher machen.",
   "option.hardware.handle": "Griff",
   "option.handle.door": "Griff an Türen",
   "option.handle.door.vertical": "Senkrecht, an der Öffnungskante",

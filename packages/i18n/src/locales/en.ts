@@ -278,6 +278,10 @@ export const en = {
   "col.edge_l1": "Edge L1",
   "col.edge_l2": "Edge L2",
   "col.edge_w1": "Edge W1",
+  "edge.l1": "L1",
+  "edge.l2": "L2",
+  "edge.w1": "W1",
+  "edge.w2": "W2",
   "col.edge_w2": "Edge W2",
   "col.note": "Note",
 
@@ -396,6 +400,7 @@ export const en = {
   "diag.section_value_invalid": "Section: {what} “{expr}” cannot be calculated.",
   "diag.sections_width_mismatch": "Section widths add up to {sum} mm, but the interior is {available} mm.",
   "diag.sections_too_wide": "The section widths leave no room for a section (interior {available} mm).",
+  "diag.back_grooves_meet": "Middle panels through: the backs' grooves ({depth} mm from both faces) leave less than {wall} mm of the {thickness} mm middle panel; make the grooves shallower.",
   "option.hardware.handle": "Handle",
   "option.handle.door": "Handle on doors",
   "option.handle.door.vertical": "Vertical, at the opening edge",

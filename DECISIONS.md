@@ -706,7 +706,13 @@ Two shop settings, because they are used for different things:
   carcase bottom edge to the top edge like sides over, and bottom, top and
   rails are split per section (codes BO1, BO2, TO1, …), dowelled into the
   middle panel faces. Legs go into the bottom piece above them and move
-  off a middle panel.
+  off a middle panel. With a grooved back the middle panels run the full
+  depth and the back is split per section (BK1, BK2, …), grooved into the
+  middle panel's faces as well (error `back_grooves_meet` when the two
+  grooves leave less than bore_min_wall); other back mounts keep the middle
+  panel in front of one back.
+- Cutlist mitre notes use the localized short edge names (`edge.w2`: W2 /
+  B2).
 
 ### D47 · 2026-11-10 · Sloped top corners (Schräge)
 

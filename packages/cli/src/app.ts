@@ -381,6 +381,7 @@ export function cutlistText(tr: Translator): CutlistText {
   return {
     locale: tr.locale,
     header: (col) => tr.t(`col.${col}`),
+    edge: (e) => tr.t(`edge.${e}`),
     role: (row: CutlistRow) => {
       if (row.qty > 1 && (row.role === "side_left" || row.role === "side_right")) {
         const roles = new Set(row.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));

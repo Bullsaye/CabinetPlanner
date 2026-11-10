@@ -116,6 +116,19 @@ describe("middle panels through (D46)", () => {
     for (const l of legs) expect(l.x < p.MP1!.box.x || l.x > p.MP1!.box.x + 19).toBe(true);
   });
 
+  it("runs the middle panel full depth and splits a grooved back per section", () => {
+    const p = partsByCode(wardrobe({ options: { partition_joint: "through" } }));
+    expect(p.MP1!.box).toMatchObject({ z: 0, dz: 475 });
+    expect(p.BK).toBeUndefined();
+    // Section 496.5 + 2 × (groove 8 − play 1).
+    expect(p.BK1!.width).toBe(510.5);
+    expect(p.BK2!.width).toBe(510.5);
+    const grooves = p.MP1!.operations.filter((o) => o.kind === "pocket" && o.sources.some((s) => s.kind === "back"));
+    expect(grooves.map((o) => o.face).sort()).toEqual(["t0", "t1"]);
+    const deep = wardrobe({ options: { partition_joint: "through" }, vars: { back_groove_depth: 10 } });
+    expect(deep.diagnostics.map((d) => d.code)).toContain("back_grooves_meet");
+  });
+
   it("keeps one bottom and top without middle panels", () => {
     const p = partsByCode(buildOne({ options: { partition_joint: "through" } }));
     expect(p.BO).toBeDefined();

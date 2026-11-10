@@ -136,6 +136,8 @@ export interface CutlistText {
   role: (row: CutlistRow) => string;
   /** Locale used for library names. */
   locale: string;
+  /** Short edge name for mitre notes (default L1, L2, W1, W2). */
+  edge?: (edge: "l1" | "l2" | "w1" | "w2") => string;
 }
 
 export function cutlistTable(
@@ -182,7 +184,7 @@ export function cutlistTable(
         // Mitres in a language-neutral form after the note, e.g. "W2 ∠22.5°" (D47).
         const bevel = (["l1", "l2", "w1", "w2"] as const)
           .filter((e) => r.bevels[e] !== undefined)
-          .map((e) => `${e.toUpperCase()} ∠${formatNumber(r.bevels[e]!)}°`)
+          .map((e) => `${text.edge ? text.edge(e) : e.toUpperCase()} ∠${formatNumber(r.bevels[e]!)}°`)
           .join(" ");
         return [r.note, bevel].filter((x) => x !== "").join("; ");
       }
