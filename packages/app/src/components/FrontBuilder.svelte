@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { formatNumber, layoutFronts } from "@cabinet-planner/engine";
+  import { formatNumber, frontViewOf, layoutFronts } from "@cabinet-planner/engine";
+  import { swingPoints } from "../lib/elevation.ts";
   import { parseInput, store } from "../lib/store.svelte.ts";
 
   type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean };
@@ -84,6 +85,18 @@
     }
     return [{ x: gl, w: W - gl - gr, ...(z.type === "door" ? { hinge: doorMode(z) as "left" | "right" } : {}) }];
   }
+
+  /** Hinges and handles as the engine drilled them (D54), so the opening direction is plain to see. */
+  const fv = $derived(store.cabinet?.parts.length ? frontViewOf(store.cabinet) : undefined);
+  const doorOf = (id: string) => fv?.parts.find((p) => p.id === id);
+
+  // A zone picked in a drawing: bring its row into view.
+  let rowsEl = $state<HTMLDivElement>();
+  $effect(() => {
+    const z = store.ui.zone;
+    if (z === null || !rowsEl) return;
+    rowsEl.querySelector(`[data-zone="${z}"]`)?.scrollIntoView({ block: "nearest" });
+  });
 </script>
 
 {#if c}
@@ -104,25 +117,42 @@
               {#if zones[i]?.type === "open" || (zones[i]?.type === "appliance" && !zones[i]?.front)}
                 <rect class="hole" x={r.x * s} {y} width={r.w * s} height={h} />
               {:else}
-                <rect class="front {zones[i]?.type}" x={r.x * s} {y} width={r.w * s} height={h} />
+                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                <rect class="front {zones[i]?.type}" class:on={store.ui.zone === i} x={r.x * s} {y} width={r.w * s} height={h} onclick={() => (store.ui.zone = i)} />
                 {#if r.hinge}
-                  <!-- Opening symbol: lines from the opening edge to the middle of the hinge edge. -->
-                  {@const hx = r.hinge === "left" ? r.x * s : (r.x + r.w) * s}
-                  {@const ox = r.hinge === "left" ? (r.x + r.w) * s : r.x * s}
-                  <polyline class="swing" points={`${ox},${y} ${hx},${y + h / 2} ${ox},${y + h}`} />
+                  <!-- Opening symbol: tip at the hinge edge or at the handle edge (preference). -->
+                  <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, r.hinge, store.ui.hingeSymbol)} />
                 {/if}
                 {#if zones[i]?.type === "flap"}
-                  <polyline class="swing" points={`${r.x * s},${y + h} ${(r.x + r.w / 2) * s},${y} ${(r.x + r.w) * s},${y + h}`} />
+                  <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, "top", store.ui.hingeSymbol)} />
                 {/if}
               {/if}
             {/each}
-            <text class="h" x={W * s - 3} y={(H - (p.y0 + p.y1) / 2) * s + 3} text-anchor="end">{formatNumber(p.y1 - p.y0)}</text>
+            <text class="h" x={gl * s + 6} y={(H - (p.y0 + p.y1) / 2) * s + 3}>{formatNumber(p.y1 - p.y0)}</text>
           {/each}
+          {#if fv}
+            {#each fv.hinges as hg}
+              {@const d = doorOf(hg.part)}
+              {#if d && hg.edge === "top"}
+                <rect class="mark" x={hg.x * s - 3.5} y={(H - d.y - d.h) * s} width="7" height="2.5" />
+              {:else if d}
+                <rect class="mark" x={hg.edge === "left" ? d.x * s : (d.x + d.w) * s - 2.5} y={(H - hg.y) * s - 3.5} width="2.5" height="7" />
+              {/if}
+            {/each}
+            {#each fv.handles as hd}
+              {#if hd.kind === "knob"}
+                <circle class="mark" cx={hd.x1 * s} cy={(H - hd.y1) * s} r="2.2" />
+              {:else}
+                <line class="grip" x1={hd.x1 * s} y1={(H - hd.y1) * s} x2={hd.x2 * s} y2={(H - hd.y2) * s} />
+              {/if}
+            {/each}
+          {/if}
         </svg>
       {/if}
-      <div class="rows">
+      <div class="rows" bind:this={rowsEl}>
         {#each zones as z, i}
-          <div class="row">
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="row" class:on={store.ui.zone === i} data-zone={i} onfocusin={() => (store.ui.zone = i)}>
             <select id={`fz-type-${i}`} aria-label={t("ui.front_type")} value={z.type} onchange={(e) => edit((l) => (l[i]!.type = (e.target as HTMLSelectElement).value))}>
               {#each TYPES as ty}<option value={ty}>{t(`ui.zone.${ty}`)}</option>{/each}
             </select>
@@ -170,7 +200,9 @@
   .fb { display: flex; flex-direction: column; gap: 8px; }
   .layouts { display: flex; flex-wrap: wrap; gap: 4px; }
   .lay { font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); }
-  .body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+  /* The rows go below the drawing when the pane is too narrow for both. */
+  .body { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .preview { flex: none; }
   .preview { display: block; }
   .carcase { fill: var(--surface-2); stroke: var(--part-edge); stroke-width: 1; }
   .front { fill: color-mix(in srgb, var(--surface) 75%, var(--accent)); stroke: var(--fg); stroke-width: .8; }
@@ -178,8 +210,13 @@
   .front.panel, .front.appliance { fill: color-mix(in srgb, var(--surface) 88%, var(--fg)); }
   .hole { fill: var(--view); stroke: var(--part-edge); stroke-width: .6; stroke-dasharray: 3 2; }
   .swing { fill: none; stroke: var(--muted); stroke-width: .8; stroke-dasharray: 4 2; }
-  .h { font: 9px var(--font-mono); fill: var(--fg); }
-  .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .front { cursor: pointer; }
+  .front.on { stroke: var(--accent); stroke-width: 2; }
+  .mark { fill: var(--fg); pointer-events: none; }
+  .grip { stroke: var(--fg); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+  .h { font: 9px var(--font-mono); fill: var(--fg); pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5; stroke-linejoin: round; }
+  .row.on { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 250px; }
   .row { display: grid; grid-template-columns: minmax(84px, 1fr) 58px auto auto; gap: 4px; align-items: center; }
   .row input { width: 100%; }
   .seg { display: flex; }
@@ -192,5 +229,4 @@
   .add { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
   .add button { font-size: 12px; padding: 3px 8px; }
   .small { font-size: 12px; margin: 0; }
-  @media (max-width: 420px) { .body { grid-template-columns: minmax(0, 1fr); } }
 </style>

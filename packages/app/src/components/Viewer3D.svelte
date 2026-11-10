@@ -3,7 +3,10 @@
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import { sceneOf, type CabinetResult, type HandlePlacement, type ScenePart } from "@cabinet-planner/engine";
   import { store } from "../lib/store.svelte.ts";
+  import ViewModeSwitch from "./ViewModeSwitch.svelte";
 
+  /** `single`: only the selected cabinet, standing alone without the room (D54). */
+  let { single = false }: { single?: boolean } = $props();
   const t = $derived(store.tr.t);
   let canvas: HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer | undefined;
@@ -14,6 +17,10 @@
   let meshes: THREE.Mesh[] = [];
   let failed = $state(false);
   let framed = false;
+  /** What the camera was last fitted to: the room, or the cabinets shown when there is none. */
+  let framedFor = "";
+  const frameKey = (): string =>
+    single ? `one:${store.ui.selected}` : store.result?.room ? "room" : `run:${store.result?.cabinets.map((c) => c.resolved.cabinet.id).join(",")}`;
 
   const css = (n: string): string => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
@@ -25,6 +32,14 @@
    */
   function layout(cabs: CabinetResult[]): Map<string, THREE.Matrix4> {
     const room = store.result?.room;
+    if (single) {
+      const one = new Map<string, THREE.Matrix4>();
+      for (const c of cabs) {
+        const up = c.resolved.cabinet.kind === "wall" ? 0 : (c.resolved.values.get("plinth_h") ?? 0);
+        one.set(c.resolved.cabinet.id, new THREE.Matrix4().makeTranslation(0, up, 0));
+      }
+      return one;
+    }
     if (room) {
       const out = new Map<string, THREE.Matrix4>();
       for (const q of room.placements) {
@@ -64,7 +79,7 @@
     const drill = new THREE.Color(css("--drill"));
     const pocket = new THREE.Color(css("--pocket"));
     scene.background = new THREE.Color(css("--view"));
-    const cabs = store.result.cabinets;
+    const cabs = single ? store.result.cabinets.filter((c) => c.resolved.cabinet.id === store.ui.selected) : store.result.cabinets;
     const pos = layout(cabs);
 
     // Floor.
@@ -72,7 +87,7 @@
     (grid.material as THREE.Material).opacity = 0.18;
     (grid.material as THREE.Material).transparent = true;
     root.add(grid);
-    addRoom(root);
+    if (!single) addRoom(root);
 
     for (const c of cabs) {
       const sc = sceneOf(c, store.result.library);
@@ -148,7 +163,8 @@
       root.add(g);
     }
     scene.add(root);
-    if (!framed) frame();
+    // Without a room the extent follows the cabinets: fit again when they change.
+    if (!framed || framedFor !== frameKey()) frame();
   }
 
   /** Walls as see-through boxes around their openings, plus the floor. */
@@ -157,7 +173,11 @@
     if (!room) return;
     const wallMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--shade-side")), transparent: true, opacity: 0.35, depthWrite: false });
     const edge = new THREE.LineBasicMaterial({ color: new THREE.Color(css("--part-edge")), transparent: true, opacity: 0.6 });
+    // Walls drawn: all, only those a cabinet stands on, or none; openings and slopes follow their wall.
+    const used = new Set(room.placements.map((q) => q.wall));
+    const wallShown = (id: string): boolean => store.ui.walls === "all" || (store.ui.walls !== "none" && used.has(id));
     for (const w of room.walls) {
+      if (!wallShown(w.id)) continue;
       const ops = room.openings.filter((o) => o.wall === w.id).sort((a, b) => a.x - b.x);
       // Rectangles (along, up) of solid wall around the openings.
       const pieces: [number, number, number, number][] = [];
@@ -216,7 +236,7 @@
     const roofMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(css("--shade-top")), transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
     for (const s of room.ceiling.slopes) {
       const w = room.walls.find((x) => x.id === s.wall);
-      if (!w) continue;
+      if (!w || !wallShown(w.id)) continue;
       const dist = (room.ceiling.height - s.knee) / s.rise;
       const p3 = (x: number, y: number, h: number) => new THREE.Vector3(x, h, -y);
       const a = p3(w.start[0], w.start[1], s.knee);
@@ -308,15 +328,19 @@
   function frame(): void {
     if (!root) return;
     // Frame the cabinets, not the floor grid (first child).
+    // Cabinet groups carry their placement as a fixed matrix: bring the world matrices up to date first.
+    root.updateMatrixWorld(true);
     const b = new THREE.Box3();
     root.children.slice(1).forEach((o) => b.expandByObject(o));
     if (b.isEmpty()) return;
     const c = b.getCenter(new THREE.Vector3());
-    const r = b.getSize(new THREE.Vector3()).length();
+    // Upright screens (phone): step back so the width still fits.
+    const r = b.getSize(new THREE.Vector3()).length() * Math.min(2, Math.max(1, 0.9 / (camera.aspect || 1)));
     camera.position.set(c.x + r * 0.7, c.y + r * 0.55, c.z + r * 1.55);
     controls.target.copy(c);
     controls.update();
     framed = true;
+    framedFor = frameKey();
   }
 
   function resize(): void {
@@ -392,12 +416,19 @@
     store.ui.explode;
     store.ui.ops;
     store.ui.fronts;
+    store.ui.walls;
     rebuild();
   });
 </script>
 
 <section class="panel view">
   <div class="bar">
+    <ViewModeSwitch />
+    {#if !single && store.result?.room}
+      <select id="walls-shown" aria-label={t("ui.walls_show")} title={t("ui.walls_show")} bind:value={store.ui.walls}>
+        {#each ["all", "used", "none"] as w}<option value={w}>{t(`ui.walls_show.${w}`)}</option>{/each}
+      </select>
+    {/if}
     <button aria-pressed={store.ui.explode} onclick={() => (store.ui.explode = !store.ui.explode)}>{t("ui.explode")}</button>
     <button aria-pressed={store.ui.ops} onclick={() => (store.ui.ops = !store.ui.ops)}>{t("ui.machining")}</button>
     <button aria-pressed={store.ui.fronts} onclick={() => (store.ui.fronts = !store.ui.fronts)}>{t("ui.fronts")}</button>

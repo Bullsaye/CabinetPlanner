@@ -44,25 +44,36 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const newId = (): string =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
-/** A new, empty project with a rectangular room. */
-export function blankProject(name: string): Doc {
+/** The room a new project starts with: a rectangle, walls clockwise (D28). */
+export const defaultRoom = (): Doc => ({
+  walls: [
+    { id: "A", length: 3600 },
+    { id: "B", length: 2400 },
+    { id: "C", length: 3600 },
+    { id: "D", length: 2400 },
+  ],
+  openings: [],
+});
+
+/** A new, empty project: with a rectangular room, or without one (cabinets in a simple run). */
+export function blankProject(name: string, withRoom = true): Doc {
   return {
     schemaVersion: 1,
     name,
     revision: 1,
     vars: {},
-    room: {
-      walls: [
-        { id: "A", length: 3600 },
-        { id: "B", length: 2400 },
-        { id: "C", length: 3600 },
-        { id: "D", length: 2400 },
-      ],
-      openings: [],
-    },
+    ...(withRoom ? { room: defaultRoom() } : {}),
     cabinets: [],
   };
 }
+
+/** Width up to which the app counts as narrow (tablet, phone): matches the layout breakpoint in App.svelte. */
+const NARROW = "(max-width: 1100px)";
+export type ViewMode = "cabinet" | "room";
+export type WallsShown = "all" | "used" | "none";
+export type HingeSymbol = "tip_at_hinge" | "tip_at_handle";
+/** Preferences kept between sessions (D33). */
+const PREFS = ["lang", "style", "ops", "fronts", "viewMode", "cabinet3d", "walls", "hingeSymbol"] as const;
 
 export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware" | "library" | "community";
 export type Screen = "home" | "project";
@@ -107,8 +118,30 @@ class Store {
     pane: "cabinet" as "cabinet" | "project" | "shop",
     /** Cabinet open in the construction editor. */
     construction: null as string | null,
+    /** Main view: the selected cabinet alone or the room; null follows the screen width (D54). */
+    viewMode: null as ViewMode | null,
+    /** Cabinet view: 3D of the single cabinet instead of the front elevation. */
+    cabinet3d: false,
+    /** Walls drawn in the room 3D view. */
+    walls: "used" as WallsShown,
+    /** Opening symbol on doors: tip at the hinge edge (DIN) or at the handle edge. */
+    hingeSymbol: "tip_at_hinge" as HingeSymbol,
+    /** Front zone picked in a drawing (index into the front stack). */
+    zone: null as number | null,
     ...(read(KEY_UI) ?? {}),
   });
+  /** Tablet or phone width: the cabinet view is the default and carries the settings below the drawing. */
+  narrow = $state(typeof matchMedia === "function" && matchMedia(NARROW).matches);
+
+  constructor() {
+    if (typeof matchMedia !== "function") return;
+    matchMedia(NARROW).addEventListener("change", (e) => (this.narrow = e.matches));
+  }
+
+  /** The view mode in effect. */
+  get viewMode(): ViewMode {
+    return this.ui.viewMode ?? (this.narrow ? "cabinet" : "room");
+  }
 
   built: BuildState = $derived(build($state.snapshot(this.project), $state.snapshot(this.shop)));
   tr: Translator = $derived(createTranslator(this.ui.lang));
@@ -188,7 +221,7 @@ class Store {
     if (!this.ready) return;
     const db = await kv();
     await db.set("shop", $state.snapshot(this.shop));
-    await db.set("ui", { lang: this.ui.lang, style: this.ui.style, ops: this.ui.ops, fronts: this.ui.fronts });
+    await db.set("ui", Object.fromEntries(PREFS.map((k) => [k, this.ui[k]])));
     if (!this.projectId) return;
     const doc = $state.snapshot(this.project);
     await db.set(`project:${this.projectId}`, doc);

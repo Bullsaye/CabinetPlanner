@@ -36,6 +36,11 @@
   const roomPart = $derived(roomParts.find((p) => p.id === roomPartId) ?? roomParts[0]);
   const styles = $derived([...FACTORY_STYLES, ...(store.built.shop?.library.drawingStyles ?? []), ...(store.result?.project.library.drawingStyles ?? [])]);
 
+  // The room can go while a room sheet is open (undo, "work without a room"): back to the part sheet.
+  $effect(() => {
+    if (!store.result?.room && (kind === "plan" || kind === "elevation" || kind === "room_part")) kind = "part";
+  });
+
   function make(css: boolean): string {
     const r = store.result;
     if (r?.room && (kind === "plan" || kind === "elevation")) {

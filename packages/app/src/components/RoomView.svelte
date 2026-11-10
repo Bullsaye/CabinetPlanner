@@ -19,6 +19,12 @@
     };
     for (const c of store.project.cabinets ?? []) c.place ??= { wall: "A" };
   }
+  // Working without a room (D54): the cabinets stay, in a simple run; their places are kept for a later room.
+  let confirmRemove = $state(false);
+  function removeRoom(): void {
+    delete store.project.room;
+    confirmRemove = false;
+  }
   function nextWallId(): string {
     const used = new Set((room?.walls ?? []).map((w: any) => w.id));
     for (const ch of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") if (!used.has(ch)) return ch;
@@ -36,12 +42,22 @@
   {#if !room}
     <div class="empty">
       <p>{t("ui.room_none")}</p>
+      <p class="muted">{t("ui.room_none_run")}</p>
       <button class="primary" onclick={createRoom}>{t("ui.room_create")}</button>
     </div>
   {:else}
     <div class="cols">
       <div class="sheet plan">{@html plan}</div>
       <div class="edit">
+        <div class="row">
+          {#if confirmRemove}
+            <span role="alert">{t("ui.room_remove_confirm")}</span>
+            <button class="danger" onclick={removeRoom}>{t("ui.room_remove_yes")}</button>
+            <button onclick={() => (confirmRemove = false)}>{t("ui.cancel")}</button>
+          {:else}
+            <button onclick={() => (confirmRemove = true)}>{t("ui.room_remove")}</button>
+          {/if}
+        </div>
         <h2 class="label">{t("ui.walls")}</h2>
         <p class="hint muted">{t("ui.walls_hint")}</p>
         <table class="grid">
@@ -169,6 +185,8 @@
 <style>
   .rv { padding: 12px; min-height: 460px; }
   .empty { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 16px; }
+  .empty p { margin: 0; max-width: 60ch; }
+  .danger { color: var(--err); border-color: var(--err); }
   .cols { display: flex; flex-direction: column; gap: 16px; }
   .plan :global(svg) { max-height: 62vh; }
   .edit { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
