@@ -907,3 +907,17 @@ dimensioned parts fails:
   cover only half of it. Found building a 5-section wardrobe with the shop's
   Grass Tiomos (full overlay): the middle doors' cup distance came out −5.
   A Grass half-overlay article is not in the library yet (no verified data).
+
+### D58 · 2026-11-11 · Middle-panel connector sets (Clamex P-10 Medius)
+
+- A connector item may name a `middle` item: the set used where joints meet
+  one panel from both faces at the same place. Those joints then share
+  their positions (planned once, before either is placed) and the set is
+  counted once per position. D55's staggering stays for groove connectors
+  without a middle set.
+- Lamello Clamex P-14 → `lamello-clamex-p14-medius`: a P-14 element with
+  lever in each part (14 mm groove, Ø6 lever access) and one P-10 Medius
+  element in the middle panel, from 10 mm P-10 grooves cut from both faces
+  at the same place (they meet in a 19 mm panel and hold the Medius). Data
+  from the P-System brochure's article list and P-10 profile; minimum
+  middle panel thickness and access hole still to be checked (untested).

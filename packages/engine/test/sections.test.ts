@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Operation, Part } from "../src/index.ts";
+import { FACTORY_HARDWARE } from "../src/index.ts";
 import { buildOne, partsByCode, size } from "./helpers.ts";
 
 const refs = (p: Part, ref: string): Operation[] => p.operations.filter((o) => o.sources.some((s) => s.ref === ref));
@@ -210,20 +211,52 @@ describe("many sections with connectors, sheet sizes (D55)", () => {
       sections: [{}, {}, {}, {}, {}],
     });
 
-  it("staggers Clamex grooves of the joints on both faces of a middle panel, each joint holding an end", () => {
+  const slots = (r: ReturnType<typeof buildOne>, face: string, item: string) =>
+    partsByCode(r)
+      .MP1!.operations.filter((o) => o.kind === "pocket" && o.face === face && o.sources.some((s) => s.ref === item) && o.u0 < 20)
+      .map((o) => (o.kind === "pocket" ? o.v0 : 0))
+      .sort((x, y) => x - y);
+
+  it("joins parts on both faces of a middle panel with Clamex P-14 + P-10 Medius at the same positions (D58)", () => {
     const r = five("through");
     expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const a = slots(r, "t0", "lamello-clamex-p14-medius");
+    const b = slots(r, "t1", "lamello-clamex-p14-medius");
+    expect(a.length).toBeGreaterThanOrEqual(3);
+    expect(b).toEqual(a);
+    // 10 mm P-10 grooves from each face; one set per position in the parts list.
     const mp = partsByCode(r).MP1!;
-    const slots = (face: string) =>
-      mp.operations
-        .filter((o) => o.kind === "pocket" && o.face === face && o.sources.some((s) => s.ref === "lamello-clamex-p14") && o.u0 < 20)
-        .map((o) => (o.kind === "pocket" ? o.v0 : 0))
-        .sort((a, b) => a - b);
-    const a = slots("t0");
-    const b = slots("t1");
+    const depth = mp.operations.find((o) => o.kind === "pocket" && o.sources.some((s) => s.ref === "lamello-clamex-p14-medius"));
+    expect(depth && depth.kind === "pocket" ? depth.w1 - depth.w0 : 0).toBe(10);
+    const sets = r.cabinets[0]!.hardware.find((h) => h.item === "lamello-clamex-p14-medius")!;
+    // One set per position: as many as Medius grooves on the middle panels' left faces
+    // (bottoms, tops and the hat shelves, which sit at one height on both sides).
+    const positions = r.parts
+      .filter((x) => x.role === "partition")
+      .flatMap((x) => x.operations.filter((o) => o.kind === "pocket" && o.face === "t0" && o.sources.some((s2) => s2.ref === "lamello-clamex-p14-medius")));
+    expect(sets.qty).toBe(positions.length);
+    expect(sets.qty).toBeGreaterThanOrEqual(4 * 2 * a.length);
+  });
+
+  it("staggers groove connectors without a middle-panel set, each joint holding an end (D55)", () => {
+    const clamex = FACTORY_HARDWARE.find((h) => h.id === "lamello-clamex-p14")!;
+    const plain = { ...JSON.parse(JSON.stringify(clamex)), id: "clamex-no-middle" };
+    delete plain.middle;
+    const r = buildOne(
+      {
+        kind: "tall",
+        presets: ["tall-unit", "wardrobe"],
+        vars: { W: 3100, H: 2200, D: 580 },
+        options: { partition_joint: "through", joint_method: "connector", "hardware.fastener": "clamex-no-middle" },
+        sections: [{}, {}, {}, {}, {}],
+      },
+      { library: { hardware: [plain] } },
+    );
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const a = slots(r, "t0", "clamex-no-middle");
+    const b = slots(r, "t1", "clamex-no-middle");
     expect(a.length).toBeGreaterThanOrEqual(3);
     expect(b.length).toBeGreaterThanOrEqual(3);
-    // No groove opposite another (69.6 long + 2 × wall).
     for (const v of a) for (const w of b) expect(Math.abs(v - w)).toBeGreaterThanOrEqual(69.6 + 4 - 1e-6);
   });
 

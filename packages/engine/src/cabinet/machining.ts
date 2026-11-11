@@ -285,26 +285,32 @@ export function machineBox(
       };
 
       // Connector drilling for this joint (panel thicknesses differ per joint).
-      let conn: ConnectorPlan | undefined;
-      if (fastener) {
+      const connectorPlan = (item: HardwareItem): ConnectorPlan => {
         const scope = new Map(rc.values);
         scope.set("t_edge", j.edgePart.thickness);
         scope.set("t_face", j.facePart.thickness);
-        const params = evaluateItemParams(fastener, scope, at);
+        const params = evaluateItemParams(item, scope, at);
         diagnostics.push(...params.diagnostics);
-        for (const d of checkLimits(fastener, params.values, at)) {
+        for (const d of checkLimits(item, params.values, at)) {
           const k = JSON.stringify(d.params);
           if (!seenLimits.has(k)) diagnostics.push(d), seenLimits.add(k);
         }
-        const { drills, diagnostics: dd } = evaluateDrilling(fastener, params.values, at);
+        const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
         diagnostics.push(...dd);
         for (const dr of drills) {
           if (dr.mount !== "face" && dr.mount !== "edge" && dr.mount !== "edge_face") {
-            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: fastener.id, mount: dr.mount, category: fastener.category }, ...at });
+            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
           }
         }
-        conn = { item: fastener, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+        return { item, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+      };
+      // Joints on both faces of a middle panel use the connector's middle-panel
+      // set where it has one (Clamex P-14 + P-10 Medius), at shared positions (D58).
+      const middleItem = fastener?.middle !== undefined && opposite.has(j) ? library.hardware.get(fastener.middle) : undefined;
+      if (fastener?.middle !== undefined && opposite.has(j) && !middleItem) {
+        diagnostics.push({ severity: "error", code: "hardware_unknown", params: { key: `${fastener.id} middle`, value: fastener.middle }, ...at });
       }
+      const conn: ConnectorPlan | undefined = fastener ? connectorPlan(middleItem ?? fastener) : undefined;
       const geo: JointGeometry = { j, W, H, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
 
       let placed = 0;
@@ -357,10 +363,25 @@ export function machineBox(
           pairPlans.set(partner, plan?.theirs ?? null);
           return plan?.mine;
         };
-        const zs = paired() ?? dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
+        // Middle-panel set: both joints at the same positions, planned once before
+        // either is placed; one set per position (counted with the first joint).
+        const shared = (): number[] | undefined => {
+          if (!middleItem || !partner) return undefined;
+          const cached = pairPlans.get(j);
+          if (cached !== undefined) return cached ?? undefined;
+          const pg: JointGeometry = { ...geo, j: partner, sgn: partner.fromMin ? -1 : 1 };
+          // The partner's own grooves are not there yet: check each joint against what exists.
+          const zsBoth = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)) && connectorFits(pg, c, m(z)));
+          pairPlans.set(j, zsBoth);
+          pairPlans.set(partner, zsBoth);
+          return zsBoth;
+        };
+        const sharedZs = shared();
+        const zs = sharedZs ?? paired() ?? dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
         for (const z of zs) placeConnector(geo, c, m(z));
         placed = zs.length;
-        use(c.item, zs.length);
+        // A middle-panel set joins both joints at one position: count it once.
+        if (!sharedZs || !partner || j.ref < partner.ref) use(c.item, zs.length);
       } else if (method === "connector_dowel" && conn) {
         const c = conn;
         // The dowel pattern without the free check, then connectors at its ends.

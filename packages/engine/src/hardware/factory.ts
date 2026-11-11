@@ -22,6 +22,7 @@ import rail from "../../library/hardware/generic-wardrobe-rail.json" with { type
 import minifix from "../../library/hardware/hafele-minifix-15.json" with { type: "json" };
 import rastex from "../../library/hardware/hettich-rastex-15.json" with { type: "json" };
 import clamex from "../../library/hardware/lamello-clamex-p14.json" with { type: "json" };
+import clamexMedius from "../../library/hardware/lamello-clamex-p14-medius.json" with { type: "json" };
 import confirmat from "../../library/hardware/generic-confirmat-7x50.json" with { type: "json" };
 import cabinetScrew from "../../library/hardware/generic-cabinet-connector-screw.json" with { type: "json" };
 import sah130 from "../../library/hardware/hettich-sah-130.json" with { type: "json" };
@@ -63,6 +64,7 @@ const RAW: readonly unknown[] = [
   minifix,
   rastex,
   clamex,
+  clamexMedius,
   confirmat,
   cabinetScrew,
   sah130,

@@ -102,6 +102,12 @@ export const HardwareItem = z.object({
   trust: z.enum(["untested", "tested", "verified"]).default("untested"),
   /** Where the data comes from: datasheet, measurement, note. */
   source: z.string().optional(),
+  /**
+   * Connectors: the item to use where joints meet one panel from both faces
+   * at the same place (a middle panel), e.g. Clamex P-14 → P-14 with a P-10
+   * Medius element in the middle panel (D58).
+   */
+  middle: z.string().optional(),
   /** Item parameters; may reference cabinet variables and placement context. */
   params: z.record(identifier, VarInput).default({}),
   drilling: z.array(DrillOp).default([]),
