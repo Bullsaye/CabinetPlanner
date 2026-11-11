@@ -146,6 +146,24 @@ Not possible through the controls without the construction editor: the
 sketch's exact fixed-shelf heights (394 / 1413). The automatic positions are
 397 / 1426, centred on the front gaps.
 
+## Review of the 3D view (four mistakes)
+
+Looking at the built wardrobe with "slope to the ceiling" (310 mm down, as
+the button keeps the 30 mm ceiling gap):
+
+1. **Handles too high**: door handles sat handle_end_offset below the door
+   top. Tall units now centre them at handle_height (1050) above the floor.
+2. **Door corner outside the cabinet**: the right door rose 21.5 mm above
+   the slope with only a warning. Fronts are now cut to the slope.
+3. **Horizontal joined to the angled piece**: the side ended at 1402 under
+   the slope, the fixed shelf above the door sat at 1413–1432 and was simply
+   bevelled into the sloped panel. Now an error says so; lower the door zone
+   and the shelf (e.g. door 1000, shelf 299 below the top) or make the slope
+   smaller.
+4. **The mitre by the door**: the side/slope joint itself is a bisecting
+   mitre (22.5° each, long points outside); what looked wrong there was the
+   door corner and the bevelled shelf running into it.
+
 ## Still missing or cumbersome
 
 - **Mitres are not drilled.** The three mitre joints (top/slope/side) would

@@ -1037,9 +1037,32 @@ export function buildBox(
       const yt = b.y + b.dy;
       const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
       if (isFront) {
-        // How far the front's corner rises above the slope, measured vertically.
-        const over = yt - (k - sn * xr) / cs;
-        if (over > 1e-6) diagnostics.push({ severity: "warning", code: "slope_cuts_front", params: { part: p.id, over: roundMm(over) }, ...where, part: p.id });
+        // Fronts are cut to the slope, front_gap_top clear of its outer face (D51).
+        const limit = k - num("front_gap_top");
+        const f = (x: number, y: number): number => sn * (side === "right" ? x : W - x) + cs * y - limit;
+        const rect: [number, number][] = [[b.x, b.y], [b.x + b.dx, b.y], [b.x + b.dx, yt], [b.x, yt]];
+        if (rect.every(([x, y]) => f(x, y) <= 1e-6)) continue;
+        const poly: [number, number][] = [];
+        for (let i = 0; i < rect.length; i++) {
+          const A = rect[i]!;
+          const B = rect[(i + 1) % rect.length]!;
+          const va = f(A[0], A[1]);
+          const vb = f(B[0], B[1]);
+          if (va <= 1e-9) poly.push(A);
+          if ((va < -1e-9 && vb > 1e-9) || (va > 1e-9 && vb < -1e-9)) {
+            const u = va / (va - vb);
+            poly.push([A[0] + u * (B[0] - A[0]), A[1] + u * (B[1] - A[1])]);
+          }
+        }
+        // Too little left at the hinge or slope edge: the front does not fit under the slope.
+        const edgeLeft = Math.min(...poly.filter(([x]) => Math.abs(x - (side === "right" ? b.x + b.dx : b.x)) < 1e-6).map(([, y]) => y)) ;
+        if (poly.length < 3 || !Number.isFinite(edgeLeft) || Math.max(...poly.filter(([x]) => Math.abs(x - (side === "right" ? b.x + b.dx : b.x)) < 1e-6).map(([, y]) => y)) - b.y < 100) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        // Part-local (u along the length, v along the width).
+        const local = poly.map(([x, y]) => (p.lengthAxis === "y" ? [roundMm(y - b.y), roundMm(x - b.x)] : [roundMm(x - b.x), roundMm(y - b.y)]) as [number, number]);
+        p.outline = ccw(local);
         continue;
       }
       if (["side_left", "side_right", "top", "bottom", "top_slope"].includes(p.role) || !over(xr, yt)) continue;
@@ -1058,6 +1081,12 @@ export function buildBox(
         // Long point on the underside, bevel 90° − a at the end against the slope.
         const xb = Math.min(xr, xAt(b.y));
         const xt = xAt(yt);
+        if (xb < xr - 1e-6) {
+          // Its underside no longer reaches the side or middle panel it is dowelled to:
+          // it would only meet the sloped panel (D51).
+          diagnostics.push({ severity: "error", code: "slope_fixed_above_side", params: { part: p.id, y: roundMm(b.y), top: roundMm(yAt(xr)) }, ...where, part: p.id });
+          continue;
+        }
         if (xt - xl < 50) {
           diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
           continue;

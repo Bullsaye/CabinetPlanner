@@ -83,7 +83,7 @@ describe("sloped top corner (D47)", () => {
       sections: [
         { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }] },
         // An extra fixed panel high up, under the slope.
-        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1450 }] } },
+        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1300 }] } },
       ],
     });
     expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
@@ -95,7 +95,7 @@ describe("sloped top corner (D47)", () => {
     expect(mp.box.y + mp.box.dy).toBeLessThan(1720 - 19);
     // The right section's fixed shelf is bevelled at its right end; the left one stays square.
     const fs = r.parts.filter((x) => x.role === "fixed_shelf");
-    const right = fs.find((x) => x.box.x > 300 && x.box.y === 1450)!;
+    const right = fs.find((x) => x.box.x > 300 && x.box.y === 1300)!;
     expect(right.bevels).toEqual({ w2: 45 });
     expect(fs.filter((x) => x.box.x < 300).every((x) => x.bevels === undefined)).toBe(true);
     // Adjustable shelves in the right section clear the slope.
@@ -105,6 +105,46 @@ describe("sloped top corner (D47)", () => {
       expect(Math.SQRT1_2 * x1 + Math.SQRT1_2 * yTop).toBeLessThanOrEqual(Math.SQRT1_2 * 600 + Math.SQRT1_2 * (1720 - 400) - 19 + 1e-6);
     }
     expect(r.diagnostics.find((d) => d.code === "slope_joints_manual")!.params.parts).toContain("MP1");
+  });
+
+  it("refuses a fixed shelf that would only meet the sloped panel (D51)", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 600, H: 1720, D: 475, slope_right_drop: 400 },
+      sections: [{}, { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1450 }] } }],
+    });
+    expect(r.diagnostics.find((d) => d.code === "slope_fixed_above_side")?.params).toMatchObject({ y: 1450 });
+  });
+
+  it("cuts fronts to the slope and keeps hinges and handles on them (D51)", () => {
+    // The sketch with the ceiling gap: 310 down, the right door would rise 21.5 mm above the slope.
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1050, H: 1720, D: 475, plinth_h: 60, front_gap: 4, front_gap_v: 4, front_gap_side: 2, front_gap_bottom: 4.5, slope_right_drop: 310 },
+      options: { "hardware.handle": "generic-bar-160", "hardware.leg": "generic-leg-60", hat_shelf: false },
+      sections: [
+        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }] },
+        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }], interior: "hanging" },
+      ],
+      construction: { fixed: { "1": { panel: false } }, panels: [{ y: 1360 }] },
+    });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const p = partsByCode(r);
+    const door = p.DO2!;
+    expect(door.outline).toHaveLength(5);
+    expect(p.DO1!.outline).toBeUndefined();
+    // Every corner of the outline stays front_gap_top (4) clear of the slope's outer face.
+    const k = Math.SQRT1_2 * 1050 + Math.SQRT1_2 * (1720 - 310);
+    for (const [u, v] of door.outline!) expect(Math.SQRT1_2 * (door.box.x + v) + Math.SQRT1_2 * (door.box.y + u)).toBeLessThanOrEqual(k - 4 + 0.01);
+    // Hinges on the right edge stay below its cut top; handles at grip height (tall unit preset).
+    const c = r.cabinets[0]!;
+    const hinges = door.operations.filter((o) => o.kind === "bore" && o.sources.some((s) => s.ref.includes("hinge")));
+    expect(hinges.length).toBeGreaterThan(0);
+    const handle = c.handles.find((h) => h.part === door.id)!;
+    const mid = (handle.points[0]!.y + handle.points[1]!.y) / 2;
+    expect(mid).toBeCloseTo(1050 - 60, 0);
   });
 
   it("checks the room ceiling against the cut corner, not the full height", () => {

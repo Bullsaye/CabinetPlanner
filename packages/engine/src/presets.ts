@@ -25,7 +25,7 @@ export const FACTORY_PRESETS: readonly Preset[] = [
     name: { en: "Tall unit", de: "Hochschrank" },
     group: "kind",
     vars: { H: "tall_h", D: "worktop_d - 40", shelf_count: 4, door_count: 1 },
-    options: {},
+    options: { "handle.door_y": "height" },
   },
   {
     id: "wardrobe",

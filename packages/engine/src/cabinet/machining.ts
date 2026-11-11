@@ -102,6 +102,8 @@ export function machineBox(
     return undefined;
   };
   const fixedShelves = parts.filter((p) => p.role === "fixed_shelf");
+  /** Height of a front at cabinet x, from its bottom edge: the box, or its outline when cut to a slope (D51). */
+  const frontTopAt = (p: Part, x: number): number => frontTop(p, x);
 
   const W = num("W");
   const D = num("D");
@@ -446,9 +448,19 @@ export function machineBox(
       if (!plan) continue;
       const { cc } = plan;
       const b = p.box;
-      // Opening edge is opposite the hinges; wall units get the handle low, others high.
+      // Opening edge is opposite the hinges; wall units get the handle low, others high,
+      // or (handle.door_y: height) centred at handle_height above the floor, kept on the door (D51).
       const xOpen = d.hinge === "left" ? b.x + b.dx - edgeOff : b.x + edgeOff;
-      const yEnd = wall ? b.y + endOff : b.y + b.dy - endOff;
+      let yEnd = wall ? b.y + endOff : b.y + b.dy - endOff;
+      if (!wall && opt<string>("handle.door_y") === "height") {
+        const span = cc === 0 || opt<string>("handle.door") !== "vertical" ? 0 : cc;
+        const centre = num("handle_height") - (rc.cabinet.kind === "wall" ? num("wall_bottom") : num("plinth_h"));
+        // Top of the door at its opening edge (a door cut to a slope is lower there).
+        const top = b.y + frontTopAt(p, xOpen);
+        const hi = top - endOff;
+        const lo = b.y + endOff + span;
+        yEnd = Math.max(lo, Math.min(hi, centre + span / 2));
+      }
       if (cc === 0) drill(p, plan, [{ x: xOpen, y: yEnd }]);
       else if (opt<string>("handle.door") === "vertical") {
         drill(p, plan, wall ? [{ x: xOpen, y: yEnd }, { x: xOpen, y: yEnd + cc }] : [{ x: xOpen, y: yEnd - cc }, { x: xOpen, y: yEnd }]);
@@ -1057,6 +1069,23 @@ function placeFlapHinges(rc: ResolvedCabinet, item: HardwareItem, flap: Part, pa
   return xs.length;
 }
 
+/** Height of an upright front (length along Y) at cabinet x, from its bottom edge; follows its outline (D51). */
+function frontTop(p: Part, x: number): number {
+  if (!p.outline || p.lengthAxis !== "y") return p.box.dy;
+  const v = x - p.box.x;
+  // Highest point of the outline's vertical section at v.
+  let top = 0;
+  const pts = p.outline;
+  for (let i = 0; i < pts.length; i++) {
+    const [ua, va] = pts[i]!;
+    const [ub, vb] = pts[(i + 1) % pts.length]!;
+    if ((va - v) * (vb - v) > 1e-9) continue;
+    const u = Math.abs(vb - va) < 1e-9 ? Math.max(ua, ub) : ua + ((ub - ua) * (v - va)) / (vb - va);
+    top = Math.max(top, u);
+  }
+  return top;
+}
+
 function placeHinges(
   rc: ResolvedCabinet,
   item: HardwareItem,
@@ -1101,7 +1130,8 @@ function placeHinges(
   }
   const n = Math.max(1, Math.round(count));
   const y0 = door.box.y + endOffset;
-  const y1 = door.box.y + door.box.dy - endOffset;
+  // A door cut to a slope (D51): the hinge edge may end lower than the door's box.
+  const y1 = door.box.y + frontTop(door, side === "left" ? door.box.x : door.box.x + door.box.dx) - endOffset;
   let centres = n === 1 ? [(y0 + y1) / 2] : Array.from({ length: n }, (_, i) => y0 + (i * (y1 - y0)) / (n - 1));
 
   // Snap so the mounting plate lands on the system grid.

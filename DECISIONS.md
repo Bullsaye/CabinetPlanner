@@ -795,3 +795,23 @@ Two shop settings, because they are used for different things:
 - When a leg's limits fail (e.g. plinth_h out of range), a warning
   `hardware_alternatives` names the library legs that would fit.
 - `slope_cuts_front` reports how far the front rises above the slope.
+
+### D51 · 2026-11-11 · Fronts under a slope, fixed shelves above the side, handle height
+
+Found reviewing the sketch built with "slope to the ceiling" (310 mm instead
+of 280, so the side ends lower than the door and the fixed shelf above it):
+
+- Fronts reaching above a left/right slope are cut to it: an outline
+  `front_gap_top` clear of the slope's outer face (supersedes the
+  `slope_cuts_front` warning). Less than 100 mm left at the slope edge is an
+  error. Hinges stay `hinge_end_offset` below the top of the hinge edge, and
+  door handles below the top of the opening edge, as the outline has it.
+- A fixed shelf whose underside no longer reaches the side (or middle panel)
+  it is dowelled to is an error (`slope_fixed_above_side`) instead of being
+  bevelled into the sloped panel: it would only meet that panel. A fixed
+  shelf that still reaches the side only loses its top corner (D47).
+- Option `handle.door_y`: `end` (factory, as before: handle_end_offset from
+  the door end) or `height`: the handle's middle at `handle_height` (factory
+  1050) above the floor, kept handle_end_offset inside the door. The tall
+  unit preset sets `height`, so tall doors no longer get their handles near
+  the top.
