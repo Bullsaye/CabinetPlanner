@@ -118,33 +118,56 @@ describe("sloped top corner (D47)", () => {
   });
 
   it("cuts fronts to the slope and keeps hinges and handles on them (D51)", () => {
-    // The sketch with the ceiling gap: 310 down, the right door would rise 21.5 mm above the slope.
+    // Full-height doors, no open compartment: the right door is cut to the slope.
     const r = buildOne({
       kind: "tall",
       presets: ["tall-unit"],
-      vars: { W: 1050, H: 1720, D: 475, plinth_h: 60, front_gap: 4, front_gap_v: 4, front_gap_side: 2, front_gap_bottom: 4.5, slope_right_drop: 310 },
-      options: { "hardware.handle": "generic-bar-160", "hardware.leg": "generic-leg-60", hat_shelf: false },
-      sections: [
-        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }] },
-        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }], interior: "hanging" },
-      ],
-      construction: { fixed: { "1": { panel: false } }, panels: [{ y: 1360 }] },
+      vars: { W: 1050, H: 1720, D: 475, plinth_h: 60, front_gap_v: 4, front_gap_side: 2, slope_right_drop: 310 },
+      options: { "hardware.handle": "generic-bar-160", "hardware.leg": "generic-leg-60" },
+      sections: [{ fronts: [{ type: "door" }] }, { fronts: [{ type: "door" }] }],
     });
     expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     const p = partsByCode(r);
     const door = p.DO2!;
     expect(door.outline).toHaveLength(5);
     expect(p.DO1!.outline).toBeUndefined();
-    // Every corner of the outline stays front_gap_top (4) clear of the slope's outer face.
+    // Every corner of the outline stays front_gap_top clear of the slope's outer face.
+    const gap = r.cabinets[0]!.resolved.values.get("front_gap_top")!;
     const k = Math.SQRT1_2 * 1050 + Math.SQRT1_2 * (1720 - 310);
-    for (const [u, v] of door.outline!) expect(Math.SQRT1_2 * (door.box.x + v) + Math.SQRT1_2 * (door.box.y + u)).toBeLessThanOrEqual(k - 4 + 0.01);
-    // Hinges on the right edge stay below its cut top; handles at grip height (tall unit preset).
-    const c = r.cabinets[0]!;
+    for (const [u, v] of door.outline!) expect(Math.SQRT1_2 * (door.box.x + v) + Math.SQRT1_2 * (door.box.y + u)).toBeLessThanOrEqual(k - gap + 0.01);
+    // Hinges on the right (cut) edge stay below its top; handles at grip height.
     const hinges = door.operations.filter((o) => o.kind === "bore" && o.sources.some((s) => s.ref.includes("hinge")));
-    expect(hinges.length).toBeGreaterThan(0);
-    const handle = c.handles.find((h) => h.part === door.id)!;
-    const mid = (handle.points[0]!.y + handle.points[1]!.y) / 2;
-    expect(mid).toBeCloseTo(1050 - 60, 0);
+    const edgeTop = Math.max(...door.outline!.filter(([, v]) => Math.abs(v - door.width) < 0.01).map(([u]) => u));
+    for (const h of hinges) expect((h as { u: number }).u).toBeLessThan(edgeTop);
+    const handle = r.cabinets[0]!.handles.find((h) => h.part === door.id)!;
+    expect((handle.points[0]!.y + handle.points[1]!.y) / 2).toBeCloseTo(1050 - 60, 0);
+  });
+
+  it("fits the shelf over the doors under the mitre and lowers the doors to it (D53)", () => {
+    // The sketch with the ceiling gap: 310 down. The shelf would be 1.5 above the door top (1433.5 + 1.5).
+    const stack = [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }];
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1050, H: 1720, D: 475, front_gap: 4, front_gap_v: 4, front_gap_side: 2, front_gap_bottom: 4.5, slope_right_drop: 310 },
+      sections: [{ fronts: stack }, { fronts: stack, interior: "hanging" }],
+      options: { hat_shelf: false },
+    });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.diagnostics.filter((d) => d.code === "slope_front_lowered")).toHaveLength(2);
+    const p = partsByCode(r);
+    const sideTop = 1720 - 310 - (19 * (1 - Math.SQRT1_2)) / Math.SQRT1_2; // 1402.13
+    const upper = r.parts.filter((x) => x.role === "fixed_shelf").reduce((m, x) => (x.box.y > m.box.y ? x : m));
+    expect(upper.box.y + 19).toBeCloseTo(sideTop, 1);
+    // Both doors end the reveal (1.5) under the shelf's top face and stay level.
+    for (const d of [p.DO1!, p.DO2!]) expect(d.box.y + d.box.dy).toBeCloseTo(sideTop - 1.5, 1);
+    expect(p.DO2!.outline).toBeUndefined();
+  });
+
+  it("places the shelf at an open compartment the reveal above the front (D53)", () => {
+    const r = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 600, H: 2000 }, fronts: [{ type: "open" }, { type: "door", h: 1500 }] });
+    const p = partsByCode(r);
+    expect(p.FS1!.box.y + 19).toBeCloseTo(p.DO1!.box.y + p.DO1!.box.dy + 1.5, 5);
   });
 
   it("checks the room ceiling against the cut corner, not the full height", () => {

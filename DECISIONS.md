@@ -825,3 +825,19 @@ of 280, so the side ends lower than the door and the fixed shelf above it):
   rails, hinge plates, shelf pins) behaves as with `full`.
 - The tall unit preset sets it (and so wardrobes); `full` stays the factory
   default, so kitchen base and wall units keep full rows.
+
+### D53 · 2026-11-11 · Shelf at an open compartment, fitted under a slope
+
+- Option `open_shelf`: `centred` (factory, as before: the fixed shelf
+  between an open compartment and a front is centred on the gap) or
+  `reveal`: its top face `open_shelf_reveal` (factory 1.5) above the top
+  edge of the front below (or its underside the reveal below a front
+  above). The tall unit preset sets `reveal`.
+- Under a left or right slope, the shelf under a top open compartment may
+  not rise above the side's inner face (the slope's mitre with the side).
+  If it would, it moves down to sit right under the mitre and the front
+  below it is shortened by the same amount (`slope_front_lowered`
+  warning, per section, so pairs of doors stay level). Alternatives are a
+  smaller drop (slope further out) or the cabinet further from the roof.
+- A part that only touches the slope's inner face (within 0.01 mm) is not
+  cut to it.

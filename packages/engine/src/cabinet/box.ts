@@ -522,6 +522,17 @@ export function buildBox(
     add("fixed_shelf", ++fixedNo, { x: x0, y, z: z0, dx: x1 - x0, dy: t, dz: fsZ1 - sb.front - z0 }, "x", "z", "material.carcase", fsEdges);
   };
 
+  /** Lowest top of a side's inner face under a left/right slope (D47 mitre), or none. */
+  const slopeSideTop: number | undefined = (() => {
+    const tops = (["left", "right"] as const)
+      .filter((s) => num(`slope_${s}_drop`) > 0)
+      .map((s) => {
+        const a = (num(`slope_${s}_angle`) * Math.PI) / 180;
+        return H - num(`slope_${s}_drop`) - (t * (1 - Math.sin(a))) / Math.cos(a);
+      });
+    return tops.length ? Math.min(...tops) : undefined;
+  })();
+  const isFront = (ty: string): boolean => ty !== "open" && ty !== "appliance";
   /** Per column: front stack, fixed shelves and zone ranges (phase A). */
   const laid = columns.map((col) => {
     const fz = layoutFronts(col.zones, H, { top: num("front_gap_top"), bottom: num("front_gap_bottom"), between }, col.doorCount, rc.values, { cabinet: cab });
@@ -547,12 +558,32 @@ export function buildBox(
         // Tall units close drawers off from the zone above (wardrobes).
         (tallUnit && a.type !== b.type);
       if (!needs) continue;
-      const y = a.type === "appliance" ? a.y0 - t : b.type === "appliance" ? b.y1 + between : (a.y0 + b.y1) / 2 - t / 2;
+      // Open compartment over a front (option open_shelf: reveal, D53): the
+      // shelf's top face open_shelf_reveal above the front's top edge; under
+      // a front, its underside the reveal below the front's bottom edge.
+      const isFrontZone = (z: PlacedFront): boolean => z.type !== "open" && z.type !== "appliance";
+      const reveal = opt<string>("open_shelf") === "reveal" ? num("open_shelf_reveal") : undefined;
+      const y =
+        a.type === "appliance" ? a.y0 - t
+        : b.type === "appliance" ? b.y1 + between
+        : reveal !== undefined && a.type === "open" && isFrontZone(b) ? b.y1 + reveal - t
+        : reveal !== undefined && b.type === "open" && isFrontZone(a) ? a.y0 - reveal
+        : (a.y0 + b.y1) / 2 - t / 2;
       if (y < t - 1e-6 || y + t > H - t + 1e-6) {
         diagnostics.push({ severity: "error", code: "fixed_shelf_outside", params: { index: i + 1 }, cabinet: cab });
         continue;
       }
       fixedAt[i] = roundMm(y);
+    }
+    // Under a side slope (D53): the shelf under a top open compartment fits
+    // under the slope's mitre with the side; the front below it follows.
+    if (slopeSideTop !== undefined && fronts[0]?.type === "open" && fixedAt[0] !== undefined && fronts[1] && isFront(fronts[1].type)) {
+      const over = fixedAt[0] + t - slopeSideTop;
+      if (over > 1e-6) {
+        fixedAt[0] = roundMm(fixedAt[0] - over);
+        fronts[1].y1 = roundMm(fronts[1].y1 - over);
+        diagnostics.push({ severity: "warning", code: "slope_front_lowered", params: { zone: 2, by: roundMm(over), section: col.secs[0]! + 1 }, cabinet: cab });
+      }
     }
     // --- Construction elements (D38) ------------------------------------------------
     const fixedAuto = fronts.map((_, i) => fixedAt[i] ?? null);
@@ -1032,7 +1063,8 @@ export function buildBox(
     // sloped panel is made by hand); fronts above the outer line warn.
     const inner = k - t;
     const manual = [tp.code, ts.code, sp.code];
-    const over = (x: number, y: number): boolean => sn * x + cs * y > inner + 1e-6;
+    // Touching the slope (within rounding) is not cutting into it.
+    const over = (x: number, y: number): boolean => sn * x + cs * y > inner + 0.01;
     for (const p of parts) {
       if (p === sp || p === tp || p === ts || p.role === "back" || p.role.startsWith("drawer_")) continue;
       const b = p.box;

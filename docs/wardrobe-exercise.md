@@ -164,6 +164,16 @@ the button keeps the 30 mm ceiling gap):
    mitre (22.5° each, long points outside); what looked wrong there was the
    door corner and the bevelled shelf running into it.
 
+## Shelf, door and mitre
+
+The fixed shelf over the doors now sits right under the mitre of the slope
+with the right side (its top at the side's inner top, 1432.13), and the
+doors end 1.5 mm under its top face (`open_shelf: reveal`): the doors come
+out 1022.13 instead of 1025, and the app says so. A smaller drop or the
+cabinet further from the roof would keep 1025. The 32 mm rows only run
+beside the shelves (`system_holes: shelves`), and tall-unit handles sit at
+1050 above the floor.
+
 ## Still missing or cumbersome
 
 - **Mitres are not drilled.** The three mitre joints (top/slope/side) would

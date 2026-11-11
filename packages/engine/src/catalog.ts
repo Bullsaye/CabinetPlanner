@@ -128,6 +128,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "shelf_back_gap", group: "shelves", unit: "mm", factory: 2, min: 0, max: 50 }),
   v({ name: "shelf_pin_rest", group: "shelves", unit: "mm", factory: 3, min: 0, max: 30 }),
   v({ name: "fixed_shelf_setback", group: "shelves", unit: "mm", factory: 0, min: 0, max: 200 }),
+  v({ name: "open_shelf_reveal", group: "shelves", unit: "mm", factory: 1.5, min: -20, max: 20, step: 0.5 }),
   v({ name: "hat_shelf_drop", group: "shelves", unit: "mm", factory: 330, min: 100, max: 1000, step: 10 }),
   v({ name: "rail_drop", group: "shelves", unit: "mm", factory: 50, min: 20, max: 300, step: 5 }),
 
@@ -256,6 +257,8 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "hardware", category: "connector" },
     factory: "dowel-8x35",
   },
+  /** Fixed shelf between an open compartment and a front: centred on the gap, or open_shelf_reveal beyond the front's edge (D53). */
+  { key: "open_shelf", group: "shelves", kind: { type: "enum", values: ["centred", "reveal"] }, factory: "centred" },
   /** 32 mm rows: full height, only beside zones with adjustable shelves (D52), or none. */
   { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "shelves", "none"] }, factory: "full" },
   { key: "hardware.hinge", group: "hardware", kind: { type: "hardware", category: "hinge" }, factory: "generic-hinge-110" },

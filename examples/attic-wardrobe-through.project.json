@@ -120,17 +120,11 @@
       ],
       "construction": {
         "fixed": {
-          "1": {
-            "panel": false
-          },
           "2": {
             "panel": false
           }
         },
         "panels": [
-          {
-            "y": "H - 2 * t_carcase - 269"
-          },
           {
             "y": "t_carcase + 375"
           }

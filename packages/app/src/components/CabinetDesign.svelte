@@ -116,6 +116,8 @@
       <h3 class="label">{t("ui.shelves")}</h3>
       <VarRow name="shelf_count" steppers />
       {#if kind === "tall"}<OptRow key="interior" /><OptRow key="hat_shelf" />{/if}
+      <OptRow key="open_shelf" />
+      {#if store.cabinet?.resolved.options.get("open_shelf")?.value === "reveal"}<VarRow name="open_shelf_reveal" />{/if}
       {#if c.sections?.length || (store.cabinet?.resolved.values.get("partition_count") ?? 0) > 0}<OptRow key="partition_joint" />{/if}
     </section>
 
