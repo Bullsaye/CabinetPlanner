@@ -259,6 +259,8 @@ export const OPTIONS: readonly OptionDef[] = [
   },
   /** Fixed shelf between an open compartment and a front: centred on the gap, or open_shelf_reveal beyond the front's edge (D53). */
   { key: "open_shelf", group: "shelves", kind: { type: "enum", values: ["centred", "reveal"] }, factory: "centred" },
+  /** Fronts reaching above a slope: keep their size (an error), or are cut to the slope (D54). */
+  { key: "slope_fronts", group: "fronts", kind: { type: "enum", values: ["keep", "cut"] }, factory: "keep" },
   /** 32 mm rows: full height, only beside zones with adjustable shelves (D52), or none. */
   { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "shelves", "none"] }, factory: "full" },
   { key: "hardware.hinge", group: "hardware", kind: { type: "hardware", category: "hinge" }, factory: "generic-hinge-110" },

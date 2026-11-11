@@ -164,15 +164,24 @@ the button keeps the 30 mm ceiling gap):
    mitre (22.5° each, long points outside); what looked wrong there was the
    door corner and the bevelled shelf running into it.
 
-## Shelf, door and mitre
+## Shelf, door and mitre – what drives what
 
-The fixed shelf over the doors now sits right under the mitre of the slope
-with the right side (its top at the side's inner top, 1432.13), and the
-doors end 1.5 mm under its top face (`open_shelf: reveal`): the doors come
-out 1022.13 instead of 1025, and the app says so. A smaller drop or the
-cabinet further from the roof would keep 1025. The 32 mm rows only run
-beside the shelves (`system_holes: shelves`), and tall-unit handles sit at
-1050 above the floor.
+The dimensions drive: cabinet 1050 × 1720 × 475, doors 1025, drawers 161 /
+235, the shelf over the doors 1.5 mm above their top edge
+(`open_shelf: reveal`), the lower shelf 375 clear. The corner follows from
+the room: `slope_right_drop = max(0, H + plinth_h - ceiling_h)`, so moving
+the wardrobe along the wall changes the corner. Pushing it into the roof
+fails with an error that says by how much; nothing is shortened or cut on
+its own (D54).
+
+With these dimensions the shelf top sits at 1435, so the side must reach at
+least that under the mitre: the wardrobe stands 5 mm further from the roof
+wall than in the first build, and the corner becomes 275 down (right side
+1445, top 756, sloped panel 388.91). At the old spot the app reports that
+the shelf reaches 2.87 mm into the slope.
+
+The 32 mm rows only run beside the shelves (`system_holes: shelves`), and
+tall-unit handles sit at 1050 above the floor.
 
 ## Still missing or cumbersome
 

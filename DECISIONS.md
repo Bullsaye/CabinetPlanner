@@ -841,3 +841,23 @@ of 280, so the side ends lower than the door and the fixed shelf above it):
   smaller drop (slope further out) or the cabinet further from the roof.
 - A part that only touches the slope's inner face (within 0.01 mm) is not
   cut to it.
+
+### D54 · 2026-11-11 · Dimensions drive, the slope follows
+
+Supersedes the automatic adjustments of D47 (fixed shelves bevelled), D51
+(fronts cut) and D53 (front lowered under the mitre). The dimensions the
+user gives (cabinet, fronts, clear heights) win; the slope follows from the
+room (`slope_*_drop` as a formula over `ceiling_h`), so moving the cabinet
+along the wall moves the corner, and a corner that would cut into
+dimensioned parts fails:
+
+- A fixed shelf reaching into the slope, even by its top corner, is an
+  error (`slope_fixed_above_side`, with how far): it would meet the sloped
+  panel instead of its side.
+- Fronts keep their size: reaching above the slope (less `front_gap_top`)
+  is an error (`slope_front_above`). Option `slope_fronts: cut` (factory
+  `keep`) cuts them to the slope instead, as D51 described.
+- Still adapted automatically, as they are not dimensioned: the side, top
+  and sloped panel, the back, middle panels and adjustable shelves.
+- `open_shelf: reveal` (D53) stays: the shelf at an open compartment is
+  placed from the front below it, not the other way round.

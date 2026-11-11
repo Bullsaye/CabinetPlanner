@@ -74,7 +74,7 @@ describe("sloped top corner (D47)", () => {
     expect(rails.diagnostics.map((d) => d.code)).toContain("slope_needs_full_top");
   });
 
-  it("cuts middle panels, fixed and adjustable shelves under the slope", () => {
+  it("cuts middle panels and adjustable shelves under the slope", () => {
     // W 600, 400 down at 45°: the slope starts 200 from the left, over the middle panel.
     const r = buildOne({
       kind: "tall",
@@ -82,8 +82,7 @@ describe("sloped top corner (D47)", () => {
       vars: { W: 600, H: 1720, D: 475, slope_right_drop: 400, shelf_count: 4 },
       sections: [
         { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }] },
-        // An extra fixed panel high up, under the slope.
-        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1300 }] } },
+        { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }] },
       ],
     });
     expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
@@ -93,11 +92,6 @@ describe("sloped top corner (D47)", () => {
     expect(mp.bevels).toEqual({ w2: 45 });
     expect(mp.profile!.points.length).toBe(4);
     expect(mp.box.y + mp.box.dy).toBeLessThan(1720 - 19);
-    // The right section's fixed shelf is bevelled at its right end; the left one stays square.
-    const fs = r.parts.filter((x) => x.role === "fixed_shelf");
-    const right = fs.find((x) => x.box.x > 300 && x.box.y === 1300)!;
-    expect(right.bevels).toEqual({ w2: 45 });
-    expect(fs.filter((x) => x.box.x < 300).every((x) => x.bevels === undefined)).toBe(true);
     // Adjustable shelves in the right section clear the slope.
     for (const sh of r.parts.filter((x) => x.role === "shelf" && x.box.x > 300)) {
       const x1 = sh.box.x + sh.box.dx;
@@ -107,14 +101,22 @@ describe("sloped top corner (D47)", () => {
     expect(r.diagnostics.find((d) => d.code === "slope_joints_manual")!.params.parts).toContain("MP1");
   });
 
-  it("refuses a fixed shelf that would only meet the sloped panel (D51)", () => {
+  it("refuses a fixed shelf reaching into the slope, even by its corner (D54)", () => {
     const r = buildOne({
       kind: "tall",
       presets: ["tall-unit"],
       vars: { W: 600, H: 1720, D: 475, slope_right_drop: 400 },
       sections: [{}, { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1450 }] } }],
     });
-    expect(r.diagnostics.find((d) => d.code === "slope_fixed_above_side")?.params).toMatchObject({ y: 1450 });
+    expect(r.diagnostics.find((d) => d.code === "slope_fixed_above_side")?.params).toMatchObject({ top: 1469 });
+    // Only its top corner in the slope: still an error, nothing is bevelled.
+    const corner = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 600, H: 1720, D: 475, slope_right_drop: 400 },
+      sections: [{}, { fronts: [{ type: "open", shelves: 0 }, { type: "door", h: 1200 }], construction: { panels: [{ y: 1300 }] } }],
+    });
+    expect(corner.diagnostics.find((d) => d.code === "slope_fixed_above_side")?.params).toMatchObject({ top: 1319, over: 6.87 });
   });
 
   it("cuts fronts to the slope and keeps hinges and handles on them (D51)", () => {
@@ -123,9 +125,18 @@ describe("sloped top corner (D47)", () => {
       kind: "tall",
       presets: ["tall-unit"],
       vars: { W: 1050, H: 1720, D: 475, plinth_h: 60, front_gap_v: 4, front_gap_side: 2, slope_right_drop: 310 },
-      options: { "hardware.handle": "generic-bar-160", "hardware.leg": "generic-leg-60" },
+      options: { "hardware.handle": "generic-bar-160", "hardware.leg": "generic-leg-60", slope_fronts: "cut" },
       sections: [{ fronts: [{ type: "door" }] }, { fronts: [{ type: "door" }] }],
     });
+    // By default fronts keep their size: too high is an error.
+    const kept = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1050, H: 1720, D: 475, plinth_h: 60, slope_right_drop: 310 },
+      options: { "hardware.leg": "generic-leg-60" },
+      sections: [{ fronts: [{ type: "door" }] }, { fronts: [{ type: "door" }] }],
+    });
+    expect(kept.diagnostics.find((d) => d.code === "slope_front_above")?.part).toBe("C1-DO2");
     expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     const p = partsByCode(r);
     const door = p.DO2!;
@@ -143,25 +154,25 @@ describe("sloped top corner (D47)", () => {
     expect((handle.points[0]!.y + handle.points[1]!.y) / 2).toBeCloseTo(1050 - 60, 0);
   });
 
-  it("fits the shelf over the doors under the mitre and lowers the doors to it (D53)", () => {
-    // The sketch with the ceiling gap: 310 down. The shelf would be 1.5 above the door top (1433.5 + 1.5).
+  it("keeps the dimensioned doors and shelf; a slope cutting into them fails (D54)", () => {
+    // The sketch with the shelf 1.5 above the 1025 doors: its top at 1435.
     const stack = [{ type: "open", shelves: 0 }, { type: "door", h: 1025 }, { type: "drawer", h: 161 }, { type: "drawer", h: 235 }];
-    const r = buildOne({
-      kind: "tall",
-      presets: ["tall-unit"],
-      vars: { W: 1050, H: 1720, D: 475, front_gap: 4, front_gap_v: 4, front_gap_side: 2, front_gap_bottom: 4.5, slope_right_drop: 310 },
-      sections: [{ fronts: stack }, { fronts: stack, interior: "hanging" }],
-      options: { hat_shelf: false },
-    });
-    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
-    expect(r.diagnostics.filter((d) => d.code === "slope_front_lowered")).toHaveLength(2);
-    const p = partsByCode(r);
-    const sideTop = 1720 - 310 - (19 * (1 - Math.SQRT1_2)) / Math.SQRT1_2; // 1402.13
-    const upper = r.parts.filter((x) => x.role === "fixed_shelf").reduce((m, x) => (x.box.y > m.box.y ? x : m));
-    expect(upper.box.y + 19).toBeCloseTo(sideTop, 1);
-    // Both doors end the reveal (1.5) under the shelf's top face and stay level.
-    for (const d of [p.DO1!, p.DO2!]) expect(d.box.y + d.box.dy).toBeCloseTo(sideTop - 1.5, 1);
-    expect(p.DO2!.outline).toBeUndefined();
+    const build = (drop: number) =>
+      buildOne({
+        kind: "tall",
+        presets: ["tall-unit"],
+        vars: { W: 1050, H: 1720, D: 475, front_gap: 4, front_gap_v: 4, front_gap_side: 2, front_gap_bottom: 4.5, slope_right_drop: drop },
+        sections: [{ fronts: stack }, { fronts: stack, interior: "hanging" }],
+        options: { hat_shelf: false },
+      });
+    // 280 down: the side ends at 1432.13 under the mitre, 2.87 too low.
+    const tooFar = build(280);
+    expect(tooFar.diagnostics.find((d) => d.code === "slope_fixed_above_side")?.params).toMatchObject({ top: 1435, over: 2.87 });
+    // 275 down (the cabinet 5 mm further from the roof): fits, doors stay 1025.
+    const ok = build(275);
+    expect(ok.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(partsByCode(ok).DO1!.length).toBe(1025);
+    expect(partsByCode(ok).SR!.length).toBe(1445);
   });
 
   it("places the shelf at an open compartment the reveal above the front (D53)", () => {

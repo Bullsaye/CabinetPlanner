@@ -522,17 +522,6 @@ export function buildBox(
     add("fixed_shelf", ++fixedNo, { x: x0, y, z: z0, dx: x1 - x0, dy: t, dz: fsZ1 - sb.front - z0 }, "x", "z", "material.carcase", fsEdges);
   };
 
-  /** Lowest top of a side's inner face under a left/right slope (D47 mitre), or none. */
-  const slopeSideTop: number | undefined = (() => {
-    const tops = (["left", "right"] as const)
-      .filter((s) => num(`slope_${s}_drop`) > 0)
-      .map((s) => {
-        const a = (num(`slope_${s}_angle`) * Math.PI) / 180;
-        return H - num(`slope_${s}_drop`) - (t * (1 - Math.sin(a))) / Math.cos(a);
-      });
-    return tops.length ? Math.min(...tops) : undefined;
-  })();
-  const isFront = (ty: string): boolean => ty !== "open" && ty !== "appliance";
   /** Per column: front stack, fixed shelves and zone ranges (phase A). */
   const laid = columns.map((col) => {
     const fz = layoutFronts(col.zones, H, { top: num("front_gap_top"), bottom: num("front_gap_bottom"), between }, col.doorCount, rc.values, { cabinet: cab });
@@ -574,16 +563,6 @@ export function buildBox(
         continue;
       }
       fixedAt[i] = roundMm(y);
-    }
-    // Under a side slope (D53): the shelf under a top open compartment fits
-    // under the slope's mitre with the side; the front below it follows.
-    if (slopeSideTop !== undefined && fronts[0]?.type === "open" && fixedAt[0] !== undefined && fronts[1] && isFront(fronts[1].type)) {
-      const over = fixedAt[0] + t - slopeSideTop;
-      if (over > 1e-6) {
-        fixedAt[0] = roundMm(fixedAt[0] - over);
-        fronts[1].y1 = roundMm(fronts[1].y1 - over);
-        diagnostics.push({ severity: "warning", code: "slope_front_lowered", params: { zone: 2, by: roundMm(over), section: col.secs[0]! + 1 }, cabinet: cab });
-      }
     }
     // --- Construction elements (D38) ------------------------------------------------
     const fixedAuto = fronts.map((_, i) => fixedAt[i] ?? null);
@@ -1073,11 +1052,18 @@ export function buildBox(
       const yt = b.y + b.dy;
       const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
       if (isFront) {
-        // Fronts are cut to the slope, front_gap_top clear of its outer face (D51).
+        // Fronts keep their size: reaching above the slope (front_gap_top clear
+        // of its outer face) is an error, unless slope_fronts: cut (D51, D54).
         const limit = k - num("front_gap_top");
         const f = (x: number, y: number): number => sn * (side === "right" ? x : W - x) + cs * y - limit;
         const rect: [number, number][] = [[b.x, b.y], [b.x + b.dx, b.y], [b.x + b.dx, yt], [b.x, yt]];
-        if (rect.every(([x, y]) => f(x, y) <= 1e-6)) continue;
+        if (rect.every(([x, y]) => f(x, y) <= 0.01)) continue;
+        if (opt<string>("slope_fronts") !== "cut") {
+          // Vertically, at the front's corner towards the slope.
+          const overBy = yt - (limit - sn * xr) / cs;
+          diagnostics.push({ severity: "error", code: "slope_front_above", params: { part: p.id, over: roundMm(overBy) }, ...where, part: p.id });
+          continue;
+        }
         const poly: [number, number][] = [];
         for (let i = 0; i < rect.length; i++) {
           const A = rect[i]!;
@@ -1114,23 +1100,9 @@ export function buildBox(
         }
         resize(p, box(xl, x1, b.y, yt));
       } else if (p.role === "fixed_shelf") {
-        // Long point on the underside, bevel 90° − a at the end against the slope.
-        const xb = Math.min(xr, xAt(b.y));
-        const xt = xAt(yt);
-        if (xb < xr - 1e-6) {
-          // Its underside no longer reaches the side or middle panel it is dowelled to:
-          // it would only meet the sloped panel (D51).
-          diagnostics.push({ severity: "error", code: "slope_fixed_above_side", params: { part: p.id, y: roundMm(b.y), top: roundMm(yAt(xr)) }, ...where, part: p.id });
-          continue;
-        }
-        if (xt - xl < 50) {
-          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
-          continue;
-        }
-        resize(p, box(xl, xb, b.y, yt));
-        p.profile = { points: ccw([pt(xl, b.y), pt(xb, b.y), pt(xt, yt), pt(xl, yt)]) };
-        p.bevels = { ...p.bevels, [side === "right" ? "w2" : "w1"]: roundMm(90 - angleDeg) };
-        manual.push(p.code);
+        // Fixed shelves keep their place and size: one reaching into the slope
+        // would meet the sloped panel instead of its side (D54).
+        diagnostics.push({ severity: "error", code: "slope_fixed_above_side", params: { part: p.id, top: roundMm(yt), limit: roundMm(yAt(xr)), over: roundMm(yt - yAt(xr)) }, ...where, part: p.id });
       } else if (p.role === "partition") {
         // Long point on the face away from the slope, bevel a at the top end.
         const yl = Math.min(yt, yAt(xl));

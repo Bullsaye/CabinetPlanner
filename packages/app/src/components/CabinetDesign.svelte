@@ -59,6 +59,7 @@
         <VarRow name="slope_left_angle" />
         <VarRow name="slope_rear_drop" />
         <VarRow name="slope_rear_angle" />
+        <OptRow key="slope_fronts" />
         <div class="links">
           <button class="quiet link" onclick={() => fitSlope("right")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_right")}</button>
           <button class="quiet link" onclick={() => fitSlope("left")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_left")}</button>
