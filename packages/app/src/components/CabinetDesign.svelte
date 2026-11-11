@@ -99,6 +99,7 @@
         <VarRow name="wall_bottom" />
       {:else}
         <VarRow name="plinth_h" steppers />
+        <OptRow key="hardware.leg" />
       {/if}
     </section>
 
@@ -114,7 +115,8 @@
     <section>
       <h3 class="label">{t("ui.shelves")}</h3>
       <VarRow name="shelf_count" steppers />
-      {#if kind === "tall"}<OptRow key="interior" />{/if}
+      {#if kind === "tall"}<OptRow key="interior" /><OptRow key="hat_shelf" />{/if}
+      {#if c.sections?.length || (store.cabinet?.resolved.values.get("partition_count") ?? 0) > 0}<OptRow key="partition_joint" />{/if}
     </section>
 
     <button class="primary construct" onclick={openConstruction}>{t("ui.open_construction")}</button>

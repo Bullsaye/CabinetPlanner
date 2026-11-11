@@ -124,6 +124,28 @@ Other combinations, all built without errors: sides between, connectors
 (Minifix), connector + dowel with the middle panel through, back behind the
 horizontals, rebate, surface back, grid dowels, hat shelf on.
 
+## Built again through the app's controls only
+
+A fresh project, built only with the app's controls (no file editing), took
+44 clicks and entries: size, plinth, gaps, one stack (open / door /
+drawer / drawer with knobs) built once and then split into two sections,
+section interiors, hat shelf off, room slope, placement and "right slope
+to the ceiling". What that turned up, now fixed:
+
+- A 60 mm plinth was an error with no way forward in the design panel. Now
+  there is a factory 60 mm leg, the leg choice sits next to the plinth
+  height, and the error names the legs that fit.
+- The hat shelf and middle-panel joint options were not in the design
+  panel (now under Shelves).
+- The zone rows overflowed the panel once a handle could be chosen per
+  zone (they wrap now).
+- "Slope to the ceiling" keeps the 30 mm ceiling gap, so the right door then
+  rises above the slope. The warning now says by how much.
+
+Not possible through the controls without the construction editor: the
+sketch's exact fixed-shelf heights (394 / 1413). The automatic positions are
+397 / 1426, centred on the front gaps.
+
 ## Still missing or cumbersome
 
 - **Mitres are not drilled.** The three mitre joints (top/slope/side) would

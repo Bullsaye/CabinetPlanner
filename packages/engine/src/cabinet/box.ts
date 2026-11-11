@@ -1037,7 +1037,9 @@ export function buildBox(
       const yt = b.y + b.dy;
       const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
       if (isFront) {
-        if (sn * xr + cs * yt > k + 1e-6) diagnostics.push({ severity: "warning", code: "slope_cuts_front", params: { part: p.id }, ...where, part: p.id });
+        // How far the front's corner rises above the slope, measured vertically.
+        const over = yt - (k - sn * xr) / cs;
+        if (over > 1e-6) diagnostics.push({ severity: "warning", code: "slope_cuts_front", params: { part: p.id, over: roundMm(over) }, ...where, part: p.id });
         continue;
       }
       if (["side_left", "side_right", "top", "bottom", "top_slope"].includes(p.role) || !over(xr, yt)) continue;

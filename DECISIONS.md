@@ -788,3 +788,10 @@ Two shop settings, because they are used for different things:
 - Assembly drawings draw outlined parts standing in a vertical plane
   (sides, backs, Passblenden) as prisms of their outline instead of their
   bounding box.
+
+### D50 · 2026-11-11 · Low legs, fitting alternatives
+
+- Factory leg `generic-leg-60` (55–80 mm) for low plinths.
+- When a leg's limits fail (e.g. plinth_h out of range), a warning
+  `hardware_alternatives` names the library legs that would fit.
+- `slope_cuts_front` reports how far the front rises above the slope.

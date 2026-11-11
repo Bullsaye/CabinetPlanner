@@ -16,6 +16,7 @@ import hettichSensysScrew from "../../library/hardware/hettich-sensys-8645i-scre
 import leg100 from "../../library/hardware/generic-leg-100.json" with { type: "json" };
 import leg100Screwed from "../../library/hardware/generic-leg-100-screwed.json" with { type: "json" };
 import leg150 from "../../library/hardware/generic-leg-150.json" with { type: "json" };
+import leg60 from "../../library/hardware/generic-leg-60.json" with { type: "json" };
 import rail from "../../library/hardware/generic-wardrobe-rail.json" with { type: "json" };
 import minifix from "../../library/hardware/hafele-minifix-15.json" with { type: "json" };
 import rastex from "../../library/hardware/hettich-rastex-15.json" with { type: "json" };
@@ -55,6 +56,7 @@ const RAW: readonly unknown[] = [
   leg100,
   leg100Screwed,
   leg150,
+  leg60,
   rail,
   minifix,
   rastex,

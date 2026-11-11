@@ -648,7 +648,16 @@ export function machineBox(
     const item = library.hardware.get(legId)!;
     const params = evaluateItemParams(item, rc.values, at);
     diagnostics.push(...params.diagnostics);
-    diagnostics.push(...checkLimits(item, params.values, at));
+    const limits = checkLimits(item, params.values, at);
+    diagnostics.push(...limits);
+    // Name the legs in the library that would fit (D50).
+    if (limits.some((d) => d.severity === "error")) {
+      const fit = [...library.hardware.values()]
+        .filter((h) => h.category === "leg" && h.id !== item.id)
+        .filter((h) => !checkLimits(h, evaluateItemParams(h, rc.values, at).values, at).some((d) => d.severity === "error"))
+        .map((h) => h.id);
+      if (fit.length) diagnostics.push({ severity: "warning", code: "hardware_alternatives", params: { option: "hardware.leg", items: fit.join(", ") }, ...at });
+    }
     const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
     diagnostics.push(...dd);
     const spread = (a: number, b: number): number[] => {

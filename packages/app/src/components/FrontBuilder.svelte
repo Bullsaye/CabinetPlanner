@@ -335,9 +335,12 @@
   .swing { fill: none; stroke: var(--muted); stroke-width: .8; stroke-dasharray: 4 2; }
   .h { font: 9px var(--font-mono); fill: var(--fg); }
   .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .row { display: grid; grid-template-columns: minmax(84px, 1fr) 58px auto minmax(70px, 1fr) auto; gap: 4px; align-items: center; }
-  .row select.handle { min-width: 0; width: 100%; font-size: 12px; }
-  .row input { width: 100%; }
+  .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .row > select:first-child { flex: 1 1 84px; min-width: 0; }
+  .row > input.mono:not(.shelves) { flex: 0 0 58px; }
+  .row select.handle { flex: 1 1 90px; min-width: 0; font-size: 12px; }
+  .row > span:empty { display: none; }
+  .row input { width: 58px; }
   .row input.shelves { width: 4.5em; }
   .seg { display: flex; }
   .seg button { padding: 2px 7px; border-radius: 0; font-size: 12px; white-space: nowrap; }
