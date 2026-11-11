@@ -7,6 +7,7 @@ import {
   addPocketFromBox,
   addThroughBore,
   boreWouldCollide,
+  pocketWouldCollide,
   checkOperations,
   resolveOpposing,
   type Direction,
@@ -235,7 +236,22 @@ export function machineBox(
       return { item: screw, drills: drills.filter((d) => d.mount === "face" || d.mount === "edge" || d.mount === "edge_face"), endMin: 0, spacingMax: Infinity };
     };
 
-    for (const j of carcaseJoints(parts, opt<string>("carcase_joint"))) {
+    const joints = carcaseJoints(parts, opt<string>("carcase_joint"));
+    /**
+     * Joints meeting the same panel from its two faces at the same place
+     * (bottoms either side of a middle panel through, fixed shelves at one
+     * height): planned together (D55).
+     */
+    const opposite = new Map<Joint, Joint>();
+    for (const a of joints) {
+      for (const b of joints) {
+        if (a === b || a.facePart !== b.facePart || a.intoFace === b.intoFace || a.line !== b.line || a.across.axis !== b.across.axis) continue;
+        if (Math.abs(a.across.value - b.across.value) > a.edgePart.thickness) continue;
+        opposite.set(a, b);
+      }
+    }
+    const pairPlans = new Map<Joint, number[] | null>();
+    for (const j of joints) {
       // Positions along the joint line (Z for flat panels, Y for upright rails),
       // counted from its front end — the top for top rails, the bottom for bottom rails.
       const L = j.line;
@@ -301,7 +317,39 @@ export function machineBox(
           minCount: 2,
         };
         delete (o as { sequence?: unknown }).sequence;
-        const zs = dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
+        // With a joint on the other face of the same panel: evenly spaced
+        // positions shared out alternately, so each joint has one end and the
+        // grooves never meet (D55). Otherwise the usual pattern.
+        const partner = opposite.get(j);
+        const grooveLen = Math.max(0, ...c.drills.filter((d) => d.op === "groove").map((d) => d.len));
+        const paired = (): number[] | undefined => {
+          if (!partner || grooveLen <= 0) return undefined;
+          // Planned once for both joints, before either is placed.
+          const cached = pairPlans.get(j);
+          if (cached !== undefined) return cached ?? undefined;
+          const pg: JointGeometry = { ...geo, j: partner, sgn: partner.fromMin ? -1 : 1 };
+          const fitsBoth = (z: number): boolean => connectorFits(geo, c, m(z)) && connectorFits(pg, c, m(z));
+          // Ends clear of other machining (the backs' grooves in a middle panel), in pitch steps.
+          let lo = zMin + o.offsetRear;
+          let hi = zMax - o.offsetFront;
+          for (let k = 0; k < 10 && !fitsBoth(lo); k++) lo += o.pitch;
+          for (let k = 0; k < 10 && !fitsBoth(hi); k++) hi -= o.pitch;
+          let plan: { mine: number[]; theirs: number[] } | undefined;
+          for (let n = Math.max(2, Math.ceil((hi - lo) / o.maxSpacing) + 1); n >= 1 && hi > lo && !plan; n--) {
+            const step = (hi - lo) / (2 * n - 1);
+            if (n > 1 && step < grooveLen + 2 * minWall) continue;
+            const all = Array.from({ length: 2 * n }, (_, i) => roundMm(hi - i * step));
+            // The joint whose ref sorts first takes the front end.
+            const first = j.ref < partner.ref;
+            const mine = all.filter((_, i) => (i % 2 === 0) === first);
+            const theirs = all.filter((_, i) => (i % 2 === 0) !== first);
+            if (all.every(fitsBoth)) plan = { mine, theirs };
+          }
+          pairPlans.set(j, plan?.mine ?? null);
+          pairPlans.set(partner, plan?.theirs ?? null);
+          return plan?.mine;
+        };
+        const zs = paired() ?? dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)));
         for (const z of zs) placeConnector(geo, c, m(z));
         placed = zs.length;
         use(c.item, zs.length);
@@ -982,10 +1030,26 @@ function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part
   return dr.mount === "face" ? { part: j.facePart, entry: p, dir: j.intoFace } : { part: j.edgePart, entry: p, dir: intoEdge };
 }
 
+/** The cabinet-space box of a connector groove (slot of width d, length len, depth into the part). */
+function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Direction): { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number } {
+  const lo = { ...entry };
+  const hi = { ...entry };
+  const ax = dir[1] as Axis;
+  const across = g.j.across.axis;
+  if (sign(dir) > 0) hi[ax] += dr.depth;
+  else lo[ax] -= dr.depth;
+  lo[across] -= dr.d / 2;
+  hi[across] += dr.d / 2;
+  lo[g.j.line] -= dr.len / 2;
+  hi[g.j.line] += dr.len / 2;
+  return { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z };
+}
+
 function connectorFits(g: JointGeometry, c: ConnectorPlan, z: number): boolean {
   return c.drills.every((dr) => {
-    if (dr.op === "groove") return true;
     const { part, entry, dir } = connectorDrill(g, dr, z);
+    // Grooves (Clamex) too: e.g. the slot of the joint on the other face of a middle panel (D55).
+    if (dr.op === "groove") return !pocketWouldCollide(part, grooveBox(g, dr, entry, dir), g.minWall);
     const depth = dr.through ? part.thickness : dr.depth;
     // A bore that would leave the part (e.g. too close to the end) does not fit either.
     try {
@@ -1003,17 +1067,7 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
     const { part, entry, dir } = connectorDrill(g, dr, z);
     if (dr.op === "groove") {
       // Slot of width d and length len, depth into the part from the joint plane.
-      const lo = { ...entry };
-      const hi = { ...entry };
-      const ax = dir[1] as Axis;
-      const across = g.j.across.axis;
-      if (sign(dir) > 0) hi[ax] += dr.depth;
-      else lo[ax] -= dr.depth;
-      lo[across] -= dr.d / 2;
-      hi[across] += dr.d / 2;
-      lo[g.j.line] -= dr.len / 2;
-      hi[g.j.line] += dr.len / 2;
-      addPocketFromBox(part, { x0: lo.x, x1: hi.x, y0: lo.y, y1: hi.y, z0: lo.z, z1: hi.z }, source);
+      addPocketFromBox(part, grooveBox(g, dr, entry, dir), source);
     } else if (dr.through) {
       addThroughBore(part, entry, dir, dr.d, g.mode, g.overlap, source);
     } else {

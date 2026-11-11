@@ -41,7 +41,8 @@ const v = (d: VarDef): VarDef => d;
 /** In UI order. */
 export const VARIABLES: readonly VarDef[] = [
   // Dimensions. H is the carcase height without plinth; D is the carcase depth without fronts.
-  v({ name: "W", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 2800, step: 50, quick: true }),
+  // Wider than a board only works with parts that are split (middle panels through); each part must fit its sheet (D55).
+  v({ name: "W", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 6000, step: 50, quick: true }),
   v({ name: "H", group: "dimensions", unit: "mm", factory: "base_h", min: 100, max: 2800, step: 10, quick: true }),
   v({ name: "D", group: "dimensions", unit: "mm", factory: "worktop_d - 40", min: 100, max: 1200, step: 10, quick: true }),
   v({ name: "base_h", group: "dimensions", unit: "mm", factory: 720, min: 100, max: 2800, step: 10 }),

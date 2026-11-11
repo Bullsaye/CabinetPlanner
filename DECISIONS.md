@@ -861,3 +861,21 @@ dimensioned parts fails:
   and sloped panel, the back, middle panels and adjustable shelves.
 - `open_shelf: reveal` (D53) stays: the shelf at an open compartment is
   placed from the front below it, not the other way round.
+
+### D55 · 2026-11-11 · Connector grooves checked, opposing joints planned together, board sizes
+
+- Connector grooves (Clamex P-System slots) are checked against existing
+  machining like bores. Before, they never were: on a middle panel through,
+  the slots of the bottoms (or tops) either side sat opposite each other,
+  14 mm deep from both faces of a 19 mm panel.
+- Joints meeting one panel from its two faces at the same place are
+  planned together for connectors: 2n evenly spaced positions between the
+  end offsets (moved in pitch steps until clear of other machining such as
+  back grooves), shared out alternately, so each joint has one end and no
+  groove sits opposite another (spacing ≥ groove length + 2 × bore_min_wall).
+- Materials may give their `sheet` size (factory boards 2800 × 2070,
+  worktops 4100 × 900); a part whose cut size does not fit one board
+  (turned when the material has no grain) is an error
+  (`part_larger_than_sheet`). W may now go up to 6000: wide cabinets work
+  with middle panels through, which split bottom, top and back.
+- Up to 20 sections.

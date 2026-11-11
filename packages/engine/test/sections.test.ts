@@ -191,3 +191,36 @@ describe("system holes only where there are shelves (D52)", () => {
     expect(buildOne({}).cabinets[0]!.resolved.options.get("system_holes")!.value).toBe("full");
   });
 });
+
+describe("many sections with connectors, sheet sizes (D55)", () => {
+  const five = (joint: string) =>
+    buildOne({
+      kind: "tall",
+      presets: ["tall-unit", "wardrobe"],
+      vars: { W: 3100, H: 2200, D: 580 },
+      options: { partition_joint: joint, joint_method: "connector", "hardware.fastener": "lamello-clamex-p14" },
+      sections: [{}, {}, {}, {}, {}],
+    });
+
+  it("staggers Clamex grooves of the joints on both faces of a middle panel, each joint holding an end", () => {
+    const r = five("through");
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const mp = partsByCode(r).MP1!;
+    const slots = (face: string) =>
+      mp.operations
+        .filter((o) => o.kind === "pocket" && o.face === face && o.sources.some((s) => s.ref === "lamello-clamex-p14") && o.u0 < 20)
+        .map((o) => (o.kind === "pocket" ? o.v0 : 0))
+        .sort((a, b) => a - b);
+    const a = slots("t0");
+    const b = slots("t1");
+    expect(a.length).toBeGreaterThanOrEqual(3);
+    expect(b.length).toBeGreaterThanOrEqual(3);
+    // No groove opposite another (69.6 long + 2 × wall).
+    for (const v of a) for (const w of b) expect(Math.abs(v - w)).toBeGreaterThanOrEqual(69.6 + 4 - 1e-6);
+  });
+
+  it("refuses parts larger than the board; middle panels through split them", () => {
+    expect(five("between").diagnostics.map((d) => d.code)).toContain("part_larger_than_sheet");
+    expect(five("through").diagnostics.map((d) => d.code)).not.toContain("part_larger_than_sheet");
+  });
+});

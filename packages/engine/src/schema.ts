@@ -128,7 +128,7 @@ export const CabinetSchema = z.object({
   /** Construction elements (extra panels, back zones). */
   construction: ConstructionSchema.optional(),
   /** Sections side by side, each with its own fronts and interior (D46); replaces `fronts` and partition_count. */
-  sections: z.array(SectionSchema).min(1).max(6).optional(),
+  sections: z.array(SectionSchema).min(1).max(20).optional(),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
   /** Template this cabinet was made from (the app saves construction changes back to it). */
@@ -151,7 +151,7 @@ export const CabinetTemplateSchema = z.object({
     options: z.record(z.string(), OptionValueSchema).default({}),
     fronts: z.array(FrontZone).max(12).optional(),
     construction: ConstructionSchema.optional(),
-    sections: z.array(SectionSchema).min(1).max(6).optional(),
+    sections: z.array(SectionSchema).min(1).max(20).optional(),
     parts: z.record(z.string(), PartOverride).default({}),
   }),
 });

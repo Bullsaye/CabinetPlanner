@@ -340,6 +340,7 @@ export const en = {
   "diag.back_rebate_too_deep": "The back rebate ({depth} mm) is as deep as or deeper than the board ({thickness} mm).",
   "diag.rails_overlap": "Front and rear rails ({rail_w} mm) overlap in a carcase {depth} mm deep.",
   "diag.part_nonpositive": "{part} has no positive size ({length} × {width} × {thickness}).",
+  "diag.part_larger_than_sheet": "{part} ({length} × {width}) does not fit a board of {sheet}. Split it (e.g. middle panels through) or make the cabinet smaller.",
   "diag.part_thickness_differs_from_material": "{part} is {thickness} mm thick but its material is {material} mm.",
   "diag.part_override_unused": "There is an override for part {code}, but this cabinet has no such part.",
   "diag.hardware_unknown": "{key}: hardware “{value}” is not in the library.",

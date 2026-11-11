@@ -321,6 +321,7 @@ export const de: Record<MessageKey, string> = {
   "diag.back_rebate_too_deep": "Der Rückwandfalz ({depth} mm) ist so tief wie oder tiefer als die Platte ({thickness} mm).",
   "diag.rails_overlap": "Vordere und hintere Traverse ({rail_w} mm) überschneiden sich bei {depth} mm Korpustiefe.",
   "diag.part_nonpositive": "{part} hat kein positives Maß ({length} × {width} × {thickness}).",
+  "diag.part_larger_than_sheet": "{part} ({length} × {width}) passt nicht auf eine Platte {sheet}. Teilen (z. B. durchgehende Mittelwände) oder den Schrank kleiner machen.",
   "diag.part_thickness_differs_from_material": "{part} ist {thickness} mm stark, sein Material aber {material} mm.",
   "diag.part_override_unused": "Für Teil {code} gibt es eine Überschreibung, aber dieser Schrank hat kein solches Teil.",
   "diag.hardware_unknown": "{key}: Beschlag „{value}“ ist nicht in der Bibliothek.",

@@ -195,7 +195,7 @@
         {#each sections as _, k}
           <button class="tab" aria-pressed={k === cur} onclick={() => (sel = k)}>{t("ui.section_n", { n: k + 1 })}</button>
         {/each}
-        <button class="quiet small-btn" onclick={addSection} disabled={sections.length >= 6}>{t("ui.add_section")}</button>
+        <button class="quiet small-btn" onclick={addSection} disabled={sections.length >= 20}>{t("ui.add_section")}</button>
         <button class="quiet small-btn" onclick={removeSection}>{t("ui.remove_section")}</button>
       {:else}
         <button class="quiet small-btn" onclick={split} title={t("ui.split_sections_hint")}>{t("ui.split_sections")}</button>

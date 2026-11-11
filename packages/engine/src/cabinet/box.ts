@@ -283,6 +283,11 @@ export function buildBox(
       operations: [],
       ...(override?.note ? { note: override.note } : {}),
     };
+    // Every part must come out of one board (turned when the material has no grain).
+    const sheet = mat?.sheet;
+    if (sheet && !((part.cutLength <= sheet.length + 1e-6 && part.cutWidth <= sheet.width + 1e-6) || (!part.grain && part.cutLength <= sheet.width + 1e-6 && part.cutWidth <= sheet.length + 1e-6))) {
+      diagnostics.push({ severity: "error", code: "part_larger_than_sheet", params: { part: id, length: part.cutLength, width: part.cutWidth, sheet: `${sheet.length} × ${sheet.width}` }, cabinet: cab, part: id });
+    }
     if (part.length <= 0 || part.width <= 0 || part.thickness <= 0 || part.cutLength <= 0 || part.cutWidth <= 0) {
       diagnostics.push({
         severity: "error",
