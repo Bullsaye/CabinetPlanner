@@ -346,8 +346,14 @@ export function machineBox(
   }
 
   // --- 32 mm system holes -------------------------------------------------------
-  if (opt<string>("system_holes") === "full") {
+  if (opt<string>("system_holes") !== "none") {
     const pitch = num("sys_pitch");
+    // "shelves": only beside zones that get adjustable shelves, on the faces of their section (D52).
+    const onlyShelves = opt<string>("system_holes") === "shelves";
+    const margin = num("sys_margin");
+    const wanted = (x: number, y: number): boolean =>
+      !onlyShelves ||
+      layout.shelfRanges.some((r) => (Math.abs(r.x0 - x) < 0.01 || Math.abs(r.x1 - x) < 0.01) && y >= r.y0 + margin - 1e-6 && y <= r.y1 - margin + 1e-6);
     const zFront = D - num("sys_row_front");
     const zRearMin = layout.backFrontZ + num("sys_row_rear_min");
     const k = Math.floor((zFront - zRearMin) / pitch + 1e-9);
@@ -378,7 +384,7 @@ export function machineBox(
         const yMax = rs ? (rs.line - rs.sn * (rs.D - z)) / rs.cs - num("sys_margin") : Infinity;
         if (z < side.box.z || z > side.box.z + side.box.dz) continue;
         const r = num("sys_hole_d") / 2 + num("bore_min_wall");
-        for (const y of faceYs.filter((v) => v <= yMax + 1e-6)) {
+        for (const y of faceYs.filter((v) => v <= yMax + 1e-6 && wanted(x, v))) {
           // No holes behind the end of a fixed shelf: it would cover them and meet its dowels.
           const covered = fixedShelves.some(
             (fs) =>
@@ -1136,7 +1142,7 @@ function placeHinges(
 
   // Snap so the mounting plate lands on the system grid.
   const gridOffset = params.values.get("grid_offset");
-  if (gridOffset !== undefined && rc.options.get("system_holes")!.value === "full") {
+  if (gridOffset !== undefined && rc.options.get("system_holes")!.value !== "none") {
     const gy0 = rc.values.get("sys_grid_y0")!;
     const pitch = rc.values.get("sys_pitch")!;
     centres = centres.map((c) => gy0 + Math.round((c - gridOffset - gy0) / pitch) * pitch + gridOffset);

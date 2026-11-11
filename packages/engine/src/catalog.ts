@@ -256,7 +256,8 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "hardware", category: "connector" },
     factory: "dowel-8x35",
   },
-  { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "none"] }, factory: "full" },
+  /** 32 mm rows: full height, only beside zones with adjustable shelves (D52), or none. */
+  { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "shelves", "none"] }, factory: "full" },
   { key: "hardware.hinge", group: "hardware", kind: { type: "hardware", category: "hinge" }, factory: "generic-hinge-110" },
   {
     key: "hardware.shelf_support",

@@ -204,6 +204,7 @@ export const en = {
   "option.hardware.connector": "Connector",
   "option.system_holes": "System holes",
   "option.system_holes.full": "Front and rear rows",
+  "option.system_holes.shelves": "Only where there are shelves",
   "option.system_holes.none": "None",
   "option.hardware.hinge": "Hinge",
   "option.hardware.shelf_support": "Shelf support",

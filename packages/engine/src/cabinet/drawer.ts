@@ -51,7 +51,7 @@ export function buildDrawer(
   // down to a system-grid line, but never below the slide's minimum.
   const minAxis = c.floor + slide.axisMin;
   let axis = front.y0 + num("drawer_axis_offset");
-  if (rc.options.get("system_holes")!.value === "full") {
+  if (rc.options.get("system_holes")!.value !== "none") {
     const y0 = num("sys_grid_y0");
     const pitch = num("sys_pitch");
     axis = y0 + Math.floor((axis - y0) / pitch + 1e-9) * pitch;
@@ -66,7 +66,7 @@ export function buildDrawer(
   if (ff) {
     const lowest = front.y0 + ff.d / 2 + num("bore_min_wall") - ff.fromBox + slide.axisToBox;
     if (axis < lowest - 1e-9) {
-      if (rc.options.get("system_holes")!.value === "full") {
+      if (rc.options.get("system_holes")!.value !== "none") {
         const y0 = num("sys_grid_y0");
         const pitch = num("sys_pitch");
         axis = y0 + Math.ceil((lowest - y0) / pitch - 1e-9) * pitch;

@@ -168,3 +168,26 @@ describe("handle per front zone (D48)", () => {
     expect(bad.diagnostics.map((d) => d.code)).toContain("hardware_wrong_category");
   });
 });
+
+describe("system holes only where there are shelves (D52)", () => {
+  it("drills rows beside shelf zones only: not in open, hanging or drawer zones", () => {
+    const r = wardrobe({ options: { system_holes: "shelves" } });
+    const p = partsByCode(r);
+    const rows = (part: string, face: string) =>
+      p[part]!.operations.filter((o) => o.kind === "bore" && o.face === face && o.sources.some((s) => s.kind === "system")).map((o) => (o.kind === "bore" ? o.u : 0));
+    // Left section has the shelves: left side inner face and the middle panel's left face (t0).
+    expect(rows("SL", "t1").length).toBeGreaterThan(0);
+    expect(rows("MP1", "t0").length).toBeGreaterThan(0);
+    // Right section hangs: no rows on the middle panel's right face or the right side.
+    expect(rows("MP1", "t1")).toEqual([]);
+    expect(rows("SR", "t0")).toEqual([]);
+    // Rows stay within the door zone, not in the open compartment above or the drawers below.
+    const fs = r.parts.filter((x) => x.role === "fixed_shelf").map((x) => x.box.y).sort((a, b) => a - b);
+    for (const y of rows("SL", "t1")) expect(y > fs[0]! && y < fs[fs.length - 1]!).toBe(true);
+  });
+  it("is the tall unit default; full rows stay the factory default", () => {
+    const tall = buildOne({ kind: "tall", presets: ["tall-unit"] });
+    expect(tall.cabinets[0]!.resolved.options.get("system_holes")!.value).toBe("shelves");
+    expect(buildOne({}).cabinets[0]!.resolved.options.get("system_holes")!.value).toBe("full");
+  });
+});

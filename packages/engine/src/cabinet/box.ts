@@ -37,6 +37,8 @@ export interface BoxLayout {
   innerTopY: number;
   /** Vertical panels whose inner face ends lower (sides under a slope, D47): code → top of the inner face. */
   innerTop: Record<string, number>;
+  /** Clear section (x0…x1) and height (y0…y1) of every zone with adjustable shelves (D52). */
+  shelfRanges: { x0: number; x1: number; y0: number; y1: number }[];
   /** Roof sloping to the rear (D49): inner face sn·(D − z) + cs·y = line; holes stay below it. */
   rearSlope?: { line: number; sn: number; cs: number; D: number };
   /** Doors with the side their hinges are on and the panel (side or middle panel) the hinges go into. */
@@ -727,6 +729,7 @@ export function buildBox(
 
   // --- Adjustable shelves ----------------------------------------------------
   let shelfNo = 0;
+  const shelfRanges: BoxLayout["shelfRanges"] = [];
   for (const { col, fronts, fixedAt, shelfZones, shelfRange, hanging } of plans) {
     const shelfCount = col.shelves;
     if (!sectioned && shelfCount > 0 && !shelfRange && rc.vars.get("shelf_count")?.source.layer === "cabinet" && !rc.vars.get("shelf_count")?.source.preset) {
@@ -759,12 +762,13 @@ export function buildBox(
       // With system holes, shelves rest on pins in the nearest hole row so the
       // view shows a real position; height does not change the cutlist.
       const holes =
-        opt<string>("system_holes") === "full"
+        opt<string>("system_holes") !== "none"
           ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
           : [];
       for (const k of col.secs) {
         const [sx0, sx1] = sections[k]!;
         if (main && hanging.has(k)) continue;
+        shelfRanges.push({ x0: roundMm(sx0), x1: roundMm(sx1), y0: roundMm(innerBottom), y1: roundMm(innerTop) });
         for (let i = 1; i <= count; i++) {
           const target = innerBottom + i * pitch - tShelf / 2;
           const rest = num("shelf_pin_rest");
@@ -1302,7 +1306,7 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, ...(rearSlope ? { rearSlope } : {}), doors, drawers, applianceFronts, flaps, frontHandles, rails,
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, shelfRanges, ...(rearSlope ? { rearSlope } : {}), doors, drawers, applianceFronts, flaps, frontHandles, rails,
       zones: laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
   };
 }

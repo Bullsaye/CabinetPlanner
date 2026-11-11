@@ -815,3 +815,13 @@ of 280, so the side ends lower than the door and the fixed shelf above it):
   1050) above the floor, kept handle_end_offset inside the door. The tall
   unit preset sets `height`, so tall doors no longer get their handles near
   the top.
+
+### D52 · 2026-11-11 · System holes only where there are shelves
+
+- `system_holes: shelves`: 32 mm rows only on the faces of sections whose
+  zone gets adjustable shelves, over that zone's clear height less
+  `sys_margin`; none beside open compartments without shelves, hanging
+  sections, drawers or the space under a slope. The grid itself (drawer
+  rails, hinge plates, shelf pins) behaves as with `full`.
+- The tall unit preset sets it (and so wardrobes); `full` stays the factory
+  default, so kitchen base and wall units keep full rows.

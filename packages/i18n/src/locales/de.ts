@@ -192,6 +192,7 @@ export const de: Record<MessageKey, string> = {
   "option.hardware.connector": "Verbinder",
   "option.system_holes": "Systembohrungen",
   "option.system_holes.full": "Vordere und hintere Reihe",
+  "option.system_holes.shelves": "Nur wo Fachböden sind",
   "option.system_holes.none": "Keine",
   "option.hardware.hinge": "Scharnier",
   "option.hardware.shelf_support": "Bodenträger",
