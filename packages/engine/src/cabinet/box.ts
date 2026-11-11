@@ -431,9 +431,10 @@ export function buildBox(
   // top edge, full depth with the back split per section into grooves in
   // its faces (grooved backs; otherwise in front of the back, D46).
   const backPerSection = through && backMount === "groove";
-  if (backPerSection && 2 * num("back_groove_depth") > t - num("bore_min_wall") + 1e-6) {
-    // The two backs' grooves sit opposite each other in the middle panel.
-    diagnostics.push({ severity: "error", code: "back_grooves_meet", params: { depth: num("back_groove_depth"), thickness: t, wall: num("bore_min_wall") }, cabinet: cab });
+  // The two backs' grooves sit opposite each other in a middle panel: shallower there (D56).
+  const grooveMid = num("back_groove_depth_middle");
+  if (backPerSection && 2 * grooveMid > t - num("bore_min_wall") + 1e-6) {
+    diagnostics.push({ severity: "error", code: "back_grooves_meet", params: { depth: grooveMid, thickness: t, wall: num("bore_min_wall") }, cabinet: cab });
   }
   if (nPart > 0) {
     const z0 = backPerSection ? carcaseZ0 : backFrontZ;
@@ -673,9 +674,13 @@ export function buildBox(
         add("back", many ? ++backNo : undefined, b, "y", "x", "material.back", none);
         return;
       }
-      for (const [sx0, sx1] of sections) {
-        add("back", ++backNo, { ...b, x: sx0 - engage, dx: sx1 - sx0 + 2 * engage }, "y", "x", "material.back", none);
-      }
+      // Into the sides as usual, into the middle panels' shallower grooves (D56).
+      const engMid = grooveMid - play;
+      sections.forEach(([sx0, sx1], k) => {
+        const x0 = sx0 - (k === 0 ? engage : engMid);
+        const x1 = sx1 + (k === sections.length - 1 ? engage : engMid);
+        add("back", ++backNo, { ...b, x: x0, dx: x1 - x0 }, "y", "x", "material.back", none);
+      });
     };
     if (backMount === "none") {
       // No back (sink units): nothing to add.

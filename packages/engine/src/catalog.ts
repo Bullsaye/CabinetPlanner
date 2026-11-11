@@ -118,6 +118,8 @@ export const VARIABLES: readonly VarDef[] = [
   // Back panel.
   v({ name: "back_groove_offset", group: "back", unit: "mm", factory: 10, min: 0, max: 100 }),
   v({ name: "back_groove_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
+  // In middle panels with a back on both faces (middle panels through): about a third of the panel stays (D56).
+  v({ name: "back_groove_depth_middle", group: "back", unit: "mm", factory: "min(back_groove_depth, t_carcase / 3)", min: 1, max: 30, step: 0.5 }),
   v({ name: "back_rebate_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
   v({ name: "back_play", group: "back", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
   v({ name: "back_groove_clearance", group: "back", unit: "mm", factory: 0.5, min: 0, max: 5, step: 0.1 }),
@@ -237,6 +239,8 @@ export const OPTIONS: readonly OptionDef[] = [
   /** Back between the sides and behind bottom and top (horizontals end at the back), or inside them. */
   { key: "back_extent", group: "back", kind: { type: "enum", values: ["inside", "behind_horizontals"] }, factory: "inside" },
   /** Dowel positions: on the system grid thinned to dowel_max_spacing, or front offset, second, then every dowel_spacing. */
+  /** Dowel joints on both faces of one panel: shallow face bores at the same positions, or offset positions (D45, D56). */
+  { key: "dowel.opposite", group: "construction", kind: { type: "enum", values: ["shallow", "offset"] }, factory: "shallow" },
   { key: "dowel_pattern", group: "construction", kind: { type: "enum", values: ["grid", "sequence"] }, factory: "grid" },
   {
     key: "joint_method",

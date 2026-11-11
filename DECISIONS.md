@@ -879,3 +879,17 @@ dimensioned parts fails:
   (`part_larger_than_sheet`). W may now go up to 6000: wide cabinets work
   with middle panels through, which split bottom, top and back.
 - Up to 20 sections.
+
+### D56 · 2026-11-11 · Middle panels drilled from both faces
+
+- Option `dowel.opposite` (factory `shallow`, supersedes D45 as the
+  default): where dowel joints meet a panel from both faces at the same
+  place, the face bores are (thickness − bore_min_wall) / 2 deep (8.5 in
+  19 mm) and the edge bores deeper by the difference (25 → 28.5 for an
+  8 × 35 dowel), so both joints use the same positions and the dowel stands
+  8.5 mm into the middle panel. `offset` keeps D45 (half-pitch moves).
+- Variable `back_groove_depth_middle` (factory
+  `min(back_groove_depth, t_carcase / 3)`): the groove depth in middle
+  panels holding a back on both faces (middle panels through), so about a
+  third of the panel remains; the backs per section reach that much less
+  into them. `back_grooves_meet` stays as a guard for values set too deep.

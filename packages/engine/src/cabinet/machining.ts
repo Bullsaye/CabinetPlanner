@@ -266,14 +266,22 @@ export function machineBox(
         p[j.across.axis] = j.across.value;
         return p;
       };
+      // Dowels from both faces of one panel (middle panels): shallow face bores,
+      // (thickness − bore_min_wall) / 2, the edge bores deeper by the
+      // difference, so both joints can use the same positions (D56).
+      const dw = (() => {
+        if (!dowel || !opposite.has(j) || opt<string>("dowel.opposite") !== "shallow") return dowel;
+        const face = Math.min(dowel.faceDepth, (j.facePart.thickness - minWall) / 2);
+        return { d: dowel.d, faceDepth: roundMm(face), edgeDepth: roundMm(dowel.edgeDepth + dowel.faceDepth - face) };
+      })();
       const dowelFree = (z: number): boolean =>
-        !!dowel &&
-        !boreWouldCollide(j.facePart, point(z), j.intoFace, dowel.d, dowel.faceDepth, minWall) &&
-        !boreWouldCollide(j.edgePart, point(z), flip(j.intoFace), dowel.d, dowel.edgeDepth, minWall);
+        !!dw &&
+        !boreWouldCollide(j.facePart, point(z), j.intoFace, dw.d, dw.faceDepth, minWall) &&
+        !boreWouldCollide(j.edgePart, point(z), flip(j.intoFace), dw.d, dw.edgeDepth, minWall);
       const placeDowel = (z: number): void => {
         const src: OpSource = { kind: "joint", ref: j.ref };
-        addBore(j.facePart, point(z), j.intoFace, dowel!.d, dowel!.faceDepth, src);
-        addBore(j.edgePart, point(z), flip(j.intoFace), dowel!.d, dowel!.edgeDepth, src);
+        addBore(j.facePart, point(z), j.intoFace, dw!.d, dw!.faceDepth, src);
+        addBore(j.edgePart, point(z), flip(j.intoFace), dw!.d, dw!.edgeDepth, src);
       };
 
       // Connector drilling for this joint (panel thicknesses differ per joint).

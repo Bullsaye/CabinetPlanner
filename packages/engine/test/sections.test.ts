@@ -120,13 +120,19 @@ describe("middle panels through (D46)", () => {
     const p = partsByCode(wardrobe({ options: { partition_joint: "through" } }));
     expect(p.MP1!.box).toMatchObject({ z: 0, dz: 475 });
     expect(p.BK).toBeUndefined();
-    // Section 496.5 + 2 × (groove 8 − play 1).
-    expect(p.BK1!.width).toBe(510.5);
-    expect(p.BK2!.width).toBe(510.5);
+    // Section 496.5 + into the side (groove 8 − play 1) + into the middle panel (19 / 3 − play 1), D56.
+    expect(p.BK1!.width).toBe(508.83);
+    expect(p.BK2!.width).toBe(508.83);
     const grooves = p.MP1!.operations.filter((o) => o.kind === "pocket" && o.sources.some((s) => s.kind === "back"));
     expect(grooves.map((o) => o.face).sort()).toEqual(["t0", "t1"]);
+    // A third of the panel stays between the two grooves.
+    for (const g of grooves) if (g.kind === "pocket") expect(g.w1 - g.w0).toBeCloseTo(19 / 3, 1);
+    // Deep grooves in the sides do not make the middle panel's deeper.
     const deep = wardrobe({ options: { partition_joint: "through" }, vars: { back_groove_depth: 10 } });
-    expect(deep.diagnostics.map((d) => d.code)).toContain("back_grooves_meet");
+    expect(deep.diagnostics.map((d) => d.code)).not.toContain("back_grooves_meet");
+    // Set too deep on purpose: still an error.
+    const forced = wardrobe({ options: { partition_joint: "through" }, vars: { back_groove_depth_middle: 9 } });
+    expect(forced.diagnostics.map((d) => d.code)).toContain("back_grooves_meet");
   });
 
   it("runs through from bottom to top edge with sides between too", () => {
