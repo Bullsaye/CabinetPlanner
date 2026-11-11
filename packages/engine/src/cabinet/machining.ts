@@ -402,24 +402,16 @@ export function machineBox(
   }
 
   // --- 32 mm system holes -------------------------------------------------------
-  if (opt<string>("system_holes") !== "none") {
+  if (layout.holeRanges.length) {
     const pitch = num("sys_pitch");
-    // "shelves": only beside zones that get adjustable shelves, on the faces of their section (D52).
-    const onlyShelves = opt<string>("system_holes") === "shelves";
-    const margin = num("sys_margin");
+    // Rows only where a section asks for them, on the faces at its ends (D52, D57).
     const wanted = (x: number, y: number): boolean =>
-      !onlyShelves ||
-      layout.shelfRanges.some((r) => (Math.abs(r.x0 - x) < 0.01 || Math.abs(r.x1 - x) < 0.01) && y >= r.y0 + margin - 1e-6 && y <= r.y1 - margin + 1e-6);
+      layout.holeRanges.some((r) => (Math.abs(r.x0 - x) < 0.01 || Math.abs(r.x1 - x) < 0.01) && y >= r.y0 - 1e-6 && y <= r.y1 + 1e-6);
     const zFront = D - num("sys_row_front");
     const zRearMin = layout.backFrontZ + num("sys_row_rear_min");
     const k = Math.floor((zFront - zRearMin) / pitch + 1e-9);
     const rows = k >= 1 ? [zFront, zFront - k * pitch] : [zFront];
-    const ys = gridPositions(
-      num("sys_grid_y0"),
-      pitch,
-      layout.innerBottomY + num("sys_margin"),
-      layout.innerTopY - num("sys_margin"),
-    );
+    const ys = gridPositions(num("sys_grid_y0"), pitch, layout.innerBottomY, layout.innerTopY);
     const source: OpSource = { kind: "system", ref: "rows" };
     const faces: [Part | undefined, number, Direction][] = [
       [byCode.get("SL"), t, "-x"],
@@ -457,10 +449,15 @@ export function machineBox(
   // --- Hinges --------------------------------------------------------------------
   if (layout.doors.length > 0) {
     const hinge = library.hardware.get(opt<string>("hardware.hinge"))!;
+    // Doors hinged on a middle panel cover only half of it: their own hinge (D57).
+    const middleId = opt<string | null>("hardware.hinge_middle");
+    const middle = middleId === null ? hinge : library.hardware.get(middleId)!;
     for (const door of layout.doors) {
       const part = byCode.get(door.code)!;
-      const placed = placeHinges(rc, hinge, part, door.hinge, byCode.get(door.panel), diagnostics);
-      use(hinge, placed);
+      const panel = byCode.get(door.panel);
+      const item = panel?.role === "partition" ? middle : hinge;
+      const placed = placeHinges(rc, item, part, door.hinge, panel, diagnostics);
+      use(item, placed);
     }
   }
 

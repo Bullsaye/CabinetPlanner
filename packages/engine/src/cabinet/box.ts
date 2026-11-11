@@ -39,6 +39,8 @@ export interface BoxLayout {
   innerTop: Record<string, number>;
   /** Clear section (x0…x1) and height (y0…y1) of every zone with adjustable shelves (D52). */
   shelfRanges: { x0: number; x1: number; y0: number; y1: number }[];
+  /** Where the 32 mm rows go: section x0…x1 (the faces at both ends) and hole heights y0…y1 (D57). */
+  holeRanges: { x0: number; x1: number; y0: number; y1: number }[];
   /** Roof sloping to the rear (D49): inner face sn·(D − z) + cs·y = line; holes stay below it. */
   rearSlope?: { line: number; sn: number; cs: number; D: number };
   /** Doors with the side their hinges are on and the panel (side or middle panel) the hinges go into. */
@@ -810,6 +812,31 @@ export function buildBox(
     }
   }
 
+  // --- System hole rows per section (D57) ------------------------------------------
+  // Explicit ranges (section, else cabinet) win; otherwise option system_holes:
+  // full height, beside shelf zones, or none.
+  const holeRanges: BoxLayout["holeRanges"] = [];
+  {
+    const mode = opt<string>("system_holes");
+    const margin = num("sys_margin");
+    sections.forEach(([sx0, sx1], k) => {
+      const spec = (sectioned ? secIn[k]!.holes : undefined) ?? rc.cabinet.holes;
+      const x0 = roundMm(sx0);
+      const x1 = roundMm(sx1);
+      if (spec === false) return;
+      if (spec) {
+        const from = spec.from === undefined ? t + margin : evalIn(spec.from, `holes ${k + 1} from`);
+        const to = spec.to === undefined ? H - t - margin : evalIn(spec.to, `holes ${k + 1} to`);
+        if (from !== undefined && to !== undefined) holeRanges.push({ x0, x1, y0: roundMm(from), y1: roundMm(to) });
+        return;
+      }
+      if (mode === "full") holeRanges.push({ x0, x1, y0: roundMm(t + margin), y1: roundMm(H - t - margin) });
+      else if (mode === "shelves") {
+        for (const r of shelfRanges) if (Math.abs(r.x0 - x0) < 0.01) holeRanges.push({ x0, x1, y0: roundMm(r.y0 + margin), y1: roundMm(r.y1 - margin) });
+      }
+    });
+  }
+
   // --- Fronts: doors and drawer fronts (full overlay) ---------------------------
   // Each column's fronts span its front extent: the outer edges less the side
   // gaps, or to the middle of a middle panel less half the middle gap (D46).
@@ -1320,7 +1347,7 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, shelfRanges, ...(rearSlope ? { rearSlope } : {}), doors, drawers, applianceFronts, flaps, frontHandles, rails,
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, shelfRanges, holeRanges, ...(rearSlope ? { rearSlope } : {}), doors, drawers, applianceFronts, flaps, frontHandles, rails,
       zones: laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
   };
 }

@@ -3,7 +3,8 @@
   import { parseInput, store } from "../lib/store.svelte.ts";
 
   type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number; handle?: string | null };
-  type Section = { w?: number | string; fronts?: Zone[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: unknown };
+  type Holes = false | { from?: number | string; to?: number | string };
+  type Section = { w?: number | string; fronts?: Zone[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: unknown; holes?: Holes };
   const TYPES = ["door", "drawer", "flap", "open", "appliance", "panel"] as const;
 
   const t = $derived(store.tr.t);
@@ -68,6 +69,22 @@
       delete c.sections;
     } else list.splice(cur, 1);
     sel = 0;
+  }
+  /** Hole rows of the selected section (D57): automatic, none, or from / to. */
+  function setHoles(mode: string): void {
+    if (!c || !sections) return;
+    const s = (c.sections as Section[])[cur]!;
+    if (mode === "") delete s.holes;
+    else if (mode === "none") s.holes = false;
+    else s.holes = typeof s.holes === "object" ? s.holes : {};
+  }
+  function setHoleEnd(key: "from" | "to", value: string | number | undefined): void {
+    if (!c || !sections) return;
+    const s = (c.sections as Section[])[cur]!;
+    const h = typeof s.holes === "object" ? { ...s.holes } : {};
+    if (value === undefined || value === "") delete h[key];
+    else h[key] = value;
+    s.holes = h;
   }
   function setSection(key: "w" | "interior" | "shelves", value: string | number | undefined): void {
     if (!c || !sections) return;
@@ -217,6 +234,21 @@
         <label>{t("ui.section_shelves")}
           <input class="mono" type="text" inputmode="decimal" value={sec.shelves ?? ""} placeholder={String(v("shelf_count"))} onchange={(e) => setSection("shelves", parseInput((e.target as HTMLInputElement).value))} />
         </label>
+        <label>{t("ui.section_holes")}
+          <select value={sec.holes === undefined ? "" : sec.holes === false ? "none" : "range"} onchange={(e) => setHoles((e.target as HTMLSelectElement).value)}>
+            <option value="">{t("ui.holes_auto")}</option>
+            <option value="none">{t("ui.holes_none")}</option>
+            <option value="range">{t("ui.holes_range")}</option>
+          </select>
+        </label>
+        {#if typeof sec.holes === "object"}
+          <label>{t("ui.holes_from")}
+            <input class="mono" type="text" inputmode="decimal" value={sec.holes.from ?? ""} placeholder={t("ui.rest")} onchange={(e) => setHoleEnd("from", parseInput((e.target as HTMLInputElement).value))} />
+          </label>
+          <label>{t("ui.holes_to")}
+            <input class="mono" type="text" inputmode="decimal" value={sec.holes.to ?? ""} placeholder={t("ui.rest")} onchange={(e) => setHoleEnd("to", parseInput((e.target as HTMLInputElement).value))} />
+          </label>
+        {/if}
       </div>
     {/if}
     <div class="layouts" role="group" aria-label={t("ui.front_layouts")}>

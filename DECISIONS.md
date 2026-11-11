@@ -893,3 +893,17 @@ dimensioned parts fails:
   panels holding a back on both faces (middle panels through), so about a
   third of the panel remains; the backs per section reach that much less
   into them. `back_grooves_meet` stays as a guard for values set too deep.
+
+### D57 · 2026-11-11 · Hole rows per section, hinges on middle panels
+
+- A section (or the cabinet, for sections without their own) may set
+  `holes`: `false` (no rows) or `{ from, to }`, the heights of the first and
+  last hole above the carcase bottom (numbers or formulas). Without it,
+  option `system_holes` decides (full height less sys_margin, beside shelf
+  zones, or none). Rows go on the faces at both ends of the section; the
+  grid stays `sys_grid_y0` + n × `sys_pitch`. Layout `holeRanges`.
+- Option `hardware.hinge_middle` (factory `generic-hinge-110-half`, null =
+  hardware.hinge): the hinge for doors hinged on a middle panel, which
+  cover only half of it. Found building a 5-section wardrobe with the shop's
+  Grass Tiomos (full overlay): the middle doors' cup distance came out −5.
+  A Grass half-overlay article is not in the library yet (no verified data).

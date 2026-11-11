@@ -28,7 +28,7 @@ export interface CabinetTemplate {
       fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;
       noBack?: number[];
     };
-    sections?: { w?: number | string; fronts?: TemplateFront[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: TemplateConstruction }[];
+    sections?: { w?: number | string; fronts?: TemplateFront[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: TemplateConstruction; holes?: false | { from?: number | string; to?: number | string } }[];
   };
 }
 

@@ -8,6 +8,7 @@ import bar192 from "../../library/hardware/generic-bar-192.json" with { type: "j
 import knob from "../../library/hardware/generic-knob.json" with { type: "json" };
 import dowel from "../../library/hardware/dowel-8x35.json" with { type: "json" };
 import hinge from "../../library/hardware/generic-hinge-110.json" with { type: "json" };
+import hingeHalf from "../../library/hardware/generic-hinge-110-half.json" with { type: "json" };
 import grassTiomosK3 from "../../library/hardware/grass-tiomos-110-k3-screw.json" with { type: "json" };
 import grassTiomos from "../../library/hardware/grass-tiomos-110-screw.json" with { type: "json" };
 import hettichDuplo from "../../library/hardware/hettich-duplo-5.json" with { type: "json" };
@@ -38,6 +39,7 @@ import { HardwareItem } from "./schema.ts";
  */
 const RAW: readonly unknown[] = [
   hinge,
+  hingeHalf,
   dowel,
   shelfPin,
   hettichSensysScrew,

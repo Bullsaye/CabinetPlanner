@@ -69,7 +69,9 @@ describe("sections (D46)", () => {
     expect(outer.MP1!.operations.some((o) => o.sources.some((s) => s.ref === "generic-hinge-110"))).toBe(false);
     const r = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 1000 }, sections: [{ fronts: [{ type: "door", hinge: "right" }] }, { fronts: [{ type: "door" }] }] });
     const p = partsByCode(r);
-    expect(hw(p.MP1!, "generic-hinge-110").length).toBeGreaterThan(0);
+    // A door hinged on a middle panel gets the half-overlay hinge (D57); the other door the normal one.
+    expect(hw(p.MP1!, "generic-hinge-110-half").length).toBeGreaterThan(0);
+    expect(hw(p.SR!, "generic-hinge-110").length).toBeGreaterThan(0);
   });
 
   it("takes section widths; the others share the rest", () => {
@@ -228,5 +230,37 @@ describe("many sections with connectors, sheet sizes (D55)", () => {
   it("refuses parts larger than the board; middle panels through split them", () => {
     expect(five("between").diagnostics.map((d) => d.code)).toContain("part_larger_than_sheet");
     expect(five("through").diagnostics.map((d) => d.code)).not.toContain("part_larger_than_sheet");
+  });
+});
+
+describe("hole rows per section (D57)", () => {
+  const rows = (r: ReturnType<typeof buildOne>, part: string, face: string) =>
+    partsByCode(r)[part]!.operations.filter((o) => o.kind === "bore" && o.face === face && o.sources.some((s) => s.kind === "system")).map((o) => (o.kind === "bore" ? o.u : 0));
+  it("takes a start and end per section, or none, over the automatic rule", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1000, H: 2000 },
+      options: { system_holes: "full" },
+      sections: [
+        { fronts: [{ type: "door" }, { type: "drawer", h: 300 }], holes: { from: 800, to: 1500 } },
+        { fronts: [{ type: "door" }, { type: "drawer", h: 300 }], holes: false },
+      ],
+    });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const left = rows(r, "SL", "t1");
+    expect(left.length).toBeGreaterThan(0);
+    expect(Math.min(...left)).toBeGreaterThanOrEqual(800);
+    expect(Math.max(...left)).toBeLessThanOrEqual(1500);
+    expect(rows(r, "SR", "t0")).toEqual([]);
+    // The middle panel only on the face of the section that wants them.
+    expect(rows(r, "MP1", "t0").length).toBeGreaterThan(0);
+    expect(rows(r, "MP1", "t1")).toEqual([]);
+  });
+  it("applies a cabinet-wide range to sections without their own", () => {
+    const r = buildOne({ kind: "tall", presets: ["tall-unit"], vars: { W: 600, H: 2000 }, holes: { from: 400, to: 900 } });
+    const left = rows(r, "SL", "t1");
+    expect(Math.min(...left)).toBeGreaterThanOrEqual(400);
+    expect(Math.max(...left)).toBeLessThanOrEqual(900);
   });
 });

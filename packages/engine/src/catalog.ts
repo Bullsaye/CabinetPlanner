@@ -269,6 +269,8 @@ export const OPTIONS: readonly OptionDef[] = [
   /** 32 mm rows: full height, only beside zones with adjustable shelves (D52), or none. */
   { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "shelves", "none"] }, factory: "full" },
   { key: "hardware.hinge", group: "hardware", kind: { type: "hardware", category: "hinge" }, factory: "generic-hinge-110" },
+  /** Doors hinged on a middle panel (half overlay, two doors sharing the panel); null: hardware.hinge (D57). */
+  { key: "hardware.hinge_middle", group: "hardware", kind: { type: "hardware", category: "hinge", nullable: true }, factory: "generic-hinge-110-half" },
   {
     key: "hardware.shelf_support",
     group: "hardware",
