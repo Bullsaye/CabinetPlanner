@@ -11,6 +11,8 @@
   const kind = $derived((c?.kind ?? "base") as "base" | "wall" | "tall");
   /** Parameters in effect: from presets of every layer and the cabinet's own (D45). */
   const params = $derived(store.cabinet?.resolved.params ?? c?.params ?? []);
+  /** Front kinds that bring a fitting: doors (hinge), drawers (slide), flaps (flap fitting). */
+  const zoneTypes = $derived(new Set((store.cabinet?.layout?.zones ?? []).map((z) => z.type as string).filter((ty) => ty === "door" || ty === "drawer" || ty === "flap")));
   /** Height as a formula under the (sloped) ceiling: the lowest point over the carcase minus base and gap. */
   function fitToCeiling(): void {
     if (!c) return;
@@ -95,6 +97,16 @@
         <VarRow name="handle_drawer_top" />
       </details>
     </section>
+
+    {#if zoneTypes.size}
+      <!-- The fittings behind the fronts this cabinet has (D59). -->
+      <section data-section="fittings">
+        <h3 class="label">{t("ui.fittings")}</h3>
+        {#if zoneTypes.has("door")}<OptRow key="hardware.hinge" />{/if}
+        {#if zoneTypes.has("drawer")}<OptRow key="hardware.slide" />{/if}
+        {#if zoneTypes.has("flap")}<OptRow key="hardware.flap" />{/if}
+      </section>
+    {/if}
 
     <section>
       <h3 class="label">{kind === "wall" ? t("ui.hanging") : t("ui.plinth")}</h3>

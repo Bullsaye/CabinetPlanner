@@ -230,7 +230,7 @@
   .only-tablet, .only-narrow, .scrim { display: none; }
   /* Tablet: the inspector slides in from the right; phone: the cabinet list from the left too. */
   @media (max-width: 1100px) {
-    .body { grid-template-columns: 210px minmax(0, 1fr); }
+    .body, .body.wide { grid-template-columns: 210px minmax(0, 1fr); }
     .only-tablet { display: inline-block; }
     .scrim { display: block; position: fixed; inset: 0; background: rgb(0 0 0 / .25); z-index: 30; }
     .right-pane {
@@ -243,7 +243,7 @@
     .close { display: block; margin-left: auto; font-size: 20px; line-height: 1; }
   }
   @media (max-width: 700px) {
-    .body { grid-template-columns: minmax(0, 1fr); }
+    .body, .body.wide { grid-template-columns: minmax(0, 1fr); }
     .only-narrow { display: inline-block; }
     .left {
       position: fixed; top: 0; left: 0; bottom: 0; z-index: 31; width: min(300px, 88vw); overflow-y: auto;

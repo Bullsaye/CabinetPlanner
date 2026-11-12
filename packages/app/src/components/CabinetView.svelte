@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatNumber, frontViewOf, type FrontViewPart } from "@cabinet-planner/engine";
   import { swingPoints } from "../lib/elevation.ts";
+  import { longPress } from "../lib/longpress.ts";
   import { store } from "../lib/store.svelte.ts";
   import RightPane from "./RightPane.svelte";
   import Viewer3D from "./Viewer3D.svelte";
@@ -41,15 +42,27 @@
     return p ? { y: p.y - q.baseY, h: p.h } : undefined;
   });
 
+  /** A click picks the part: the right pane shows its settings (D59). */
   function pick(p: FrontViewPart): void {
-    store.ui.part = p.id;
+    store.selectPart(p.id);
     store.ui.zone = p.zone ?? null;
-    store.ui.pane = "cabinet";
+  }
+  /** Double-click (touch: long press): the parameters behind the part, in the construction editor. */
+  function params(p: FrontViewPart): void {
+    store.ui.zone = p.zone ?? null;
+    store.openPartParams(p.id);
+  }
+  /** A click beside the cabinet: nothing picked, back to the cabinet's editor. */
+  function clear(e: MouseEvent): void {
+    if (e.target !== e.currentTarget) return;
+    store.selectPart(null);
+    store.ui.zone = null;
   }
   const onKey = (e: KeyboardEvent, p: FrontViewPart): void => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
-    pick(p);
+    if (e.shiftKey) params(p);
+    else pick(p);
   };
   // A zone picked in another cabinet means nothing here.
   let lastCabinet: string | null = store.ui.selected;
@@ -74,7 +87,7 @@
         <button aria-pressed={store.ui.fronts} onclick={() => (store.ui.fronts = !store.ui.fronts)}>{t("ui.fronts")}</button>
         <span class="sp"></span>
         {#if cabinets.length > 1}
-          <select id="cv-cabinet" class="pick" aria-label={t("ui.cabinet")} value={store.ui.selected} onchange={(e) => { store.ui.selected = (e.target as HTMLSelectElement).value; store.ui.part = null; }}>
+          <select id="cv-cabinet" class="pick" aria-label={t("ui.cabinet")} value={store.ui.selected} onchange={(e) => store.select((e.target as HTMLSelectElement).value)}>
             {#each cabinets as c}<option value={c.id}>{c.id}{c.name ? ` · ${c.name}` : ""}</option>{/each}
           </select>
         {/if}
@@ -91,7 +104,8 @@
         {:else if !fv}
           <div class="empty"><p class="muted">{t("ui.cabinet_view_error")}</p></div>
         {:else if s > 0}
-          <svg width={cw} height={ch} viewBox={`0 0 ${cw} ${ch}`} role="group" aria-label={t("ui.cabinet_view")}>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <svg width={cw} height={ch} viewBox={`0 0 ${cw} ${ch}`} role="group" aria-label={t("ui.cabinet_view")} onclick={clear}>
             <!-- Floor, legs and plinth panel. -->
             {#if fv.kind !== "wall"}
               {#each fv.legs as l}
@@ -116,7 +130,10 @@
                 tabindex={p.front ? 0 : undefined}
                 aria-label={p.front ? `${t(`role.${p.role}`)} ${p.code}` : undefined}
                 aria-pressed={p.front ? sel : undefined}
+                data-part={p.id}
                 onclick={() => pick(p)}
+                ondblclick={() => params(p)}
+                use:longPress={() => params(p)}
                 onkeydown={p.front ? (e) => onKey(e, p) : undefined}
               >
                 {#if p.points}
@@ -171,7 +188,7 @@
           </svg>
         {/if}
       </div>
-      {#if fv}<span class="hint">{t("ui.cabinet_view_hint")}</span>{/if}
+      {#if fv}<span class="hint">{t(store.narrow ? "ui.part.view_hint_touch" : "ui.part.view_hint")}</span>{/if}
     </section>
   {/if}
   {#if store.narrow}
@@ -195,7 +212,7 @@
 
   .part rect, .part polygon { fill: var(--part); stroke: var(--part-edge); stroke-width: 1; }
   .part.back rect { fill: color-mix(in srgb, var(--part) 86%, var(--fg)); }
-  .part { cursor: pointer; }
+  .part { cursor: pointer; -webkit-touch-callout: none; user-select: none; }
   .part.front rect, .part.front polygon { fill: color-mix(in srgb, var(--surface) 78%, var(--accent)); stroke: var(--fg); stroke-width: 1; }
   .part.front.drawer_front rect { fill: color-mix(in srgb, var(--surface) 84%, var(--accent)); }
   .part.front.blind_panel rect, .part.front.appliance_front rect, .part.front.ceiling_filler rect { fill: color-mix(in srgb, var(--surface) 88%, var(--fg)); }

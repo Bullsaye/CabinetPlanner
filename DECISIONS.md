@@ -949,3 +949,43 @@ the earlier entries stay as written.
   (`store.ui.highlight`, by part role).
 - `diagnosticText` (i18n) translates enumerated parameters of findings
   (opening kind, cutout kind, layer).
+
+### D59 · 2026-11-10 · Part panel, values for several cabinets, first start
+
+- **Picking a part** (`store.ui.part`: 3D view, front view, drawings) shows
+  its panel in the right pane, in the simple editor and in the construction
+  editor: facts, the per-part overrides (`cabinet.parts[code]`: material,
+  surface, edges, remark; edges named by where they sit in the cabinet per
+  D2/D4), the cabinet's settings that drive the part, and its machining
+  grouped by source. Picking nothing returns to the cabinet's editor.
+- **Double-click** on a part (touch and pen: long press, 550 ms) calls
+  `store.openPartParams(partId)`: the construction editor of that cabinet
+  opens with a section on top that holds the same settings as parameter rows
+  (variable name under the label, formulas with the values they read).
+- **One mapping part ↔ settings** (`app/src/lib/partmap.ts`): settings by part
+  role, and settings by the source an operation names (joint, hardware item
+  through the option that chooses it, system holes, back groove). The part
+  panel reads it forwards; the 3D highlight of a focused row (D56) reads it
+  backwards. A new variable or option that drives a part is added there.
+- **"For all …"** on a cabinet's own value writes it where it applies to the
+  whole scope and removes the own values it makes redundant: all cabinets →
+  the project layer; one kind → the project's own preset with the id of the
+  kind preset (`base-unit`, `wall-unit`, `tall-unit` in
+  `project.library.presets`; it replaces the shop or factory preset of that
+  id, D7, so new cabinets of the kind follow); shop standard →
+  `shop.defaults`. A cabinet where a preset of its own would still say
+  otherwise keeps the value as its own. One undo step; the shop file is not
+  part of the project's history.
+- **Multi-selection** in the cabinet list (Ctrl/Shift-click, or the checkbox
+  mode) edits the simple editor's rows for all selected cabinets: a field
+  shows the common value or "differs"; an entry is written to each cabinet
+  as its own value.
+- **Front builder**: zones are reordered by dragging in the drawing or by
+  the grip of a row; the line between two fronts sets heights in whole
+  millimetres (Shift, or a finger: 5 mm). A zone without `h` stays "rest"
+  while it is the only one that can take up the difference.
+- **Opening symbol**: the preference `hingeSymbol` defaults to
+  `tip_at_handle` (was `tip_at_hinge`, D54); stored preferences carry a
+  version so the new default reaches existing installations once.
+- **First start**: no project is created; the projects screen offers a new
+  project with or without a room, the example kitchen, or a file.

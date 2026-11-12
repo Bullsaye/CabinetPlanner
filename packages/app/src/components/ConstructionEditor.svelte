@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatNumber } from "@cabinet-planner/engine";
+  import { formatNumber, localName } from "@cabinet-planner/engine";
   import {
     closeConstruction,
     constructionChanged,
@@ -9,7 +9,9 @@
     store,
     templateName,
   } from "../lib/store.svelte.ts";
+  import { tick } from "svelte";
   import FreeConstruction from "./FreeConstruction.svelte";
+  import PartSettings from "./PartSettings.svelte";
   import Inspector from "./Inspector.svelte";
   import OptRow from "./fields/OptRow.svelte";
   import VarRow from "./fields/VarRow.svelte";
@@ -53,6 +55,14 @@
     const k = cons();
     k.noBack = keep ? k.noBack.filter((z: number) => z !== i + 1) : [...k.noBack, i + 1].sort();
   }
+
+  // --- Parameters of one part (double-click on it, D59): its rows on top, scrolled into view.
+  const focus = $derived(store.ui.partParams ? cab?.parts.find((p) => p.id === store.ui.partParams) : undefined);
+  let focusEl = $state<HTMLElement>();
+  $effect(() => {
+    if (!focus?.id) return;
+    void tick().then(() => focusEl?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  });
 
   // --- Leaving: keep for this cabinet, save to the template (asked twice), or as a new template.
   let leaving = $state(false);
@@ -127,6 +137,17 @@
     {#if saved}<p class="small muted" role="status">{saved}</p>{/if}
 
     <p class="muted small">{t("ui.construction_hint")} {t("ui.value.formula_hint")}</p>
+
+    {#if focus}
+      <section class="focus" bind:this={focusEl} data-part-params={focus.id}>
+        <div class="fhead">
+          <h3>{t("ui.part.params_of", { part: focus.label !== undefined ? localName(focus.label, store.tr.locale) : t(`role.${focus.role}`) })} <span class="mono muted">{focus.id}</span></h3>
+          <button class="quiet" aria-label={t("ui.close")} onclick={() => { store.ui.partParams = null; store.ui.part = null; }}>×</button>
+        </div>
+        <p class="muted small">{t(focus.role === "custom" ? "ui.part.custom_hint" : "ui.part.params_intro")}</p>
+        {#key focus.id}<PartSettings part={focus} detail scope="pf" />{/key}
+      </section>
+    {/if}
 
     <section>
       <h3 class="label">{t("ui.carcase")}</h3>
@@ -270,6 +291,10 @@
   h3, h4 { margin: 0 0 2px; }
   section { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
   .small { font-size: 12px; margin: 0; }
+  .focus { border: 1px solid var(--accent); border-radius: 8px; padding: 10px; background: color-mix(in srgb, var(--surface) 94%, var(--accent)); scroll-margin-top: 8px; }
+  .fhead { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  .fhead h3 { font-size: 14px; }
+  .fhead .mono { font-size: 12px; font-weight: 400; }
   .zones td input.num { width: 4.5em; }
   .zones td, .zones th { padding: 4px 6px; }
   .zones th { white-space: normal; position: static; vertical-align: bottom; }

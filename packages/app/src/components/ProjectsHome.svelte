@@ -39,19 +39,38 @@
 <section class="home">
   <div class="top">
     <h1>{t("ui.projects")}</h1>
+    {#if store.projects.length}
     <div class="actions">
       <button class="primary" onclick={() => store.addProject(blankProject(t("ui.new_project_name")))}>{t("ui.new_project")}</button>
       <button onclick={() => store.addProject(blankProject(t("ui.new_project_name"), false))}>{t("ui.new_project_no_room")}</button>
       <button onclick={() => store.addProject(exampleProjectDoc())}>{t("ui.new_from_example")}</button>
       <button onclick={importFile}>{t("ui.import_file")}</button>
     </div>
+    {/if}
   </div>
   {#if note}<p class="note muted" role="status">{note}</p>{/if}
   {#if store.projects.length > 6}
     <input id="project-filter" type="text" placeholder={t("ui.search_projects")} aria-label={t("ui.search_projects")} bind:value={filter} />
   {/if}
   {#if !store.projects.length}
-    <p class="muted empty">{t("ui.no_projects")}</p>
+    <!-- First start (D59): nothing is opened for the user; these are the ways to begin. -->
+    <div class="start" data-first-start>
+      <p class="lead">{t("ui.start.lead")}</p>
+      <div class="choices">
+        <button class="choice primary" onclick={() => store.addProject(blankProject(t("ui.new_project_name")))}>
+          <span class="ct">{t("ui.start.room")}</span><span class="cd">{t("ui.start.room_hint")}</span>
+        </button>
+        <button class="choice" onclick={() => store.addProject(blankProject(t("ui.new_project_name"), false))}>
+          <span class="ct">{t("ui.start.no_room")}</span><span class="cd">{t("ui.start.no_room_hint")}</span>
+        </button>
+        <button class="choice" onclick={() => store.addProject(exampleProjectDoc())}>
+          <span class="ct">{t("ui.start.example")}</span><span class="cd">{t("ui.start.example_hint")}</span>
+        </button>
+        <button class="choice" onclick={importFile}>
+          <span class="ct">{t("ui.start.file")}</span><span class="cd">{t("ui.start.file_hint")}</span>
+        </button>
+      </div>
+    </div>
   {/if}
   <ul class="grid-list">
     {#each list as p (p.id)}
@@ -101,7 +120,12 @@
   form input { flex: 1; }
   .danger { color: var(--err); }
   .note { margin: 0; }
-  .empty { padding: 24px 0; }
+  .start { padding: 8px 0 16px; display: flex; flex-direction: column; gap: 12px; }
+  .lead { margin: 0; font-size: 15px; max-width: 46em; }
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .choice { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left; padding: 14px; min-height: 96px; white-space: normal; }
+  .ct { font-weight: 600; font-size: 15px; }
+  .cd { font-size: 12.5px; line-height: 1.4; opacity: .85; font-weight: 400; }
   .small { font-size: 12px; }
   #project-filter { max-width: 320px; }
 </style>

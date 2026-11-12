@@ -8,6 +8,7 @@ import {
   loadShop,
   type CabinetResult,
   type CabinetTemplate,
+  type Part,
   type ProjectResult,
   type Shop,
 } from "@cabinet-planner/engine";
@@ -75,6 +76,9 @@ export type HingeSymbol = "tip_at_hinge" | "tip_at_handle";
 /** Preferences kept between sessions (D33). */
 const PREFS = ["lang", "style", "ops", "fronts", "viewMode", "cabinet3d", "walls", "hingeSymbol"] as const;
 
+/** Version of the stored preferences; raised when a default changes that stored values would hide. */
+const PREFS_VERSION = 2;
+
 export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware" | "library" | "community";
 export type Screen = "home" | "project";
 export type Layer = "cabinet" | "project" | "shop";
@@ -126,10 +130,18 @@ class Store {
     cabinet3d: false,
     /** Walls drawn in the room 3D view. */
     walls: "used" as WallsShown,
-    /** Opening symbol on doors: tip at the hinge edge (DIN) or at the handle edge. */
-    hingeSymbol: "tip_at_hinge" as HingeSymbol,
+    /** Opening symbol on doors: tip at the handle edge (the default, D59) or at the hinge edge (DIN). */
+    hingeSymbol: "tip_at_handle" as HingeSymbol,
     /** Front zone picked in a drawing (index into the front stack). */
     zone: null as number | null,
+    /** Part whose parameters the construction editor shows on top (double-click on a part, D59). */
+    partParams: null as string | null,
+    /** Cabinets selected together (two or more); empty: only `selected`. */
+    multi: [] as string[],
+    /** Touch: the cabinet list shows checkboxes to select several. */
+    multiMode: false,
+    /** Library item to show when the library tab opens (link from a part's hardware). */
+    libraryItem: null as { section: string; id: string } | null,
     ...(read(KEY_UI) ?? {}),
   });
   /** Tablet or phone width: the cabinet view is the default and carries the settings below the drawing. */
@@ -170,6 +182,72 @@ class Store {
     return this.project.cabinets?.find((c: Doc) => c.id === this.ui.selected);
   }
 
+  /** The picked part, when it belongs to the selected cabinet. */
+  get part(): Part | undefined {
+    const id = this.ui.part;
+    return id ? this.cabinet?.parts.find((p) => p.id === id) : undefined;
+  }
+
+  /** Cabinets edited together: the multi-selection when it holds two or more. */
+  get multi(): string[] {
+    const ids = new Set((this.project.cabinets ?? []).map((c: Doc) => c.id));
+    const list = this.ui.multi.filter((id) => ids.has(id));
+    // A selection made elsewhere (3D view, room plan) ends it.
+    return list.length >= 2 && list.includes(this.ui.selected ?? "") ? list : [];
+  }
+
+  /** Selects one cabinet (ends a multi-selection and a part selection). */
+  select(id: string | null): void {
+    this.ui.selected = id;
+    this.ui.part = null;
+    this.ui.partParams = null;
+    this.ui.multi = [];
+  }
+
+  /** Adds a cabinet to the multi-selection or takes it out; the last one added leads. */
+  toggleMulti(id: string): void {
+    const cur = this.ui.multi.length ? this.ui.multi : this.ui.selected ? [this.ui.selected] : [];
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    this.ui.multi = next;
+    this.ui.part = null;
+    if (next.includes(id)) this.ui.selected = id;
+    else if (this.ui.selected === id) this.ui.selected = next[next.length - 1] ?? null;
+  }
+
+  /** Selects the cabinets from the selected one to `id` in list order (Shift-click). */
+  selectRange(id: string): void {
+    const order = (this.project.cabinets ?? []).map((c: Doc) => c.id as string);
+    const a = order.indexOf(this.ui.selected ?? id);
+    const b = order.indexOf(id);
+    if (a < 0 || b < 0) return this.select(id);
+    this.ui.multi = order.slice(Math.min(a, b), Math.max(a, b) + 1);
+    this.ui.part = null;
+  }
+
+  /** Picks a part (3D view, front view, drawings): the right pane shows its settings. Null returns to the cabinet. */
+  selectPart(partId: string | null): void {
+    this.ui.part = partId;
+    this.ui.partParams = null;
+    if (partId) this.ui.pane = "cabinet";
+  }
+
+  /**
+   * Double-click (touch: long press) on a part: opens the construction editor of its
+   * cabinet with the parameters and formulas behind that part on top (D59).
+   */
+  openPartParams(partId: string): void {
+    const part = this.result?.parts.find((p) => p.id === partId);
+    if (!part || !this.project.cabinets?.some((c: Doc) => c.id === part.cabinet)) return;
+    if (this.ui.selected !== part.cabinet) this.ui.selected = part.cabinet;
+    this.ui.multi = [];
+    this.ui.part = partId;
+    if (this.ui.construction !== part.cabinet) openConstruction();
+    this.ui.pane = "cabinet";
+    this.ui.partParams = partId;
+    // Tablet, outside the cabinet view: the editor is in the drawer.
+    if (this.narrow && this.ui.tab !== "view") this.ui.panel = "inspector";
+  }
+
   /** The raw layer the inspector writes to. */
   layerDoc(layer: Layer): Doc | undefined {
     if (layer === "cabinet") return this.cabinetDoc;
@@ -201,17 +279,15 @@ class Store {
         /* ignore */
       }
     }
-    // First start: the example kitchen as a project to look at.
-    if (!index.length) {
-      const id = newId();
-      await db.set(`project:${id}`, clone(exampleProject));
-      index = [{ id, name: exampleProject.name, updated: Date.now(), cabinets: exampleProject.cabinets.length }];
-      await db.set("index", index);
-      await db.set("last", id);
-    }
+    // First start: no project yet; the projects screen offers the ways to begin (D59).
     this.shop = (await db.get<Doc>("shop")) ?? clone(exampleShop);
     const prefs = await db.get<Record<string, unknown>>("ui");
-    if (prefs) Object.assign(this.ui, prefs);
+    if (prefs) {
+      // Preferences stored before D59 hold the old default of the opening symbol, chosen or not: the new default applies once.
+      if (prefs["prefs"] !== PREFS_VERSION) delete prefs["hingeSymbol"];
+      delete prefs["prefs"];
+      Object.assign(this.ui, prefs);
+    }
     this.projects = index.sort((a, b) => b.updated - a.updated);
     const last = await db.get<string>("last");
     if (last && index.some((p) => p.id === last)) await this.openProject(last);
@@ -223,7 +299,7 @@ class Store {
     if (!this.ready) return;
     const db = await kv();
     await db.set("shop", $state.snapshot(this.shop));
-    await db.set("ui", Object.fromEntries(PREFS.map((k) => [k, this.ui[k]])));
+    await db.set("ui", { ...Object.fromEntries(PREFS.map((k) => [k, this.ui[k]])), prefs: PREFS_VERSION });
     if (!this.projectId) return;
     const doc = $state.snapshot(this.project);
     await db.set(`project:${this.projectId}`, doc);
@@ -242,6 +318,9 @@ class Store {
     this.historyAt = 0;
     this.ui.selected = doc.cabinets?.[0]?.id ?? null;
     this.ui.part = null;
+    this.ui.partParams = null;
+    this.ui.multi = [];
+    this.ui.construction = null;
     this.screen = "project";
     await db.set("last", id);
   }
@@ -424,6 +503,8 @@ export const constructionChanged = (): boolean => !!store.ui.construction && cab
 /** Leaves the editor; the cabinet keeps its changes. */
 export function closeConstruction(): void {
   store.ui.construction = null;
+  store.ui.partParams = null;
+  store.ui.part = null;
   restoreView();
 }
 export function discardConstruction(): void {
@@ -431,6 +512,8 @@ export function discardConstruction(): void {
   const i = list.findIndex((c) => c.id === store.ui.construction);
   if (i >= 0 && constructionSnapshot) list[i] = JSON.parse(constructionSnapshot);
   store.ui.construction = null;
+  store.ui.partParams = null;
+  store.ui.part = null;
   restoreView();
 }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ForAll from "./ForAll.svelte";
   import { setOption, store, type Layer } from "../../lib/store.svelte.ts";
   import { optionChoices, optionDef } from "../../lib/fields.ts";
   import { highlightFor, layerView, originOf } from "../../lib/values.svelte.ts";
@@ -64,6 +65,9 @@
         <button class="vsrc" tabindex="-1" title={origin.text} aria-expanded={open} aria-controls={`${id}-x`} onclick={() => (open = !open)}>{origin.label}</button>
       {/if}
     </span>
+    {#if layer === "cabinet"}
+      <ForAll kind="option" name={key} value={own ? doc!.options[key] : undefined} shown={choiceLabel(value)} label={text} {id} />
+    {/if}
     {#if open}
       <p class="vexplain" id={`${id}-x`}>
         {#if own}

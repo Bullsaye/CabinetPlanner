@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { longPress } from "../lib/longpress.ts";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import { sceneOf, type CabinetResult, type HandlePlacement, type ScenePart } from "@cabinet-planner/engine";
@@ -370,6 +371,17 @@
     }
   }
 
+  /** Double-click (touch: long press) on a part: its parameters in the construction editor (D59). */
+  function paramsAt(e: { clientX: number; clientY: number }): void {
+    const r = canvas.getBoundingClientRect();
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    // The first click of a double-click rebuilt the meshes (selection); they are placed with the next frame.
+    scene.updateMatrixWorld();
+    const part = ray.intersectObjects(meshes)[0]?.object.userData.part as string | undefined;
+    if (part) store.openPartParams(part);
+  }
+
   $effect(() => {
     try {
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -443,7 +455,7 @@
   {#if failed}
     <p class="muted fail">{t("ui.no_webgl")}</p>
   {/if}
-  <canvas bind:this={canvas} onpointerdown={onDown} onpointerup={onUp}></canvas>
+  <canvas bind:this={canvas} onpointerdown={onDown} onpointerup={onUp} ondblclick={paramsAt} use:longPress={paramsAt}></canvas>
   <span class="hint">{t("ui.view_hint")}</span>
 </section>
 
