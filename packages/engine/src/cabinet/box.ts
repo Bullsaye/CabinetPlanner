@@ -46,7 +46,7 @@ export interface BoxLayout {
   /**
    * Lift-up flaps (D39). `top` is the top face of the panel above the flap
    * (carcase top, or the fixed shelf over a flap under another front) and
-   * `bottom` the underside of the panel below it (D57). `panelAbove` /
+   * `bottom` the underside of the panel below it (D71). `panelAbove` /
    * `panelBelow` are false where that shelf was left out.
    */
   flaps: { code: string; top: number; bottom: number; panelAbove: boolean; panelBelow: boolean }[];
@@ -54,7 +54,7 @@ export interface BoxLayout {
   zones: { type: FrontZone["type"]; y0: number; y1: number; fixedBelow: number | null }[];
   /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
   rails: { x0: number; x1: number; y: number; z: number }[];
-  /** Free parts (D45) and whether their ends are joined to the panels they meet. */
+  /** Free parts (D59) and whether their ends are joined to the panels they meet. */
   custom: { code: string; joint: boolean }[];
 }
 
@@ -65,9 +65,9 @@ export interface PlacedFront {
   /** Door zones: hinge side of a single door. */
   hinge?: "left" | "right";
   doors: number;
-  /** Door, open and flap zones: the zone's own number of adjustable shelves (D57). */
+  /** Door, open and flap zones: the zone's own number of adjustable shelves (D71). */
   shelves?: number;
-  /** Drawer zones: the zone's own box side height, 0 = automatic (D57). */
+  /** Drawer zones: the zone's own box side height, 0 = automatic (D71). */
   boxH?: number;
   /** Front bottom and top edge (cabinet Y). */
   y0: number;
@@ -162,7 +162,7 @@ export type AddPart = (
   widthAxis: Axis,
   materialKey: string,
   edges: PartEdges,
-  /** Free parts (D45): their own code, material id and name. */
+  /** Free parts (D59): their own code, material id and name. */
   custom?: { code: string; material: string; label?: LocalizedText; note?: string },
 ) => void;
 
@@ -376,7 +376,7 @@ export function buildBox(
     if (rb === "flat") add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: bw }, "x", "z", "material.carcase", none);
     else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: railZ, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
   }
-  // Clear interior height: upright rails take their height under the top and above the bottom (D50).
+  // Clear interior height: upright rails take their height under the top and above the bottom (D64).
   const uprightTop = top === "rails" && (opt<string>("rail.front") === "upright" || opt<string>("rail.rear") === "upright");
   const interiorTop = H - (uprightTop ? Math.max(t, num("rail_w")) : t);
   const interiorBottom = rb === "upright" ? Math.max(t, num("rail_bottom_w")) : t;
@@ -428,7 +428,7 @@ export function buildBox(
 
   // --- Fixed shelves ------------------------------------------------------------
   // Structural shelves (dowelled like the bottom) between any two front
-  // zones, except between two drawers (D57). Under an appliance the shelf's
+  // zones, except between two drawers (D71). Under an appliance the shelf's
   // top is the front's lower edge, above it the shelf sits one gap above the
   // front, so the niche is front height + gap; otherwise the shelf is
   // centred on the gap.
@@ -457,7 +457,7 @@ export function buildBox(
     zoneVars.set(`zone${i + 1}_y0`, f.y0);
     zoneVars.set(`zone${i + 1}_y1`, f.y1);
   });
-  // Layout facts for formulas (D45): they follow the back and joint rules.
+  // Layout facts for formulas (D59): they follow the back and joint rules.
   for (const [k, v] of [["back_front_z", backFrontZ], ["carcase_z0", carcaseZ0], ["inner_x0", t], ["inner_x1", W - t], ["inner_y0", t], ["inner_y1", H - t]] as const) {
     if (!zoneVars.has(k)) zoneVars.set(k, v);
   }
@@ -478,7 +478,7 @@ export function buildBox(
       diagnostics.push({ severity: "warning", code: "construction_fixed_unknown", params: { index: k }, cabinet: cab });
       continue;
     }
-    // Between two drawers the rule puts no shelf; `panel: true` asks for one (D57).
+    // Between two drawers the rule puts no shelf; `panel: true` asks for one (D71).
     if (f.panel && drawersOnly(i)) fixedAt[i] = fixedY(i);
     if (!f.panel) fixedAt[i] = undefined;
     else if (fixedAt[i] !== undefined) fixedSetback.set(fixedAt[i]!, { front: cval(f.setbackFront, `fixed ${k}`), rear: cval(f.setbackRear, `fixed ${k}`) });
@@ -613,7 +613,7 @@ export function buildBox(
   }
   // The tallest zone gets shelf_count shelves; other door/open zones get
   // as many in proportion to their height (zones split by fixed shelves).
-  // A zone's own count (`shelves`, D57) wins for that zone; flap zones only
+  // A zone's own count (`shelves`, D71) wins for that zone; flap zones only
   // get shelves that way.
   const zonePlan: { range: [number, number]; count: number; main: boolean; own: boolean }[] =
     fronts.length === 0
@@ -631,7 +631,7 @@ export function buildBox(
         ];
   // Extra panels (D38) inside a zone split it into compartments; the zone's
   // shelves are shared out by compartment height (largest remainders, lower
-  // compartment first), so no shelf lands on a panel (D57).
+  // compartment first), so no shelf lands on a panel (D71).
   const shelfPlan: { range: [number, number]; count: number; main: boolean }[] = [];
   for (const z of zonePlan) {
     if (z.count <= 0 || (!z.main && !z.own && fixedAt.every((y) => y === undefined))) continue;
@@ -715,7 +715,7 @@ export function buildBox(
       if (f.type === "flap") {
         flapNo++;
         add("flap", flapNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
-        // The flap's compartment: from the panel below it to the panel above it (carcase top and bottom at the ends, D57).
+        // The flap's compartment: from the panel below it to the panel above it (carcase top and bottom at the ends, D71).
         const above = fi > 0 ? fixedAt[fi - 1] : undefined;
         const below = fi + 1 < fronts.length ? fixedAt[fi] : undefined;
         flaps.push({
@@ -820,7 +820,7 @@ export function buildBox(
     }
   }
 
-  // --- Free parts (D45), then the parts left out ------------------------------------
+  // --- Free parts (D59), then the parts left out ------------------------------------
   const custom = buildCustomParts({ rc, library, scope: zoneVars, add, parts, diagnostics });
   assignSurfaces(rc, library, parts, context, diagnostics);
   const omit = new Set(cons?.omit ?? []);

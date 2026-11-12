@@ -5,7 +5,7 @@ import type { HingeSymbol } from "./store.svelte.ts";
  * lines forming a triangle. `tip_at_hinge` (DIN): from the corners of the
  * opening edge to the middle of the hinge edge. `tip_at_handle`: from the
  * corners of the hinge edge to the middle of the opening edge. Hinge marks
- * and the handle are drawn besides, so either reading is unambiguous (D54).
+ * and the handle are drawn besides, so either reading is unambiguous (D68).
  */
 export function swingPoints(r: { x: number; y: number; w: number; h: number }, hinge: "left" | "right" | "top", symbol: HingeSymbol): string {
   const pt = (x: number, y: number): string => `${x},${y}`;

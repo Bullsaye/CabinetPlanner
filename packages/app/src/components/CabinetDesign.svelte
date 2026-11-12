@@ -9,14 +9,14 @@
   const t = $derived(store.tr.t);
   const c = $derived(store.cabinetDoc);
   const kind = $derived((c?.kind ?? "base") as "base" | "wall" | "tall");
-  /** Parameters in effect: from presets of every layer and the cabinet's own (D45). */
+  /** Parameters in effect: from presets of every layer and the cabinet's own (D59). */
   const params = $derived(store.cabinet?.resolved.params ?? c?.params ?? []);
   /** Height as a formula under the (sloped) ceiling: the lowest point over the carcase minus base and gap. */
   function fitToCeiling(): void {
     if (!c) return;
     c.vars = { ...(c.vars ?? {}), H: kind === "wall" ? "ceiling_h - wall_bottom - ceiling_gap" : "ceiling_h - plinth_h - ceiling_gap" };
   }
-  /** Extra fixed shelves of the cabinet (construction.panels, D38), edited here too (D57). */
+  /** Extra fixed shelves of the cabinet (construction.panels, D38), edited here too (D71). */
   const fixedPanels = $derived((c?.construction?.panels ?? []) as { y: number | string }[]);
   /** Adds a fixed shelf in the middle of the tallest compartment between the lying carcase panels. */
   function addFixedPanel(): void {

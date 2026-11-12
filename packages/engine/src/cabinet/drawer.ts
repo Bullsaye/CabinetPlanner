@@ -105,7 +105,7 @@ export function buildDrawer(
       return undefined;
     }
     const ds = num("drawer_side_t");
-    // Side height: the zone's own, else drawer_box_h; 0 = as high as fits (D57).
+    // Side height: the zone's own, else drawer_box_h; 0 = as high as fits (D71).
     const fit = Math.floor(room + 1e-9);
     let hBox = fit;
     if (want > 0 && want > room + 1e-9) {
@@ -146,7 +146,7 @@ export function buildDrawer(
       diagnostics.push({ severity: "error", code: "hardware_param_missing", params: { item: item.id, params: "bottom_w, bottom_l" }, ...at });
       return undefined;
     }
-    // Metal sides come in the slide's heights: the largest that fits, and is not above the wanted height (D57).
+    // Metal sides come in the slide's heights: the largest that fits, and is not above the wanted height (D71).
     const fitting = [...slide.heights].sort((a, b) => b.h - a.h).filter((h) => h.h <= room + 1e-9);
     const wanted = want > 0 ? fitting.find((h) => h.h <= want + 1e-9) : fitting[0];
     if (fitting.length && !wanted) {

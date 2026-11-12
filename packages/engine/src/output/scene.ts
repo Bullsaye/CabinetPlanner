@@ -28,7 +28,7 @@ export interface ScenePart {
   code: string;
   role: PartRole;
   material: string;
-  /** Display colour (#rrggbb) from the surface finish, else the board (D53). */
+  /** Display colour (#rrggbb) from the surface finish, else the board (D67). */
   color?: string;
   box: Box;
   /** Non-rectangular parts: contour on the t0 face (cabinet coordinates) and the thickness axis. */

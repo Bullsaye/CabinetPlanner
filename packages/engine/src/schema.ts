@@ -29,7 +29,7 @@ export const Layer = z.object(layerFields);
 export type Layer = z.infer<typeof Layer>;
 
 /**
- * A parameter (D45): a variable its author puts into the simple editor.
+ * A parameter (D59): a variable its author puts into the simple editor.
  * `name` is the function name used in formulas (shown when there is no
  * label); `label` and `description` are display texts anyone may change or
  * translate without touching a formula. The name may be a catalogue
@@ -57,7 +57,7 @@ export const Preset = z.object({
   group: z.string().optional(),
   vars: z.record(identifier, VarInputSchema).default({}),
   options: z.record(z.string(), OptionValueSchema).default({}),
-  /** Variables this preset introduces or puts into the simple editor (D45). */
+  /** Variables this preset introduces or puts into the simple editor (D59). */
   params: z.array(ParamSchema).max(60).default([]),
 });
 export type Preset = z.infer<typeof Preset>;
@@ -68,7 +68,7 @@ export const PartOverride = z.object({
   edges: z
     .object({ l1: EdgeRef.optional(), l2: EdgeRef.optional(), w1: EdgeRef.optional(), w2: EdgeRef.optional() })
     .optional(),
-  /** Surface finish of this part (D53); null: the board as it comes. */
+  /** Surface finish of this part (D67); null: the board as it comes. */
   surface: z.string().nullable().optional(),
   note: z.string().optional(),
 });
@@ -93,9 +93,9 @@ export const FrontZone = z.object({
   /** Door zones with one door: the hinge side (default: option door_hinge_side). */
   hinge: z.enum(["left", "right"]).optional(),
   front: z.boolean().optional(),
-  /** Door, open and flap zones: adjustable shelves in this compartment (number or formula); without it shelf_count applies (D57). */
+  /** Door, open and flap zones: adjustable shelves in this compartment (number or formula); without it shelf_count applies (D71). */
   shelves: VarInputSchema.optional(),
-  /** Drawer zones with a wooden box: side height of the box (number or formula, 0 = as high as fits); without it drawer_box_h applies (D57). */
+  /** Drawer zones with a wooden box: side height of the box (number or formula, 0 = as high as fits); without it drawer_box_h applies (D71). */
   boxH: VarInputSchema.optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;
@@ -103,7 +103,7 @@ export type FrontZone = z.infer<typeof FrontZone>;
 const EdgeInput = z.string().min(1).nullable();
 
 /**
- * A free part (D45): a board in one of the three planes, placed by formulas
+ * A free part (D59): a board in one of the three planes, placed by formulas
  * in cabinet coordinates (D2). The size across the board is the material
  * thickness unless given. Formulas see every variable of the cabinet, the
  * zone edges, and with `repeat` the counters `i` (1…n) and `n`.
@@ -164,7 +164,7 @@ export const CustomBoreSchema = z.object({
 export type CustomBoreInput = z.infer<typeof CustomBoreSchema>;
 
 /**
- * A fitting placed on a part (D45): the drilling of a hardware item (its
+ * A fitting placed on a part (D59): the drilling of a hardware item (its
  * mount "part" operations: `a` along the part length, `b` along the width)
  * around the point (u, v). Swapping the item swaps the holes. `mirror`
  * measures v from the opposite edge and flips `b`: the mirrored copy for
@@ -196,14 +196,14 @@ export const ConstructionSchema = z.object({
     .default([]),
   /**
    * Fixed shelf under zone i ("1" = between zones 1 and 2): `panel: false` leaves the automatic one out,
-   * setbacks shorten it; an entry with `panel: true` between two drawers, where the rule puts none, adds one (D57).
+   * setbacks shorten it; an entry with `panel: true` between two drawers, where the rule puts none, adds one (D71).
    */
   fixed: z
     .record(z.string(), z.object({ panel: z.boolean().default(true), setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
     .default({}),
   /** Zones (1 = top) that get no back; the back splits at the panels around them. */
   noBack: z.array(z.number().int().min(1)).default([]),
-  /** Free parts (D45): boards placed by formulas, beyond what the box rule builds. */
+  /** Free parts (D59): boards placed by formulas, beyond what the box rule builds. */
   parts: z.array(CustomPartSchema).max(200).default([]),
   /** Part codes of the box rule to leave out (e.g. "TO", "BK"), to replace them with free parts. */
   omit: z.array(z.string().min(1)).default([]),
@@ -230,7 +230,7 @@ export const CabinetSchema = z.object({
   fronts: z.array(FrontZone).max(12).optional(),
   /** Construction elements (extra panels, back zones). */
   construction: ConstructionSchema.optional(),
-  /** Parameters shown in the simple editor (D45). */
+  /** Parameters shown in the simple editor (D59). */
   params: z.array(ParamSchema).max(60).default([]),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
@@ -263,7 +263,7 @@ export type CabinetTemplateInput = z.infer<typeof CabinetTemplateSchema>;
 /**
  * A library fragment: the shape of the library section. Community packs
  * carry one as their content; installing a pack merges it into the shop
- * library (D49).
+ * library (D63).
  */
 export const LibraryFragmentSchema = z.object({
   materials: z.array(Material).default([]),
@@ -285,7 +285,7 @@ export type LibraryKind = (typeof LIBRARY_KINDS)[number];
 /** Library section of a project or shop file; later layers replace items with the same id. */
 const LibraryFile = LibraryFragmentSchema.default({ materials: [], edgebands: [], hardware: [], surfaces: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
 
-/** A community pack installed into the shop library (D49): which version, and which items came with it. */
+/** A community pack installed into the shop library (D63): which version, and which items came with it. */
 export const InstalledPackSchema = z.object({
   id: z.string().min(1),
   version: z.string().min(1),

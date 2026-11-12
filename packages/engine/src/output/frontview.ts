@@ -3,7 +3,7 @@ import { toCabinet } from "../ops.ts";
 import type { PartRole } from "../part.ts";
 
 /**
- * Front elevation of one cabinet, taken from its built parts (D54): every
+ * Front elevation of one cabinet, taken from its built parts (D68): every
  * part as its rectangle in the X/Y plane of the cabinet (D2), back to front,
  * plus hinge and handle positions as they are drilled. Holds no styling and
  * no text; the app draws it.

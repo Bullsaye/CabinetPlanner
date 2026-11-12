@@ -176,7 +176,7 @@
               <td>{i + 1} · {t(`ui.zone.${z.type}`)} <span class="muted mono">{fmt(z.y1 - z.y0)}</span></td>
               <td><input type="checkbox" aria-label={`${t("ui.back")} ${i + 1}`} checked={!noBack(i)} onchange={(e) => toggleBack(i, (e.target as HTMLInputElement).checked)} /></td>
               {#if i < zones.length - 1}
-                <!-- Every boundary can carry a fixed shelf; the rule leaves it out between two drawers only (D57). -->
+                <!-- Every boundary can carry a fixed shelf; the rule leaves it out between two drawers only (D71). -->
                 <td><input type="checkbox" aria-label={`${t("ui.panel_below")} ${i + 1}`} checked={f?.panel ?? z.fixedBelow !== null} onchange={(e) => setFixed(i, { panel: (e.target as HTMLInputElement).checked })} /></td>
                 <td><input class="mono num" type="text" aria-label={t("ui.setback_front")} value={f?.setbackFront ?? ""} placeholder="0" onchange={(e) => { setFixed(i, {}); setNum(cons().fixed[String(i + 1)], "setbackFront", (e.target as HTMLInputElement).value); }} /></td>
                 <td><input class="mono num" type="text" aria-label={t("ui.setback_rear")} value={f?.setbackRear ?? ""} placeholder="0" onchange={(e) => { setFixed(i, {}); setNum(cons().fixed[String(i + 1)], "setbackRear", (e.target as HTMLInputElement).value); }} /></td>

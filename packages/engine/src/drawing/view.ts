@@ -113,7 +113,7 @@ export const isThroughPocket = (part: Part, o: Part["operations"][number]): bool
 
 /**
  * Thickness faces that have machining entering through them. Through
- * pockets do not count: they are cut from whichever face is up (D46).
+ * pockets do not count: they are cut from whichever face is up (D60).
  */
 export function machinedFaces(part: Part): Set<"t0" | "t1"> {
   const out = new Set<"t0" | "t1">();

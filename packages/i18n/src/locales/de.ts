@@ -769,7 +769,7 @@ export const de: Record<MessageKey, string> = {
   "ui.flap_zone": "Klappe",
   "ui.add_flap": "+ Klappe",
   "ui.add_panel": "+ Boden",
-  // Free construction (D45)
+  // Free construction (D59)
   "ui.params": "Parameter",
   "ui.params_hint": "Eigene Maße für dieses Möbel. Sie erscheinen im einfachen Editor und können in jeder Formel verwendet werden.",
   "ui.param_label": "Bezeichnung",
@@ -1149,7 +1149,7 @@ export const de: Record<MessageKey, string> = {
   "ui.warnings": "{n} Warnung(en)",
   "ui.whole_project": "Ganzes Projekt",
   "ui.yes": "Ja",
-  // --- Account, sync and community (D45) ---
+  // --- Account, sync and community (D59) ---
   "ui.tab.community": "Community",
   "cloud.community": "Community",
   "cloud.account": "Konto",

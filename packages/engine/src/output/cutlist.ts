@@ -18,7 +18,7 @@ export interface CutlistRow {
   /** Free parts: the name their author gave them (shown in place of the role). */
   label?: LocalizedText;
   material: string;
-  /** Surface finish id, "" for none (D53). */
+  /** Surface finish id, "" for none (D67). */
   surface: string;
   length: number;
   width: number;
@@ -118,7 +118,7 @@ export type CutlistColumn =
   | "edge_w2"
   | "note";
 
-/** Order as on a shop list (D53): what, how many, size, board, finish, cut size, edges, remark. */
+/** Order as on a shop list (D67): what, how many, size, board, finish, cut size, edges, remark. */
 export const DEFAULT_COLUMNS: readonly CutlistColumn[] = [
   "part",
   "cabinet",

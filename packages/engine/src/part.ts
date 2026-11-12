@@ -149,9 +149,9 @@ export interface Part {
    * bounding rectangle.
    */
   outline?: [number, number][];
-  /** Surface finish on top of the board (D53); absent: the board as it comes. */
+  /** Surface finish on top of the board (D67); absent: the board as it comes. */
   surface?: string;
-  /** Free parts (D45): the name its author gave it, shown in place of the role name. */
+  /** Free parts (D59): the name its author gave it, shown in place of the role name. */
   label?: LocalizedText;
   note?: string;
 }

@@ -7,7 +7,7 @@ const bores = (p: Part, ref?: string): Bore[] =>
 const codes = (r: { diagnostics: { code: string }[] }): string[] => r.diagnostics.map((d) => d.code);
 const fixed = (r: { parts: Part[] }): Part[] => r.parts.filter((p) => p.role === "fixed_shelf");
 
-describe("fixed shelf between fronts (D57)", () => {
+describe("fixed shelf between fronts (D71)", () => {
   it("a door over three drawers: one shelf under the door, none between the drawers", () => {
     const r = buildOne({ fronts: [{ type: "door", h: 250 }, { type: "drawer" }, { type: "drawer" }, { type: "drawer" }] });
     expect(r.diagnostics).toEqual([]);
@@ -86,7 +86,7 @@ describe("fixed shelf between fronts (D57)", () => {
   });
 });
 
-describe("shelves per compartment (D57)", () => {
+describe("shelves per compartment (D71)", () => {
   const shelvesIn = (r: { parts: Part[] }, lo: number, hi: number): number => r.parts.filter((p) => p.role === "shelf" && p.box.y > lo && p.box.y < hi).length;
 
   it("a zone's own count wins; other zones keep the shelf_count rule", () => {
@@ -130,7 +130,7 @@ describe("shelves per compartment (D57)", () => {
   });
 });
 
-describe("drawer box height (D57)", () => {
+describe("drawer box height (D71)", () => {
   const three = [{ type: "drawer", h: 237.33 }, { type: "drawer", h: 237.33 }, { type: "drawer" }];
 
   it("0 builds the box as high as fits; a value sets the side height", () => {
@@ -167,7 +167,7 @@ describe("drawer box height (D57)", () => {
   });
 });
 
-describe("fixed blind panel fixing (D57)", () => {
+describe("fixed blind panel fixing (D71)", () => {
   const corner = { vars: { W: 1000, door_count: 1 }, options: { corner: "blind_right", top: "full" } };
 
   it("dowels a blind corner panel to the side, bottom and top it lies on", () => {
@@ -225,7 +225,7 @@ describe("fixed blind panel fixing (D57)", () => {
   });
 });
 
-describe("leg fixing types (D57)", () => {
+describe("leg fixing types (D71)", () => {
   it("knock-in socket: one bore per leg; screw plate: four pilot holes per leg", () => {
     const knock = buildOne({ options: { "hardware.leg": "generic-leg-knock-in" } });
     expect(knock.diagnostics).toEqual([]);
@@ -248,7 +248,7 @@ describe("leg fixing types (D57)", () => {
   });
 });
 
-describe("through bores on both faces (D57)", () => {
+describe("through bores on both faces (D71)", () => {
   const text: DrawingText = { t: (k, p) => (p ? `${k}${JSON.stringify(p)}` : k) };
   const r = buildOne({ options: { "hardware.handle": "generic-bar-128" } });
 

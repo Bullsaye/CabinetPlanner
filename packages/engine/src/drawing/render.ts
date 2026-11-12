@@ -511,7 +511,7 @@ function drawFeature(f: DFeature, s: number, centre: boolean, add: (p: Prim) => 
     if (f.side === "right") add({ t: "rect", x: x - dp, y: y - r, w: dp, h: 2 * r, cls: "pd-hidden" });
     return;
   }
-  // A through bore is an opening in the far face too: drawn solid from either side (D57).
+  // A through bore is an opening in the far face too: drawn solid from either side (D71).
   add({ t: "circle", cx: x, cy: y, r: Math.max(r, 0.4), cls: f.where === "face" || f.through ? "pd-hole" : "pd-hole-far" });
   if (centre && f.where === "face") {
     const a = Math.max(r + 0.7, 1.2);

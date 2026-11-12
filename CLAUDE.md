@@ -8,7 +8,7 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 - `packages/engine` – pure TypeScript engine. No DOM, no Node APIs, no UI
   text. Pipeline: presets → variables (expression graph) → cabinet rules →
   parts → machining (back pockets, joints, system holes, hardware) → checks
-  → output writers (`src/output`: cutlist, BOM D47, DXF, sheets). Hardware seed items are JSON in `packages/engine/library/hardware/`.
+  → output writers (`src/output`: cutlist, BOM D61, DXF, sheets). Hardware seed items are JSON in `packages/engine/library/hardware/`.
 - `packages/i18n` – message catalogues (`en` base, `de` complete) and the
   translator.
 - `packages/cli` – `cabinet-planner` command; the first client of the engine.
@@ -16,7 +16,7 @@ product, `DECISIONS.md` for conventions that outputs depend on.
   `src/lib/platform.ts` (storage, file dialogs, downloads).
 - `packages/desktop` – Tauri 2 shell around the app (native dialogs only).
 - `packages/server` – optional server (Node 22, `node:sqlite`, no native
-  deps): accounts, community packs, library sync. See its README and D49.
+  deps): accounts, community packs, library sync. See its README and D63.
 - `reference/` – reference cabinets with golden cutlists (byte-exact tests).
 - `examples/` – example project and shop files.
 - `design/` – UI mockups (visual reference only).

@@ -653,7 +653,11 @@ Two shop settings, because they are used for different things:
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
 
-### D45 · 2026-11-09 · Free construction: parameters, free parts, free bores
+> D59–D71 were D45–D57 on the audit branch (claude/repo-audit-multiplatform-n18kd0);
+> they were renumbered when that branch was merged with D45–D58 from the
+> wardrobe-sections work. Older commit messages use the old numbers.
+
+### D59 · 2026-11-09 · Free construction: parameters, free parts, free bores
 
 The box rule covers the usual carcase; it cannot foresee every way of
 building. A cabinet (and so a template) can leave the rule behind step by
@@ -722,7 +726,7 @@ step, with everything still a formula:
 - Not yet: free grooves/pockets and contours, system hole rows and
   hinges on free parts, angled parts, rotated fitting patterns.
 
-### D46 · 2026-11-09 · DXF and part sheets: contour direction, through pockets
+### D60 · 2026-11-09 · DXF and part sheets: contour direction, through pockets
 
 - The outline polyline runs counter-clockwise in every DXF file, also for
   a non-rectangular part (D43) seen from its t0 face, where the stored
@@ -733,7 +737,7 @@ step, with everything still a formula:
   (D22) and does not decide which face is shown. It is drawn solid on
   every sheet and written to the first side's DXF only, like edge bores.
 
-### D47 · 2026-11-09 · Bill of materials and costing
+### D61 · 2026-11-09 · Bill of materials and costing
 
 - The BOM (`output/bom.ts`) is computed from the project result only:
   board per material, edgeband per type, hardware and consumables per
@@ -764,7 +768,7 @@ step, with everything still a formula:
   (parts or edges), net, quantity to order, unit, unit price, cost, note
   (cut lengths of rails). Numbers per D10.
 
-### D48 · 2026-11-09 · Shaped parts in the cutlist, CSV downloads, sheet export
+### D62 · 2026-11-09 · Shaped parts in the cutlist, CSV downloads, sheet export
 
 - Written cutlists (CSV, table) mark a non-rectangular part (D43) with a
   remark in the note column, after the part's own note: the sizes are the
@@ -781,7 +785,7 @@ step, with everything still a formula:
   and through the print dialog, one sheet per page, each page as large as
   its sheet (true to scale) or fitted to A4 / A3.
 
-### D49 · 2026-11-09 · Accounts, community packs, library sync
+### D63 · 2026-11-09 · Accounts, community packs, library sync
 
 - The cloud is our own small server (`packages/server`): Node 22,
   `node:http`, `node:sqlite`, scrypt, zod; no native modules, one SQLite
@@ -815,7 +819,7 @@ step, with everything still a formula:
 - No e-mail yet: no address verification, no reset by mail (admin command
   `set-password`). Admins are the accounts named in `ADMIN_EMAILS`.
 
-### D50 · 2026-11-09 · Corrections from the rule audit
+### D64 · 2026-11-09 · Corrections from the rule audit
 
 Refinements of earlier decisions where the output was geometrically wrong;
 the earlier entries stay as written.
@@ -845,7 +849,7 @@ the earlier entries stay as written.
   diameter, blind depth or slot length that is not positive
   (`not_positive`), `through` on a connector's `edge` mount (`edge`).
 
-### D51 · 2026-11-10 · Hinges keep clear of fixed panels
+### D65 · 2026-11-10 · Hinges keep clear of fixed panels
 
 - A hinge whose mounting plate holes would fall on the end of a fixed
   panel (fixed shelf, or a lying free part ending at the hinge side),
@@ -856,7 +860,7 @@ the earlier entries stay as written.
 - Fronts fixed to an appliance door (integrated fridge, dishwasher) carry
   no hinges (D30); this concerns the doors above and below them.
 
-### D52 · 2026-11-10 · Door handles by grip height
+### D66 · 2026-11-10 · Door handles by grip height
 
 - Door handles (and handles on appliance fronts) no longer follow the
   cabinet kind. `handle_grip_h` is the height above the floor where a
@@ -866,7 +870,7 @@ the earlier entries stay as written.
   before); a door spanning the grip height gets it at that height (upper
   and full-height doors of tall units, which had it at their top end).
 
-### D53 · 2026-11-10 · Surface finishes; cutlist columns
+### D67 · 2026-11-10 · Surface finishes; cutlist columns
 
 - The library holds `surfaces` (finishes on top of the board): id, name,
   kind (melamine, hpl, lacquer, veneer, oil, other), `ref` (RAL / NCS
@@ -890,7 +894,7 @@ the earlier entries stay as written.
 - Not yet: surfaces per face (inside/outside), surface area and cost in
   the BOM.
 
-### D54 · 2026-11-10 · Cabinet view, room optional in the app, wall visibility
+### D68 · 2026-11-10 · Cabinet view, room optional in the app, wall visibility
 
 - The main view has two modes: **cabinet** (the selected cabinet alone) and
   **room** (all cabinets, in the room when there is one). Without a stored
@@ -917,7 +921,7 @@ the earlier entries stay as written.
 - UI preferences kept (D33): language, drawing style, machining, fronts,
   view mode, cabinet 3D, walls, hinge symbol.
 
-### D55 · 2026-11-10 · Arranging by dragging
+### D69 · 2026-11-10 · Arranging by dragging
 
 - In the app's floor plan a cabinet without `place.x` is one of a run:
   dragging it changes the project order (and `place.wall`), never writes
@@ -925,7 +929,7 @@ the earlier entries stay as written.
   snapping to wall ends, neighbours of its level and opening edges. A
   drag does not turn one kind into the other; the table does.
 
-### D56 · 2026-11-10 · Value rows show what applies
+### D70 · 2026-11-10 · Value rows show what applies
 
 - A value row (variable or option, in every editor and layer) shows the
   value that applies: the resolved number, or the applying choice. There is
@@ -950,7 +954,7 @@ the earlier entries stay as written.
 - `diagnosticText` (i18n) translates enumerated parameters of findings
   (opening kind, cutout kind, layer).
 
-### D57 · 2026-11-10 · Fixed shelves between fronts, shelves per compartment, box height, blind panel fixing, leg fixing, through bores
+### D71 · 2026-11-10 · Fixed shelves between fronts, shelves per compartment, box height, blind panel fixing, leg fixing, through bores
 
 Corrections from the first shop test. The earlier entries stay as written.
 

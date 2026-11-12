@@ -4,7 +4,7 @@ import type { ProjectResult } from "../project.ts";
 import { formatNumber, toCsv } from "./format.ts";
 
 /**
- * Bill of materials (D47): what to order for a project, and what it costs
+ * Bill of materials (D61): what to order for a project, and what it costs
  * when the library items carry prices. Data only; column headers, section
  * names and units are passed in as functions like in the cutlist writer.
  *

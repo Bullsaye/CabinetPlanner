@@ -88,7 +88,7 @@ describe("handles", () => {
 });
 
 describe("drawer front fixing (D26)", () => {
-  // The drawer stands on the fixed shelf between it and the door (D57), so its box is 69 high.
+  // The drawer stands on the fixed shelf between it and the door (D71), so its box is 69 high.
   it("wooden drawers: four screw holes through the inner front", () => {
     const r = buildOne({ fronts: [{ type: "drawer", h: 150 }, { type: "door" }] });
     const di = bores(partsByCode(r).DI1!, "DI1-DF1");

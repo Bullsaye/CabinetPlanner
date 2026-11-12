@@ -789,7 +789,7 @@ export const en = {
   "ui.flap_zone": "Flap",
   "ui.add_flap": "+ Flap",
   "ui.add_panel": "+ Panel",
-  // Free construction (D45)
+  // Free construction (D59)
   "ui.params": "Parameters",
   "ui.params_hint": "Your own sizes for this piece of furniture. They appear in the simple editor and can be used in every formula.",
   "ui.param_label": "Label",
@@ -1169,7 +1169,7 @@ export const en = {
   "ui.warnings": "{n} warning(s)",
   "ui.whole_project": "Whole project",
   "ui.yes": "Yes",
-  // --- Account, sync and community (D45) ---
+  // --- Account, sync and community (D59) ---
   "ui.tab.community": "Community",
   "cloud.community": "Community",
   "cloud.account": "Account",

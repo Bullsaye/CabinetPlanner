@@ -3,7 +3,7 @@
   import { parseInput, store } from "../lib/store.svelte.ts";
 
   /**
-   * Free construction (D45): the cabinet's own parameters, free parts placed
+   * Free construction (D59): the cabinet's own parameters, free parts placed
    * by formulas, box parts to leave out, free bores and extra hardware.
    */
   type Doc = Record<string, any>;

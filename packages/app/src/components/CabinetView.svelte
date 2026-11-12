@@ -6,7 +6,7 @@
   import Viewer3D from "./Viewer3D.svelte";
   import ViewModeSwitch from "./ViewModeSwitch.svelte";
 
-  // The selected cabinet alone (D54): its front elevation to scale, drawn from
+  // The selected cabinet alone (D68): its front elevation to scale, drawn from
   // the built parts, or the same cabinet in 3D. On narrow screens the
   // cabinet's settings follow below the drawing.
   const t = $derived(store.tr.t);

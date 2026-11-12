@@ -293,7 +293,7 @@ describe("upright rails and the interior", () => {
   });
 });
 
-describe("hinges and fixed panels (D51)", () => {
+describe("hinges and fixed panels (D65)", () => {
   it("moves a hinge whose plate would sit on the end of a fixed panel towards the door's middle", async () => {
     const { FACTORY_TEMPLATES, buildProject, loadProject } = await import("../src/index.ts");
     const tpl = FACTORY_TEMPLATES.find((t) => t.id === "tall-fridge")!;
@@ -314,7 +314,7 @@ describe("hinges and fixed panels (D51)", () => {
   });
 });
 
-describe("door handles by grip height (D52)", () => {
+describe("door handles by grip height (D66)", () => {
   const ys = (r: ReturnType<typeof buildOne>, part: string): number[] => r.cabinets[0]!.handles.filter((h) => h.part === part).flatMap((h) => h.points.map((p) => p.y));
   const handle = { "hardware.handle": "generic-bar-160" };
   it("upper door of a tall unit: at grip height, not at its top; lower door: at the top; full-height door: at grip height", () => {

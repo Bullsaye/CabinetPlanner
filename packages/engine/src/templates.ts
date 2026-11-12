@@ -123,7 +123,7 @@ export const FACTORY_TEMPLATES: readonly CabinetTemplate[] = [
   },
   { id: "sideboard", group: "storage", name: { en: "Sideboard, two doors", de: "Sideboard, zwei Türen" }, cabinet: base({ W: 1200, D: 450, door_count: 2 }) },
   {
-    // Free construction (D45): nothing of the box rule, four free parts and two parameters.
+    // Free construction (D59): nothing of the box rule, four free parts and two parameters.
     id: "bench",
     group: "storage",
     name: { en: "Bench (free construction)", de: "Sitzbank (freie Konstruktion)" },

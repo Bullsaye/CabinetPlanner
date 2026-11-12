@@ -109,7 +109,7 @@ class Store {
     layer: "cabinet" as Layer,
     selected: "B01" as string | null,
     part: null as string | null,
-    /** Parts highlighted in 3D while a setting about them has focus (D56). */
+    /** Parts highlighted in 3D while a setting about them has focus (D70). */
     highlight: [] as string[],
     explode: false,
     ops: true,
@@ -120,7 +120,7 @@ class Store {
     pane: "cabinet" as "cabinet" | "project" | "shop",
     /** Cabinet open in the construction editor. */
     construction: null as string | null,
-    /** Main view: the selected cabinet alone or the room; null follows the screen width (D54). */
+    /** Main view: the selected cabinet alone or the room; null follows the screen width (D68). */
     viewMode: null as ViewMode | null,
     /** Cabinet view: 3D of the single cabinet instead of the front elevation. */
     cabinet3d: false,

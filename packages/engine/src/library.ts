@@ -23,7 +23,7 @@ export const Material = z.object({
 export type Material = z.infer<typeof Material>;
 
 /**
- * A surface finish applied to a part on top of its board (D53): laminate,
+ * A surface finish applied to a part on top of its board (D67): laminate,
  * lacquer in a colour, veneer, oil. Direct-coated board needs none: its
  * surface is the material.
  */

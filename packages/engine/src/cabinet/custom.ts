@@ -11,7 +11,7 @@ import type { AddPart, BoxLayout } from "./box.ts";
 import type { Joint } from "./machining.ts";
 
 /**
- * Free construction (D45): parts placed by formulas, free bores and extra
+ * Free construction (D59): parts placed by formulas, free bores and extra
  * hardware. The box rule covers the usual carcase; this is the way out for
  * everything it does not foresee. Nothing here knows a size: every number
  * is a formula of the cabinet's author.
@@ -231,7 +231,7 @@ function wideFace(part: Part, face: "inner" | "outer", centre: { x: number; y: n
 const listOf = (x: string | string[]): string[] => (typeof x === "string" ? [x] : x);
 
 /**
- * Free bores and placed fittings (D45), in part-local coordinates; problems
+ * Free bores and placed fittings (D59), in part-local coordinates; problems
  * become diagnostics, never exceptions. Returns the fittings placed, for the lists.
  */
 export function applyCustomBores(rc: ResolvedCabinet, library: Library, parts: Part[], diagnostics: Diagnostic[]): { item: string; qty: number }[] {

@@ -434,7 +434,7 @@ export function machineBox(
     };
     const edgeOff = num("handle_edge_offset");
     const endOff = num("handle_end_offset");
-    // Grip height in cabinet Y (D52): the handle sits as near to it as the door allows.
+    // Grip height in cabinet Y (D66): the handle sits as near to it as the door allows.
     const grip = num("handle_grip_h") - (rc.cabinet.kind === "wall" ? num("wall_bottom") : num("plinth_h"));
     const near = (lo: number, hi: number, want: number): number => (hi < lo ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, want)));
     for (const d of [...layout.doors, ...layout.applianceFronts]) {
@@ -506,7 +506,7 @@ export function machineBox(
         const s = num("front_screw_side");
         const e = num("front_screw_edge");
         const src: OpSource = { kind: "joint", ref: `DI${d.index}-DF${d.index}` };
-        // A low box (drawer_box_h) has no room for two rows: one row at mid-height (D57).
+        // A low box (drawer_box_h) has no room for two rows: one row at mid-height (D71).
         const rows = b.dy >= 2 * e + num("front_screw_d") + num("bore_min_wall") ? [b.y + e, b.y + b.dy - e] : [b.y + b.dy / 2];
         for (const x of [b.x + s, b.x + b.dx - s]) {
           for (const y of rows) {
@@ -551,7 +551,7 @@ export function machineBox(
     const source: OpSource = { kind: "hardware", ref: item.id };
     for (const f of layout.flaps) {
       const front = byCode.get(f.code)!;
-      // A flap closes against the panel below it and its fitting hangs under the panel above (D57).
+      // A flap closes against the panel below it and its fitting hangs under the panel above (D71).
       if (!f.panelBelow) diagnostics.push({ severity: "warning", code: "flap_no_panel_below", params: { part: front.id }, ...at, part: front.id });
       if (!f.panelAbove) {
         diagnostics.push({ severity: "error", code: "flap_no_panel_above", params: { part: front.id, item: item.id }, ...at, part: front.id });
@@ -685,7 +685,7 @@ export function machineBox(
     use(item, xs.length * zs.length);
   }
 
-  // --- Fixed blind panels (D57): joined to the carcase parts they lie on ----------------------
+  // --- Fixed blind panels (D71): joined to the carcase parts they lie on ----------------------
   // A carcase part standing behind the panel with its face (upright front
   // rail, free frontal part) is screwed through from inside like a drawer's
   // inner front (D26); a part that only meets it with its front edge (side,
@@ -766,7 +766,7 @@ export function machineBox(
     }
   }
 
-  // --- Free bores and extra hardware (D45) -------------------------------------------------
+  // --- Free bores and extra hardware (D59) -------------------------------------------------
   for (const f of applyCustomBores(rc, library, parts, diagnostics)) use(library.hardware.get(f.item)!, f.qty);
   for (const [k, h] of (rc.cabinet.construction?.hardware ?? []).entries()) {
     const item = library.hardware.get(h.item);
@@ -1177,7 +1177,7 @@ function placeHinges(
     centres = centres.map((c) => gy0 + Math.round((c - gridOffset - gy0) / pitch) * pitch + gridOffset);
   }
 
-  // A mounting plate never sits on the end of a fixed panel (D51): the hinge
+  // A mounting plate never sits on the end of a fixed panel (D65): the hinge
   // moves towards the door's middle in pitch steps until its plate holes are clear.
   if (sidePart) {
     const face = side === "left" ? sidePart.box.x + sidePart.box.dx : sidePart.box.x;

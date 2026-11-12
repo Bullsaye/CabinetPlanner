@@ -4,7 +4,7 @@
   import { parseInput, store } from "../lib/store.svelte.ts";
 
   type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number | string; boxH?: number | string };
-  /** The zone's own value besides its height (D57): shelves of a compartment, or the box height of a drawer. */
+  /** The zone's own value besides its height (D71): shelves of a compartment, or the box height of a drawer. */
   const extraOf = (z: Zone): "shelves" | "boxH" | undefined => (z.type === "drawer" ? "boxH" : z.type === "door" || z.type === "open" || z.type === "flap" ? "shelves" : undefined);
   const TYPES = ["door", "drawer", "flap", "open", "appliance", "panel"] as const;
 
@@ -88,7 +88,7 @@
     return [{ x: gl, w: W - gl - gr, ...(z.type === "door" ? { hinge: doorMode(z) as "left" | "right" } : {}) }];
   }
 
-  /** Hinges and handles as the engine drilled them (D54), so the opening direction is plain to see. */
+  /** Hinges and handles as the engine drilled them (D68), so the opening direction is plain to see. */
   const fv = $derived(store.cabinet?.parts.length ? frontViewOf(store.cabinet) : undefined);
   const doorOf = (id: string) => fv?.parts.find((p) => p.id === id);
 

@@ -5,7 +5,7 @@
   import { store } from "../lib/store.svelte.ts";
   import ViewModeSwitch from "./ViewModeSwitch.svelte";
 
-  /** `single`: only the selected cabinet, standing alone without the room (D54). */
+  /** `single`: only the selected cabinet, standing alone without the room (D68). */
   let { single = false }: { single?: boolean } = $props();
   const t = $derived(store.tr.t);
   let canvas: HTMLCanvasElement;

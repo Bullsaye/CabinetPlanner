@@ -14,7 +14,7 @@ import { diagnosticText } from "@cabinet-planner/i18n";
 import { store, type Layer } from "./store.svelte.ts";
 
 /**
- * What the value rows show (D56): the value that applies in a layer, where
+ * What the value rows show (D70): the value that applies in a layer, where
  * it comes from, and the findings that belong to it.
  */
 
