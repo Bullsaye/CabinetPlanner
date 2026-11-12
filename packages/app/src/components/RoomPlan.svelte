@@ -6,7 +6,8 @@
    * coordinates and viewBox (floorPlanFrame), so they fit at any size.
    */
   import { drawingText, floorPlanFrame, floorPlanSvg, type CabinetPlacement, type WallLayout } from "@cabinet-planner/engine";
-  import { applyMove, insertion, itemsOf, levelOf, nearestWall, onWall, simulate, snapX, stepAnchor, withInserted, type Anchor, type ArrItem, type Level } from "../lib/arrange.ts";
+  import { applyMove, itemsOf, stepAnchor } from "../lib/arrange.ts";
+  import { ArrangeDrag, type DragBox } from "../lib/arrange-drag.svelte.ts";
   import { store } from "../lib/store.svelte.ts";
 
   type Doc = Record<string, any>;
@@ -23,7 +24,6 @@
   const docs = (): Doc[] => (store.project.cabinets ?? []) as Doc[];
   const wallOf = (id: string): WallLayout | undefined => layout?.walls.find((w) => w.id === id);
   const placed = (id: string | null): CabinetPlacement | undefined => layout?.placements.find((p) => p.cabinet === id);
-  const isFree = (id: string): boolean => docs().find((c) => c.id === id)?.place?.x !== undefined;
   const num = (x: number): string => store.tr.number(Math.round(x * 10) / 10, 1);
 
   /** Paper points of a rectangle standing on a wall: from x along it, v0..v1 into the room. */
@@ -31,6 +31,17 @@
     if (!frame) return "";
     const at = (u: number, v: number): string => frame.toPaper(w.start[0] + w.d[0] * u + w.n[0] * v, w.start[1] + w.d[1] * u + w.n[1] * v).map((c) => Math.round(c * 1000) / 1000).join(",");
     return [at(x, v0), at(x + W, v0), at(x + W, v1), at(x, v1)].join(" ");
+  }
+
+  const box = (b: DragBox): string => {
+    const w = wallOf(b.wall);
+    return w ? rect(w, b.x, b.W, 0, b.depth) : "";
+  };
+  /** Paper point of the middle of a cabinet-sized place. */
+  function centre(b: DragBox): [number, number] {
+    const w = wallOf(b.wall);
+    if (!w || !frame) return [0, 0];
+    return frame.toPaper(w.start[0] + w.d[0] * (b.x + b.W / 2) + (w.n[0] * b.depth) / 2, w.start[1] + w.d[1] * (b.x + b.W / 2) + (w.n[1] * b.depth) / 2);
   }
 
   /**
@@ -45,36 +56,22 @@
       const w = wallOf(q.wall);
       if (!w) return [];
       const over = q.kind === "wall" && layout.placements.some((o) => o.kind !== "wall" && o.wall === q.wall && o.x < q.x + q.W - 1 && q.x < o.x + o.W - 1);
-      return [{ id: q.cabinet, points: rect(w, q.x, q.W, 0, over ? q.depth / 2 : q.depth), full: rect(w, q.x, q.W, 0, q.depth) }];
+      return [{ id: q.cabinet, floor: q.kind !== "wall", points: rect(w, q.x, q.W, 0, over ? q.depth / 2 : q.depth), full: rect(w, q.x, q.W, 0, q.depth), centre: centre({ wall: w.id, x: q.x, W: q.W, depth: q.depth }) }];
     });
   });
   const selected = $derived(shapes.find((s) => s.id === store.ui.selected));
 
   // --- Dragging -------------------------------------------------------------
 
+  /** The pointer of a drag; the drag itself (rules, project, undo) is lib/arrange-drag, shared with the 3D view. */
   interface Drag {
     id: string;
     pointerId: number;
     touch: boolean;
     sx: number;
     sy: number;
-    started: boolean;
     view: View;
-    /** From the cabinet's left side to the pointer, along the wall. */
-    grab: number;
-    W: number;
-    depth: number;
-    level: Level;
-    free: boolean;
-    snapshot: string;
-    others: ArrItem[];
-    wall: string;
-    /** Run: the place shown, the place written to the project, and where it was grabbed. */
-    applied: string;
-    written: string;
-    initial: string;
-    /** Free: the position last written. */
-    x?: number;
+    move: ArrangeDrag;
     cx: number;
     cy: number;
   }
@@ -83,25 +80,10 @@
   let over = $state<SVGSVGElement>();
   let dragging = $state(false);
   let drag_id = $state<string | null>(null);
-  let ghost = $state<{ points: string; label?: { x: number; y: number; text: string }; guide?: string } | null>(null);
+  let ghost = $state<{ points: string; cx: number; cy: number; id: string; label?: string; guide?: string } | null>(null);
   /** Cabinets shown at their place to be, while the project is not rebuilt during the drag. */
   let preview = $state<{ id: string; from: string; to: string; cx: number; cy: number }[]>([]);
   let raf = 0;
-
-  /**
-   * How the others make room while dragging: the project is changed and
-   * rebuilt at once when that is quick (the plan itself shows the result,
-   * worktops and dimensions included). A large kitchen takes longer than a
-   * frame or two: then the places are worked out here (arrange.simulate) and
-   * drawn over the plan, and the project changes once, on drop.
-   */
-  const LIVE_MAX_MS = 60;
-  let buildMs = 0;
-  function rebuild(): void {
-    const t0 = performance.now();
-    void store.result;
-    buildMs = performance.now() - t0;
-  }
 
   /**
    * Screen → plan mm. A drag keeps the mapping it started with: when the page
@@ -125,61 +107,24 @@
   function down(e: PointerEvent): void {
     if (drag || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
     const id = (e.target as Element | null)?.closest?.("[data-cab]")?.getAttribute("data-cab");
-    const q = placed(id ?? null);
-    const w = q && wallOf(q.wall);
     const v = view();
-    if (!id || !q || !w || !v) return;
+    const move = id && v ? ArrangeDrag.grab(id, toPlan(v, e.clientX, e.clientY)) : undefined;
+    if (!id || !v || !move) return;
     host?.setPointerCapture(e.pointerId);
-    drag = {
-      id,
-      pointerId: e.pointerId,
-      touch: e.pointerType === "touch",
-      sx: e.clientX,
-      sy: e.clientY,
-      started: false,
-      view: v,
-      grab: onWall(w, toPlan(v, e.clientX, e.clientY)).u - q.x,
-      W: q.W,
-      depth: q.depth,
-      level: levelOf(q.kind),
-      free: isFree(id),
-      snapshot: "",
-      others: [],
-      wall: w.id,
-      applied: "",
-      written: "",
-      initial: "",
-      cx: e.clientX,
-      cy: e.clientY,
-    };
+    drag = { id, pointerId: e.pointerId, touch: e.pointerType === "touch", sx: e.clientX, sy: e.clientY, view: v, move, cx: e.clientX, cy: e.clientY };
   }
-
-  function begin(d: Drag): void {
-    // What was edited before the drag stays its own undo step; the drag becomes one.
-    store.record();
-    store.historyHold = true;
-    d.snapshot = JSON.stringify($state.snapshot(store.project));
-    d.started = true;
-    dragging = true;
-    drag_id = d.id;
-    store.ui.selected = d.id;
-    if (!d.free && layout) {
-      d.others = itemsOf(docs(), layout.placements).filter((it) => it.id !== d.id);
-      const q = placed(d.id)!;
-      d.initial = d.applied = d.written = key(d.wall, insertion(layout.walls, d.others, d.wall, d.level, q.x).anchor);
-    }
-  }
-  const key = (wall: string, anchor: unknown): string => `${wall}|${JSON.stringify(anchor)}`;
 
   function move(e: PointerEvent): void {
     const d = drag;
     if (!d || e.pointerId !== d.pointerId) return;
     d.cx = e.clientX;
     d.cy = e.clientY;
-    if (!d.started) {
+    if (!d.move.started) {
       // A tap selects: the drag starts after a few pixels (more for a finger).
       if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < (d.touch ? 10 : 5)) return;
-      begin(d);
+      d.move.begin();
+      dragging = true;
+      drag_id = d.id;
     }
     if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(false); });
   }
@@ -187,60 +132,23 @@
   /** Follows the pointer: the ghost always, the project when the place changes. */
   function update(final: boolean): void {
     const d = drag;
-    if (!d || !d.started || !layout) return;
-    const p = toPlan(d.view, d.cx, d.cy);
-    const w = wallOf(nearestWall(layout.walls, p, d.wall)) ?? wallOf(d.wall);
-    if (!w) return;
-    d.wall = w.id;
-    const left = onWall(w, p).u - d.grab;
-    if (d.free) {
-      const others = layout.placements.filter((q) => q.wall === w.id && levelOf(q.kind) === d.level && q.cabinet !== d.id);
-      const s = snapX(left, d.W, w.length, others, layout.openings.filter((o) => o.wall === w.id), (d.touch ? 16 : 10) * d.view.mmPerPx);
-      const [lx, ly] = frame!.toPaper(w.start[0] + w.d[0] * (s.x + d.W / 2) + w.n[0] * d.depth / 2, w.start[1] + w.d[1] * (s.x + d.W / 2) + w.n[1] * d.depth / 2);
-      ghost = {
-        points: rect(w, s.x, d.W, 0, d.depth),
-        label: { x: lx, y: ly, text: num(s.x) },
-        ...(s.edge !== undefined ? { guide: rect(w, s.edge, 0, -w.thickness, Math.max(d.depth, 600) + 150) } : {}),
-      };
-      // A free position changes with every frame: live only when a build fits into one.
-      if ((final || buildMs <= LIVE_MAX_MS / 3) && (d.x !== s.x || placed(d.id)?.wall !== w.id)) {
-        d.x = s.x;
-        applyMove(docs(), d.id, w.id, null, s.x);
-        rebuild();
-      }
-    } else {
-      const ins = insertion(layout.walls, d.others, w.id, d.level, left);
-      const k = key(w.id, ins.anchor);
-      const live = final || buildMs <= LIVE_MAX_MS;
-      if (live ? k !== d.written : k !== d.applied) {
-        d.applied = k;
-        if (live) {
-          d.written = k;
-          preview = [];
-          applyMove(docs(), d.id, w.id, ins.anchor);
-          rebuild();
-        } else preview = k === d.written ? [] : previewOf(d, w.id, ins.anchor);
-      }
-      ghost = { points: rect(w, Math.min(Math.max(0, w.length - d.W), Math.max(0, left)), d.W, 0, d.depth) };
-    }
-  }
-
-  /** Where the cabinets of the dragged one's level would stand, for those that move. */
-  function previewOf(d: Drag, wall: string, anchor: Anchor): typeof preview {
-    if (!layout || !frame) return [];
-    const list = withInserted(d.others, { id: d.id, level: d.level, wall, W: d.W, depth: d.depth }, anchor);
-    const pos = simulate(layout.walls, list);
-    const out: typeof preview = [];
-    for (const it of list) {
-      const now = placed(it.id);
-      const x = pos.get(it.id);
-      const w = wallOf(it.wall);
-      const w0 = now && wallOf(now.wall);
-      if (!now || !w || !w0 || x === undefined || (now.wall === it.wall && Math.abs(now.x - x) < 0.01)) continue;
-      const [cx, cy] = frame.toPaper(w.start[0] + w.d[0] * (x + it.W / 2) + (w.n[0] * it.depth) / 2, w.start[1] + w.d[1] * (x + it.W / 2) + (w.n[1] * it.depth) / 2);
-      out.push({ id: it.id, from: rect(w0, now.x, now.W, 0, now.depth), to: rect(w, x, it.W, 0, it.depth), cx, cy });
-    }
-    return out;
+    if (!d || !d.move.started || !layout) return;
+    const show = d.move.update(toPlan(d.view, d.cx, d.cy), (d.touch ? 16 : 10) * d.view.mmPerPx, final);
+    if (!show) return;
+    const w = wallOf(show.ghost.wall);
+    const [cx, cy] = centre(show.ghost);
+    ghost = {
+      points: box(show.ghost),
+      cx,
+      cy,
+      id: d.id,
+      ...(show.label !== undefined ? { label: num(show.label) } : {}),
+      ...(show.guide !== undefined && w ? { guide: rect(w, show.guide, 0, -w.thickness, Math.max(show.ghost.depth, 600) + 150) } : {}),
+    };
+    preview = show.preview.map((m) => {
+      const [px, py] = centre(m.to);
+      return { id: m.id, from: box(m.from), to: box(m.to), cx: px, cy: py };
+    });
   }
 
   function finish(cancel: boolean): void {
@@ -253,16 +161,11 @@
     ghost = null;
     preview = [];
     dragging = false;
-    if (!d.started) {
+    if (!d.move.started) {
       if (!cancel) store.ui.selected = d.id;
       return;
     }
-    // Cancelled, or dropped where it was grabbed: exactly the state before the drag.
-    if ((cancel || (!d.free && d.written === d.initial)) && JSON.stringify($state.snapshot(store.project)) !== d.snapshot) {
-      store.project = JSON.parse(d.snapshot);
-    }
-    store.historyHold = false;
-    store.record();
+    d.move.finish(cancel);
   }
 
   function up(e: PointerEvent): void {
@@ -328,9 +231,13 @@
 <div class="rp">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="sheet stack" class:dragging bind:this={host} onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={cancelled}>
-    <div class="draw">{@html plan}</div>
+    <div class="draw" class:notops={!store.ui.worktops}>{@html plan}</div>
     {#if frame}
       <svg class="over" bind:this={over} {viewBox}>
+        {#if !store.ui.worktops}
+          <!-- Without the worktops the floor units show their own outline. -->
+          {#each shapes as s (s.id)}{#if s.floor}<polygon class="cab" points={s.full} />{/if}{/each}
+        {/if}
         {#each shapes as s (s.id)}
           <polygon
             class="hit"
@@ -343,8 +250,11 @@
             onkeydown={(e) => shapeKey(e, s.id)}
           ><title>{s.id}</title></polygon>
         {/each}
+        <!-- While dragging everything but the dragged cabinet steps back. -->
+        {#if dragging}<rect class="dim" x={frame.view[0]} y={frame.view[1]} width={frame.view[2]} height={frame.view[3]} />{/if}
         {#if selected}
           <polygon class="hit sel" class:slot={dragging} data-cab={selected.id} points={selected.full} aria-hidden="true" />
+          {#if !dragging}<text class="sel-id" x={selected.centre[0]} y={selected.centre[1]} text-anchor="middle" dominant-baseline="central">{selected.id}</text>{/if}
         {/if}
         {#each preview as m (m.id)}<polygon class="veil" points={m.from} />{/each}
         {#each preview as m (m.id)}
@@ -354,8 +264,9 @@
         {#if ghost}
           {#if ghost.guide}<polygon class="guide" points={ghost.guide} />{/if}
           <polygon class="ghost" points={ghost.points} />
+          <text class="sel-id" x={ghost.cx} y={ghost.cy - (ghost.label ? 2.2 : 0)} text-anchor="middle" dominant-baseline="central">{ghost.id}</text>
           {#if ghost.label}
-            <text class="xlabel" x={ghost.label.x} y={ghost.label.y} text-anchor="middle" dominant-baseline="central">{ghost.label.text}</text>
+            <text class="xlabel" x={ghost.cx} y={ghost.cy + 2.6} text-anchor="middle" dominant-baseline="central">{ghost.label}</text>
           {/if}
         {/if}
       </svg>
@@ -377,6 +288,8 @@
     {:else}
       <span class="muted small">{t("ui.arrange_none")}</span>
     {/if}
+    <span class="sp"></span>
+    <button id="plan-worktops" aria-pressed={store.ui.worktops} onclick={() => (store.ui.worktops = !store.ui.worktops)}>{t("ui.worktops")}</button>
   </div>
   <p class="hint muted">{t("ui.arrange_hint")}</p>
 </div>
@@ -393,14 +306,21 @@
   .hit { fill: transparent; stroke: none; pointer-events: all; cursor: grab; touch-action: none; outline: none; }
   .hit:hover { fill: color-mix(in srgb, var(--accent) 12%, transparent); }
   .hit:focus-visible { stroke: var(--accent); stroke-width: 0.6; stroke-dasharray: 1.2 0.8; }
-  .hit.sel { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 0.7; }
-  .hit.sel.slot { fill: none; stroke-dasharray: 2 1.2; }
+  /* The selected cabinet lies over the worktop, filled and with a strong outline, its id large. */
+  .hit.sel { fill: color-mix(in srgb, var(--accent) 34%, var(--surface)); fill-opacity: 0.92; stroke: var(--accent); stroke-width: 1.1; stroke-linejoin: round; }
+  .hit.sel:hover { fill: color-mix(in srgb, var(--accent) 40%, var(--surface)); }
+  .hit.sel.slot { fill: none; stroke-width: 0.7; stroke-dasharray: 2 1.2; }
+  .sel-id { font: 700 4.4px var(--font-mono); fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 1.1; stroke-linejoin: round; pointer-events: none; }
+  .dim { fill: var(--surface); fill-opacity: 0.6; pointer-events: none; }
+  .cab { fill: var(--part); fill-opacity: 0.55; stroke: var(--fg); stroke-width: 0.3; pointer-events: none; }
+  .draw.notops :global(.rm-top), .draw.notops :global(.rm-cut) { display: none; }
+  .sp { flex: 1; }
   .dragging, .dragging .hit { cursor: grabbing; }
   .veil { fill: var(--surface); fill-opacity: 0.85; pointer-events: none; }
   .pre { fill: color-mix(in srgb, var(--accent) 10%, var(--surface)); stroke: var(--accent); stroke-width: 0.35; pointer-events: none; }
   .pre.slot { stroke-width: 0.7; stroke-dasharray: 2 1.2; }
   .pre-id { font: 600 2.4px var(--font-mono); fill: var(--fg); pointer-events: none; }
-  .ghost { fill: color-mix(in srgb, var(--accent) 30%, transparent); stroke: var(--accent); stroke-width: 0.5; pointer-events: none; }
+  .ghost { fill: color-mix(in srgb, var(--accent) 42%, var(--surface)); fill-opacity: 0.9; stroke: var(--accent); stroke-width: 1.1; stroke-linejoin: round; pointer-events: none; }
   .guide { fill: none; stroke: var(--err); stroke-width: 0.35; stroke-dasharray: 1.5 1; pointer-events: none; }
   .xlabel { font: 600 3.2px var(--font-mono); fill: #1b1f24; paint-order: stroke; stroke: #fff; stroke-width: 0.9; pointer-events: none; }
   .bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 36px; }

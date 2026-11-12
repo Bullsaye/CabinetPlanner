@@ -38,6 +38,9 @@
     store.ui.viewMode;
     store.ui.cabinet3d;
     store.ui.walls;
+    store.ui.fittings;
+    store.ui.worktops;
+    store.ui.plinths;
     store.ui.hingeSymbol;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => void store.persist(), 300);

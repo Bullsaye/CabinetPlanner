@@ -20,6 +20,8 @@ export interface ArrWall {
   start: Vec2;
   /** Unit direction along the wall. */
   d: Vec2;
+  /** Unit normal into the room; by default to the right of `d` (walls run clockwise, D28). */
+  n?: Vec2;
   length: number;
   turn: "right" | "left";
 }
@@ -102,12 +104,20 @@ export function onWall(wall: ArrWall, p: Vec2): { u: number; dist: number } {
  * nearest to the pointer. The current wall is kept until another one is
  * nearer by `hysteresis` (no flicker on the diagonal of a corner), and when
  * the pointer is further than `reach` from every wall.
+ *
+ * `out`: how far in front of its wall the cabinet is held (the 3D view grabs
+ * it at its front or top, not at its foot print). Each wall is then measured
+ * from the point `out` behind the pointer, as seen from that wall: where the
+ * cabinet's back would be if it stood there. So a cabinet in a corner, held
+ * at its front, stays on its wall although its front is nearer to the other.
  */
-export function nearestWall(walls: readonly ArrWall[], p: Vec2, current: string, hysteresis = 150, reach = 1500): string {
+export function nearestWall(walls: readonly ArrWall[], p: Vec2, current: string, hysteresis = 150, reach = 1500, out = 0): string {
   let best = current;
   let bestDist = Infinity;
   for (const w of walls) {
-    const dist = onWall(w, p).dist - (w.id === current ? hysteresis : 0);
+    const n = w.n ?? [w.d[1], -w.d[0]];
+    const q: Vec2 = out ? [p[0] - n[0] * out, p[1] - n[1] * out] : p;
+    const dist = onWall(w, q).dist - (w.id === current ? hysteresis : 0);
     if (dist < bestDist) {
       bestDist = dist;
       best = w.id;
@@ -250,4 +260,17 @@ export function snapX(
   if (best) return best;
   const max = Math.max(0, wallLength - W);
   return { x: Math.min(max, Math.max(0, Math.round(left / grid) * grid)) };
+}
+
+/**
+ * Where a pointer ray of the 3D view meets the horizontal plane at `height`,
+ * as a plan point (D28). The scene has plan X as X, up as Y and plan Y
+ * (north) as −Z. `null` when the ray runs level, away from the plane or
+ * meets it further than `reach` away (a pointer near the horizon).
+ */
+export function rayToPlan(origin: readonly [number, number, number], dir: readonly [number, number, number], height: number, reach = 60000): Vec2 | null {
+  if (Math.abs(dir[1]) < 1e-9) return null;
+  const k = (height - origin[1]) / dir[1];
+  if (!(k > 0) || k * Math.hypot(dir[0], dir[1], dir[2]) > reach) return null;
+  return [origin[0] + dir[0] * k, -(origin[2] + dir[2] * k)];
 }

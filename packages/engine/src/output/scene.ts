@@ -3,6 +3,7 @@ import type { Library } from "../library.ts";
 import type { CabinetResult } from "../project.ts";
 import { faceAxes, toCabinet, type Face } from "../ops.ts";
 import { thicknessAxis, type Axis, type Box, type Part, type PartRole } from "../part.ts";
+import { viewFittingsOf, type ViewFitting } from "./fittings.ts";
 
 /**
  * A view-ready description of a cabinet in cabinet coordinates (D2): one box
@@ -38,6 +39,8 @@ export interface Scene {
   size: { W: number; H: number; D: number; plinth: number };
   parts: ScenePart[];
   handles: HandlePlacement[];
+  /** Fittings as simplified solids, placed from the drilled positions (D58). */
+  fittings: ViewFitting[];
 }
 
 function cabinetAxisOf(part: Part, local: "u" | "v" | "w"): Axis {
@@ -56,6 +59,7 @@ export function sceneOf(c: CabinetResult, library?: Library): Scene {
     cabinet: c.resolved.cabinet.id,
     size: { W: v("W"), H: v("H"), D: v("D"), plinth: v("plinth_h") },
     handles: c.handles,
+    fittings: viewFittingsOf(c),
     parts: c.parts.map((p) => ({
       id: p.id,
       code: p.code,

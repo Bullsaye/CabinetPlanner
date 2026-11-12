@@ -73,7 +73,7 @@ export type ViewMode = "cabinet" | "room";
 export type WallsShown = "all" | "used" | "none";
 export type HingeSymbol = "tip_at_hinge" | "tip_at_handle";
 /** Preferences kept between sessions (D33). */
-const PREFS = ["lang", "style", "ops", "fronts", "viewMode", "cabinet3d", "walls", "hingeSymbol"] as const;
+const PREFS = ["lang", "style", "ops", "fronts", "viewMode", "cabinet3d", "walls", "hingeSymbol", "fittings", "worktops", "plinths"] as const;
 
 export type Tab = "view" | "room" | "cutlist" | "drawings" | "hardware" | "library" | "community";
 export type Screen = "home" | "project";
@@ -126,6 +126,11 @@ class Store {
     cabinet3d: false,
     /** Walls drawn in the room 3D view. */
     walls: "used" as WallsShown,
+    /** 3D view: fittings as simplified solids (D58). */
+    fittings: true,
+    /** 3D view and floor plan: worktops; 3D view: plinth panels (D58). */
+    worktops: true,
+    plinths: true,
     /** Opening symbol on doors: tip at the hinge edge (DIN) or at the handle edge. */
     hingeSymbol: "tip_at_hinge" as HingeSymbol,
     /** Front zone picked in a drawing (index into the front stack). */
