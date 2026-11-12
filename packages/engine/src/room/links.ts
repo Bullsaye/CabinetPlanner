@@ -4,7 +4,7 @@ import { evaluateItemParams } from "../hardware/evaluate.ts";
 import type { Library } from "../library.ts";
 import { addThroughBore, boreWouldCollide, type ThroughMode } from "../ops.ts";
 import { roundMm } from "../part.ts";
-import { ceilingAlong, ceilingAt, type CabinetPlacement, type RoomLayout } from "./room.ts";
+import { carcaseTopAt, carcaseTopKinks, ceilingAlong, ceilingAt, type CabinetPlacement, type RoomLayout } from "./room.ts";
 
 /**
  * Neighbours in the room (D37). A carcase side is hidden when another unit
@@ -132,8 +132,14 @@ export function aboveCeiling(room: RoomLayout): Diagnostic[] {
   const out: Diagnostic[] = [];
   for (const q of room.placements) {
     const at = (x: number, z: number): [number, number] => [q.origin[0] + q.d[0] * x + q.n[0] * z, q.origin[1] + q.d[1] * x + q.n[1] * z];
-    const min = Math.min(...[0, q.W].flatMap((x) => [0, q.carcaseD].map((z) => ceilingAt(room.ceiling, at(x, z)))));
-    const over = q.baseY + q.H - min;
+    // Compare the carcase top (less sloped corners, D47) with the ceiling over
+    // its rear and front edge at every kink of either.
+    const lines = [0, q.carcaseD].map((z) => ceilingAlong(room.ceiling, at(0, z), at(q.W, z)));
+    const xs = [...carcaseTopKinks(q), ...lines.flatMap((l) => l.map(([t]) => t))].filter((x) => x >= -1e-6 && x <= q.W + 1e-6);
+    // Across the depth: both edges, the rear slope's kink and a few steps between (D49).
+    const rear = q.slopes?.rear;
+    const zs = [...new Set([0, q.carcaseD, ...(rear ? [rear.drop / Math.tan((rear.angle * Math.PI) / 180)] : []), ...Array.from({ length: 9 }, (_, i) => ((i + 1) * q.carcaseD) / 10)])].filter((z) => z <= q.carcaseD);
+    const over = Math.max(...xs.flatMap((x) => zs.map((z) => q.baseY + carcaseTopAt(q, x, z) - ceilingAt(room.ceiling, at(x, z)))));
     if (over > 0.5) out.push({ severity: "warning", code: "room_above_ceiling", params: { over: roundMm(over) }, cabinet: q.cabinet });
   }
   return out;

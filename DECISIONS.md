@@ -653,6 +653,275 @@ Two shop settings, because they are used for different things:
 - Elevations draw the wall up to the ceiling line; the plan marks where
   each slope meets the flat ceiling; 3D shows the slopes.
 
+### D45 · 2026-11-10 · Moving blocked sequence dowels
+
+- Supersedes the "moves forward in pitch steps" part of D35 for blocked
+  positions. A sequence dowel whose position is blocked by other machining
+  tries, in this order: one, two, three pitches forward (as before), half a
+  pitch forward, half a pitch back, one pitch back, one and a half pitches
+  back. A moved dowel stays at least min(`dowel_offset_front`,
+  `dowel_offset_rear`) from both ends of the joint and at least half a pitch
+  from the dowel before it. Before, a blocked first dowel could move onto
+  the panel edge: fixed shelves at the same height on both faces of a
+  middle panel (dowels from both faces would meet in the panel) failed the
+  edge check. Now the second face's dowels sit between the first face's.
+
+### D46 · 2026-11-10 · Sections, middle panels through, hat shelf, zone shelves
+
+- A cabinet may list `sections` left to right: each with an optional clear
+  width `w` (number or formula; the others share the rest), its own front
+  stack `fronts` (default: one door), `interior` (`shelves` / `hanging`,
+  default from option `interior`: hanging = all, hanging_first / _last =
+  first / last section), `shelves` (default shelf_count) and
+  `construction` (panels and fixed-shelf changes; the cabinet's own
+  construction applies to every section first). The number of sections
+  sets the middle panels (partition_count is ignored, warning if it
+  differs); the cabinet's `fronts` are ignored (warning). Not yet with
+  sections: flaps (error), blind corners and `noBack` (warning).
+- Without sections nothing changes: partition_count equal sections share
+  one front stack, and middle panels still drop out (warning) under
+  full-width drawers.
+- Section fronts span from the outer edge less the side gap, or from the
+  middle of a middle panel plus half `front_gap_middle`, so two sections
+  side by side look like a pair of doors. A single door hinges on the
+  section's outer side (left section left, right section right, middle
+  sections `door_hinge_side`) unless the zone sets `hinge`. Hinges go into
+  the panel on that side: a side or a middle panel (`hinge_overlay` is
+  measured from that panel's face).
+- Drawers in a section: box and slides over the section's clear width
+  (`LWK` = section width); rails drilled into the panels left and right
+  (sides or middle panel faces); system front fixing measured from those
+  faces. Slide limits are checked once per width.
+- Fixed shelves per section follow that section's zones (D30). Zone
+  ranges and drawer floor/ceiling now also respect extra construction
+  panels (D38): a panel inside a zone or at its edge (within one front gap
+  plus its thickness) bounds it. Before, shelves and rails ignored extra
+  panels that replaced automatic fixed shelves.
+- Front zones may set `shelves` (adjustable shelves in that zone),
+  overriding shelf_count / the proportional share.
+- Option `hat_shelf` (factory on): off hangs the rail `rail_drop` below the
+  panel that closes the hanging zone at the top, with no hat shelf.
+- Option `partition_joint`: `between` (factory, as before: middle panels
+  stand between bottom and top) or `through`: middle panels run from the
+  carcase bottom edge to the top edge like sides over, and bottom, top and
+  rails are split per section (codes BO1, BO2, TO1, …), dowelled into the
+  middle panel faces. Legs go into the bottom piece above them and move
+  off a middle panel. With a grooved back the middle panels run the full
+  depth and the back is split per section (BK1, BK2, …), grooved into the
+  middle panel's faces as well (error `back_grooves_meet` when the two
+  grooves leave less than bore_min_wall); other back mounts keep the middle
+  panel in front of one back.
+- Cutlist mitre notes use the localized short edge names (`edge.w2`: W2 /
+  B2).
+
+### D47 · 2026-11-10 · Sloped top corners (Schräge)
+
+- Variables `slope_left_drop` / `slope_right_drop` (mm the outer top
+  corner drops at that side; 0 = none) and `slope_left_angle` /
+  `slope_right_angle` (degrees from the horizontal, factory 45) cut the
+  carcase's top corner in the front view, for cabinets under a roof slope
+  that rises from a side wall. Under a room slope:
+  `max(0, H + plinth_h - ceiling_h)` (ceiling_h is the flat ceiling in the
+  first pass).
+- Construction (needs `top: full`): mitred all round, long points on the
+  outer faces. The side ends at the slope's lower end (length H − drop,
+  from its bottom edge), the top at its upper end; the sloped panel (role
+  `top_slope`, TS; TS1 / TS2 with both slopes) runs between them, full
+  carcase depth like the top. Mitre angles: top/slope a/2, slope/side
+  (90° − a)/2 (45°: 22.5° each). Parts carry `bevels` (degrees per edge);
+  the cutlist note shows them (`W2 ∠22.5°`, localized edge names), part
+  sheets in the subtitle, the assembly part list after the size.
+- Parts cut by a slope carry a `profile`: the cross-section in cabinet
+  X/Y extruded along Z, used by the 3D view and the assembly drawing. The
+  sloped panel is `rotated`: its box is the board laid flat in the top
+  plane (frame for its operations, part sheet and DXF).
+- The back gets an outline cut parallel to the slope: `engage` beyond the
+  sloped panel's inner face (groove/rebate), or to the outer face for a
+  surface back or a back behind the horizontals. The sloped panel gets the
+  back's groove/rebate on its inner face (t0) over its full length.
+- System holes in a shortened side stop `sys_margin` below the top of its
+  inner face.
+- Parts under the slope are cut to its inner face: adjustable shelves
+  square, `shelf_gap` clear of it at their top face; fixed shelves with a
+  bevel of 90° − a at that end (long point on the underside); middle
+  panels with a bevel of a at the top (long point on the face away from
+  the slope, system holes stop below the lower face end). A part with
+  less than 50 mm (shelves) or 100 mm (middle panels) left, and any other
+  part reaching into the corner, is an error (`slope_cuts_part`); fronts
+  above the outer slope line a warning.
+- Mitre joints and the joints of cut parts with the sloped panel are not
+  drilled (that needs angled bores): warning `slope_joints_manual` lists
+  them.
+- Room: placements carry the slopes; the ceiling check compares the cut
+  carcase top with the ceiling over its rear and front edges at every
+  kink, and the elevation draws the cut outline.
+
+### D48 · 2026-11-10 · Handle per front zone
+
+- A front zone may set `handle`: a handle item id for its fronts, or null
+  for none (push-to-open, grip profiles). Without it the fronts take
+  option `hardware.handle` as before. Unknown items and items of another
+  category are errors. Placement rules (handle.door / handle.drawer,
+  offsets) stay cabinet-wide.
+
+### D49 · 2026-11-10 · Roof sloping to the rear; outlines in assembly drawings
+
+- `slope_rear_drop` / `slope_rear_angle`: a roof falling towards the wall
+  behind the cabinet cuts its top rear corner in the side view (not yet
+  together with a left or right slope: error `slope_rear_with_side`).
+- Sides and middle panels keep their size and get an outline (D43) along
+  the slope: the outer face where they reach the top's upper face (sides
+  over, middle panels through), else the inner face. The top runs from the
+  slope's upper end to the front, its rear edge (l1) mitred a/2. The sloped
+  panel (TS) lies across the width between the sides like the top, from
+  the top down to the rear edge; upper edge (l2) mitred a/2, lower edge
+  square at the rear; its box is the board laid flat (D47), its profile a
+  Z/Y cross-section extruded along X (`profile.axis: "x"`).
+- The back stops `back_play` under the sloped panel's inner face at the
+  back's rear face (a surface back at the outer rear corner); it is held by
+  the side and bottom grooves only. Adjustable shelves are shortened at the
+  rear (`shelf_gap` clear), fixed shelves bevelled 90° − a at the rear
+  edge; other parts reaching into the corner are an error.
+- System holes stay `sys_margin` below the slope's inner face.
+- Room: the ceiling check samples the depth as well (rear edge, kink, ten
+  steps), `carcaseTopAt` takes z.
+- Assembly drawings draw outlined parts standing in a vertical plane
+  (sides, backs, Passblenden) as prisms of their outline instead of their
+  bounding box.
+
+### D50 · 2026-11-11 · Low legs, fitting alternatives
+
+- Factory leg `generic-leg-60` (55–80 mm) for low plinths.
+- When a leg's limits fail (e.g. plinth_h out of range), a warning
+  `hardware_alternatives` names the library legs that would fit.
+- `slope_cuts_front` reports how far the front rises above the slope.
+
+### D51 · 2026-11-11 · Fronts under a slope, fixed shelves above the side, handle height
+
+Found reviewing the sketch built with "slope to the ceiling" (310 mm instead
+of 280, so the side ends lower than the door and the fixed shelf above it):
+
+- Fronts reaching above a left/right slope are cut to it: an outline
+  `front_gap_top` clear of the slope's outer face (supersedes the
+  `slope_cuts_front` warning). Less than 100 mm left at the slope edge is an
+  error. Hinges stay `hinge_end_offset` below the top of the hinge edge, and
+  door handles below the top of the opening edge, as the outline has it.
+- A fixed shelf whose underside no longer reaches the side (or middle panel)
+  it is dowelled to is an error (`slope_fixed_above_side`) instead of being
+  bevelled into the sloped panel: it would only meet that panel. A fixed
+  shelf that still reaches the side only loses its top corner (D47).
+- Option `handle.door_y`: `end` (factory, as before: handle_end_offset from
+  the door end) or `height`: the handle's middle at `handle_height` (factory
+  1050) above the floor, kept handle_end_offset inside the door. The tall
+  unit preset sets `height`, so tall doors no longer get their handles near
+  the top.
+
+### D52 · 2026-11-11 · System holes only where there are shelves
+
+- `system_holes: shelves`: 32 mm rows only on the faces of sections whose
+  zone gets adjustable shelves, over that zone's clear height less
+  `sys_margin`; none beside open compartments without shelves, hanging
+  sections, drawers or the space under a slope. The grid itself (drawer
+  rails, hinge plates, shelf pins) behaves as with `full`.
+- The tall unit preset sets it (and so wardrobes); `full` stays the factory
+  default, so kitchen base and wall units keep full rows.
+
+### D53 · 2026-11-11 · Shelf at an open compartment, fitted under a slope
+
+- Option `open_shelf`: `centred` (factory, as before: the fixed shelf
+  between an open compartment and a front is centred on the gap) or
+  `reveal`: its top face `open_shelf_reveal` (factory 1.5) above the top
+  edge of the front below (or its underside the reveal below a front
+  above). The tall unit preset sets `reveal`.
+- Under a left or right slope, the shelf under a top open compartment may
+  not rise above the side's inner face (the slope's mitre with the side).
+  If it would, it moves down to sit right under the mitre and the front
+  below it is shortened by the same amount (`slope_front_lowered`
+  warning, per section, so pairs of doors stay level). Alternatives are a
+  smaller drop (slope further out) or the cabinet further from the roof.
+- A part that only touches the slope's inner face (within 0.01 mm) is not
+  cut to it.
+
+### D54 · 2026-11-11 · Dimensions drive, the slope follows
+
+Supersedes the automatic adjustments of D47 (fixed shelves bevelled), D51
+(fronts cut) and D53 (front lowered under the mitre). The dimensions the
+user gives (cabinet, fronts, clear heights) win; the slope follows from the
+room (`slope_*_drop` as a formula over `ceiling_h`), so moving the cabinet
+along the wall moves the corner, and a corner that would cut into
+dimensioned parts fails:
+
+- A fixed shelf reaching into the slope, even by its top corner, is an
+  error (`slope_fixed_above_side`, with how far): it would meet the sloped
+  panel instead of its side.
+- Fronts keep their size: reaching above the slope (less `front_gap_top`)
+  is an error (`slope_front_above`). Option `slope_fronts: cut` (factory
+  `keep`) cuts them to the slope instead, as D51 described.
+- Still adapted automatically, as they are not dimensioned: the side, top
+  and sloped panel, the back, middle panels and adjustable shelves.
+- `open_shelf: reveal` (D53) stays: the shelf at an open compartment is
+  placed from the front below it, not the other way round.
+
+### D55 · 2026-11-11 · Connector grooves checked, opposing joints planned together, board sizes
+
+- Connector grooves (Clamex P-System slots) are checked against existing
+  machining like bores. Before, they never were: on a middle panel through,
+  the slots of the bottoms (or tops) either side sat opposite each other,
+  14 mm deep from both faces of a 19 mm panel.
+- Joints meeting one panel from its two faces at the same place are
+  planned together for connectors: 2n evenly spaced positions between the
+  end offsets (moved in pitch steps until clear of other machining such as
+  back grooves), shared out alternately, so each joint has one end and no
+  groove sits opposite another (spacing ≥ groove length + 2 × bore_min_wall).
+- Materials may give their `sheet` size (factory boards 2800 × 2070,
+  worktops 4100 × 900); a part whose cut size does not fit one board
+  (turned when the material has no grain) is an error
+  (`part_larger_than_sheet`). W may now go up to 6000: wide cabinets work
+  with middle panels through, which split bottom, top and back.
+- Up to 20 sections.
+
+### D56 · 2026-11-11 · Middle panels drilled from both faces
+
+- Option `dowel.opposite` (factory `shallow`, supersedes D45 as the
+  default): where dowel joints meet a panel from both faces at the same
+  place, the face bores are (thickness − bore_min_wall) / 2 deep (8.5 in
+  19 mm) and the edge bores deeper by the difference (25 → 28.5 for an
+  8 × 35 dowel), so both joints use the same positions and the dowel stands
+  8.5 mm into the middle panel. `offset` keeps D45 (half-pitch moves).
+- Variable `back_groove_depth_middle` (factory
+  `min(back_groove_depth, t_carcase / 3)`): the groove depth in middle
+  panels holding a back on both faces (middle panels through), so about a
+  third of the panel remains; the backs per section reach that much less
+  into them. `back_grooves_meet` stays as a guard for values set too deep.
+
+### D57 · 2026-11-11 · Hole rows per section, hinges on middle panels
+
+- A section (or the cabinet, for sections without their own) may set
+  `holes`: `false` (no rows) or `{ from, to }`, the heights of the first and
+  last hole above the carcase bottom (numbers or formulas). Without it,
+  option `system_holes` decides (full height less sys_margin, beside shelf
+  zones, or none). Rows go on the faces at both ends of the section; the
+  grid stays `sys_grid_y0` + n × `sys_pitch`. Layout `holeRanges`.
+- Option `hardware.hinge_middle` (factory `generic-hinge-110-half`, null =
+  hardware.hinge): the hinge for doors hinged on a middle panel, which
+  cover only half of it. Found building a 5-section wardrobe with the shop's
+  Grass Tiomos (full overlay): the middle doors' cup distance came out −5.
+  A Grass half-overlay article is not in the library yet (no verified data).
+
+### D58 · 2026-11-11 · Middle-panel connector sets (Clamex P-10 Medius)
+
+- A connector item may name a `middle` item: the set used where joints meet
+  one panel from both faces at the same place. Those joints then share
+  their positions (planned once, before either is placed) and the set is
+  counted once per position. D55's staggering stays for groove connectors
+  without a middle set.
+- Lamello Clamex P-14 → `lamello-clamex-p14-medius`: a P-14 element with
+  lever in each part (14 mm groove, Ø6 lever access) and one P-10 Medius
+  element in the middle panel, from 10 mm P-10 grooves cut from both faces
+  at the same place (they meet in a 19 mm panel and hold the Medius). Data
+  from the P-System brochure's article list and P-10 profile; minimum
+  middle panel thickness and access hole still to be checked (untested).
+
 > D59–D71 were D45–D57 on the audit branch (claude/repo-audit-multiplatform-n18kd0);
 > they were renumbered when that branch was merged with D45–D58 from the
 > wardrobe-sections work. Older commit messages use the old numbers.
@@ -1024,3 +1293,50 @@ Corrections from the first shop test. The earlier entries stay as written.
   shelf FS1 between drawer and door, 8 dowels more, rail axis one grid
   line higher, drawer box 133 → 101 high) and the example kitchen's BOM
   (10 dowels more: the blind corner panel of B05).
+
+### D72 · 2026-11-12 · Merging the audit line with the wardrobe line
+
+Both lines changed the same rules independently. Where they overlapped:
+
+- Door handle height (D51 and D66): one rule. Variable `handle_height`
+  (factory 1050, range 0–2500; the audit line's `handle_grip_h` is gone) is
+  the height above the floor where a handle is gripped. Option
+  `handle.door_y` stays, now with factory `height`: the handle sits as near
+  to `handle_height` as the door allows (D66), in every cabinet kind, below
+  the door's top at its opening edge (a door cut to a slope, D51). `end`
+  keeps the rule before D66: wall units at the bottom end, all others at
+  the top end. The tall unit preset no longer sets the option.
+- Shelves per zone (D46 and D71): `fronts[i].shelves` takes a number or a
+  formula and applies to door, open and flap zones (D71); a section's
+  `shelves` stays its shelf_count (D46).
+- Extra panels and zones (D46 and D71): a panel at a zone's edge (within
+  one front gap plus its thickness) bounds the zone (D46); a panel further
+  inside splits it into compartments that share the zone's shelves (D71).
+- Fixed shelves between fronts (D71) apply per section; their position
+  keeps `open_shelf: reveal` (D53). The clear interior under or over
+  upright rails (D64) bounds zones, fixed shelves and panels in every
+  section.
+- Dowel sequence (D45 and D64): a blocked position tries one to three
+  pitches forward, half a pitch either way, then one to three pitches back
+  (one and a half included); a moved dowel keeps `dowel_offset_front` and
+  `dowel_offset_rear` from the ends (D64, stricter than D45's smaller of the
+  two) and half a pitch from the dowel before it.
+- Connector slots (D55 and D64): a slot stays a pocket of its part and keeps
+  `bore_min_wall` from all machining, bores and pockets. Consecutive
+  connectors keep their own length apart (D64) also in shared middle-panel
+  positions (D58); paired positions (D55) are spaced for that already.
+- Legs (D46 and D64): a leg goes into the bottom piece above it and keeps
+  `bore_min_wall` inside that piece's ends.
+- Section ends are rounded like the middle panels' faces, so shelves and
+  joints meet them exactly (as the audit did for equal sections).
+- Free parts (D59) are built after the slope rules (D47) and are not cut by
+  a slope. Their formulas see the zones of the first column; `inner_x0` /
+  `inner_x1` are the carcase sides' inner faces.
+- Factory materials: the display colour moved out of the name (it had
+  landed inside the localized name map); 3D views now use it.
+- No golden file changed in the merge. Example projects: kitchen-basic and
+  attic-row come out as on the audit line; the wardrobe examples as on the
+  wardrobe line, except that shaped parts carry the cutlist remark (D62) and
+  in wardrobe-5-sections-clamex the backs between middle panels are 0.01 mm
+  narrower (607.86) and the middle panels' back grooves 6.33 instead of 6.34
+  deep (faces rounded where they lie).

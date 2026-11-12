@@ -41,6 +41,12 @@
     const val = parseInput(text);
     if (val !== undefined && c?.construction?.panels?.[k]) c.construction.panels[k].y = val;
   }
+  /** Sloped corner down to the ceiling over that side (D47): H stays, the corner drops. */
+  function fitSlope(side: "left" | "right" | "rear"): void {
+    if (!c) return;
+    const base = kind === "wall" ? "wall_bottom" : "plinth_h";
+    c.vars = { ...(c.vars ?? {}), [`slope_${side}_drop`]: `max(0, H + ${base} - ceiling_h + ceiling_gap)` };
+  }
   const template = $derived.by(() => {
     const id = c?.template;
     if (!id) return undefined;
@@ -80,6 +86,24 @@
       </section>
     {/if}
 
+    {#if kind !== "base"}
+      <section>
+        <h3 class="label">{t("ui.slope")}</h3>
+        <VarRow name="slope_right_drop" />
+        <VarRow name="slope_right_angle" />
+        <VarRow name="slope_left_drop" />
+        <VarRow name="slope_left_angle" />
+        <VarRow name="slope_rear_drop" />
+        <VarRow name="slope_rear_angle" />
+        <OptRow key="slope_fronts" />
+        <div class="links">
+          <button class="quiet link" onclick={() => fitSlope("right")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_right")}</button>
+          <button class="quiet link" onclick={() => fitSlope("left")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_left")}</button>
+          <button class="quiet link" onclick={() => fitSlope("rear")} title={t("ui.fit_slope_hint")}>{t("ui.fit_slope_rear")}</button>
+        </div>
+      </section>
+    {/if}
+
     <section>
       <h3 class="label">{t("ui.fronts")}</h3>
       <FrontBuilder />
@@ -114,7 +138,7 @@
       <OptRow key="handle.drawer" />
       <details>
         <summary class="small">{t("ui.handle_position")}</summary>
-        <VarRow name="handle_grip_h" />
+        <VarRow name="handle_height" />
         <VarRow name="handle_edge_offset" />
         <VarRow name="handle_end_offset" />
         <VarRow name="handle_drawer_top" />
@@ -127,6 +151,7 @@
         <VarRow name="wall_bottom" />
       {:else}
         <VarRow name="plinth_h" steppers />
+        <OptRow key="hardware.leg" />
       {/if}
     </section>
 
@@ -142,7 +167,10 @@
     <section>
       <h3 class="label">{t("ui.shelves")}</h3>
       <VarRow name="shelf_count" steppers />
-      {#if kind === "tall"}<OptRow key="interior" />{/if}
+      {#if kind === "tall"}<OptRow key="interior" /><OptRow key="hat_shelf" />{/if}
+      <OptRow key="open_shelf" />
+      {#if store.cabinet?.resolved.options.get("open_shelf")?.value === "reveal"}<VarRow name="open_shelf_reveal" />{/if}
+      {#if c.sections?.length || (store.cabinet?.resolved.values.get("partition_count") ?? 0) > 0}<OptRow key="partition_joint" />{/if}
       {#each fixedPanels as p, k}
         <div class="fixed-panel">
           <label for={`fixed-panel-${k}`}>{t("ui.fixed_panel")} {k + 1}</label>
@@ -172,6 +200,7 @@
   details[open] { display: flex; flex-direction: column; gap: 4px; }
   .small { font-size: 12px; margin: 0; }
   .construct { margin-top: 4px; }
+  .links { display: flex; flex-wrap: wrap; gap: 4px; }
   .link { align-self: flex-start; color: var(--accent-fg); font-size: 12px; padding: 2px 4px; }
   .pad { padding: 12px; }
   .fixed-panel { display: grid; grid-template-columns: 1fr 96px auto; gap: 4px; align-items: center; }

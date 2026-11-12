@@ -15,6 +15,8 @@ export const Material = z.object({
   grain: z.boolean().default(false),
   /** Density in kg/m³ (front weights for lift fittings). */
   density: z.number().positive().optional(),
+  /** Board size in mm (length along the grain); parts must fit it (D55). */
+  sheet: z.object({ length: z.number().positive(), width: z.number().positive() }).optional(),
   /** Price per m², currency of the shop. Optional until costing (v1). */
   pricePerM2: z.number().nonnegative().optional(),
   /** Display colour of the board as it comes (#rrggbb), for views; no production meaning. */
@@ -60,12 +62,12 @@ export interface Library {
 
 /** Seed library. Values are typical, not tied to a specific supplier. */
 export const FACTORY_MATERIALS: readonly Material[] = [
-  { id: "mel-white-19", name: { en: "Melamine white 19", de: "Melamin weiß 19", color: "#f3f3f0" }, thickness: 19, grain: false, density: 650 },
-  { id: "hdf-white-8", name: { en: "HDF white 8", de: "HDF weiß 8", color: "#ecebe6" }, thickness: 8, grain: false, density: 850 },
-  { id: "mel-white-16", name: { en: "Melamine white 16", de: "Melamin weiß 16", color: "#f3f3f0" }, thickness: 16, grain: false, density: 650 },
-  { id: "mdf-lacquer-19", name: { en: "Lacquer MDF 19", de: "MDF lackiert 19", color: "#e9e7e1" }, thickness: 19, grain: false, density: 750 },
-  { id: "worktop-laminate-38", name: { en: "Worktop laminate 38", de: "Arbeitsplatte Schichtstoff 38", color: "#c8b48f" }, thickness: 38, grain: false, density: 700 },
-  { id: "oak-veneer-19", name: { en: "Oak veneer 19", de: "Eiche furniert 19", color: "#c9a26d" }, thickness: 19, grain: true, density: 650 },
+  { id: "mel-white-19", name: { en: "Melamine white 19", de: "Melamin weiß 19" }, color: "#f3f3f0", thickness: 19, grain: false, density: 650, sheet: { length: 2800, width: 2070 } },
+  { id: "hdf-white-8", name: { en: "HDF white 8", de: "HDF weiß 8" }, color: "#ecebe6", thickness: 8, grain: false, density: 850, sheet: { length: 2800, width: 2070 } },
+  { id: "mel-white-16", name: { en: "Melamine white 16", de: "Melamin weiß 16" }, color: "#f3f3f0", thickness: 16, grain: false, density: 650, sheet: { length: 2800, width: 2070 } },
+  { id: "mdf-lacquer-19", name: { en: "Lacquer MDF 19", de: "MDF lackiert 19" }, color: "#e9e7e1", thickness: 19, grain: false, density: 750, sheet: { length: 2800, width: 2070 } },
+  { id: "worktop-laminate-38", name: { en: "Worktop laminate 38", de: "Arbeitsplatte Schichtstoff 38" }, color: "#c8b48f", thickness: 38, grain: false, density: 700, sheet: { length: 4100, width: 900 } },
+  { id: "oak-veneer-19", name: { en: "Oak veneer 19", de: "Eiche furniert 19" }, color: "#c9a26d", thickness: 19, grain: true, density: 650, sheet: { length: 2800, width: 2070 } },
 ];
 
 export const FACTORY_EDGEBANDS: readonly Edgeband[] = [

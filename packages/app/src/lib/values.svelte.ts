@@ -167,7 +167,7 @@ const ROLES: Record<string, readonly string[]> = {
   "hardware.handle": FRONTS,
   "handle.door": ["door"],
   "handle.drawer": ["drawer_front"],
-  handle_grip_h: ["door"],
+  handle_height: ["door"],
   handle_edge_offset: ["door"],
   handle_end_offset: ["door"],
   handle_drawer_top: ["drawer_front"],

@@ -457,6 +457,7 @@ export function cutlistText(tr: Translator): CutlistText {
     locale: tr.locale,
     shaped: tr.t("cutlist.shaped"),
     header: (col) => tr.t(`col.${col}`),
+    edge: (e) => tr.t(`edge.${e}`),
     role: (row: CutlistRow) => {
       if (row.label !== undefined) return localName(row.label, tr.locale);
       if (row.qty > 1 && (row.role === "side_left" || row.role === "side_right")) {

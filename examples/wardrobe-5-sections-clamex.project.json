@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "name": "Wardrobe, 5 sections, Clamex",
+  "revision": 1,
+  "cabinets": [
+    {
+      "id": "K01",
+      "type": "box",
+      "kind": "tall",
+      "name": "Wardrobe 5 sections (site assembly)",
+      "presets": [
+        "tall-unit",
+        "wardrobe"
+      ],
+      "vars": {
+        "W": 3100,
+        "H": 2200,
+        "D": 580,
+        "plinth_h": 100
+      },
+      "options": {
+        "partition_joint": "through",
+        "joint_method": "connector",
+        "hardware.fastener": "lamello-clamex-p14",
+        "hat_shelf": true
+      },
+      "sections": [
+        {
+          "interior": "hanging"
+        },
+        {
+          "fronts": [
+            {
+              "type": "door"
+            },
+            {
+              "type": "drawer",
+              "h": 200
+            },
+            {
+              "type": "drawer",
+              "h": 200
+            }
+          ],
+          "interior": "shelves",
+          "shelves": 4
+        },
+        {
+          "interior": "hanging",
+          "fronts": [
+            {
+              "type": "door",
+              "hinge": "left"
+            }
+          ]
+        },
+        {
+          "fronts": [
+            {
+              "type": "door"
+            },
+            {
+              "type": "drawer",
+              "h": 200
+            },
+            {
+              "type": "drawer",
+              "h": 200
+            }
+          ],
+          "interior": "shelves",
+          "shelves": 4
+        },
+        {
+          "interior": "hanging"
+        }
+      ]
+    }
+  ]
+}

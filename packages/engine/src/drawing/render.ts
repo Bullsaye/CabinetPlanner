@@ -720,7 +720,11 @@ function headerLines(
   const inner = innerFace(part, cabinet) === view.face;
   return [
     `${part.id} · ${role}`,
-    `${mat} · ${t("drawing.finished")} ${f(part.length)} × ${f(part.width)} × ${f(part.thickness)} · ${t("drawing.cut")} ${f(part.cutLength)} × ${f(part.cutWidth)}${part.grain ? ` · ${t("drawing.grain")}` : ""}`,
+    `${mat} · ${t("drawing.finished")} ${f(part.length)} × ${f(part.width)} × ${f(part.thickness)} · ${t("drawing.cut")} ${f(part.cutLength)} × ${f(part.cutWidth)}${part.grain ? ` · ${t("drawing.grain")}` : ""}${
+      part.bevels && Object.keys(part.bevels).length
+        ? ` · ${t("drawing.mitre")} ${(["l1", "l2", "w1", "w2"] as const).filter((e) => part.bevels![e] !== undefined).map((e) => `${e.toUpperCase()} ${f(part.bevels![e]!)}°`).join(", ")}`
+        : ""
+    }`,
     `${text.styleName ?? style.id} · ${side && side.of > 1 ? `${t("drawing.side", { n: side.index, of: side.of })} · ` : ""}${t(inner ? "drawing.face.inner" : "drawing.face.outer")} · ${t("drawing.origin", {
       a: t(`drawing.dir.${view.sides.bottom}`),
       b: t(`drawing.dir.${view.sides.left}`),

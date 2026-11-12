@@ -93,10 +93,12 @@ export const FrontZone = z.object({
   /** Door zones with one door: the hinge side (default: option door_hinge_side). */
   hinge: z.enum(["left", "right"]).optional(),
   front: z.boolean().optional(),
-  /** Door, open and flap zones: adjustable shelves in this compartment (number or formula); without it shelf_count applies (D71). */
+  /** Door, open and flap zones: adjustable shelves in this compartment (number or formula); without it shelf_count applies to the tallest zone and a share to the others (D71, D46). */
   shelves: VarInputSchema.optional(),
   /** Drawer zones with a wooden box: side height of the box (number or formula, 0 = as high as fits); without it drawer_box_h applies (D71). */
   boxH: VarInputSchema.optional(),
+  /** Handle (hardware id) on the fronts of this zone; null: none. Default: option hardware.handle (D48). */
+  handle: z.string().nullable().optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;
 
@@ -216,6 +218,29 @@ export const ConstructionSchema = z.object({
 });
 export type ConstructionInput = z.infer<typeof ConstructionSchema>;
 
+/**
+ * One section of a cabinet divided by middle panels (D46), left to right,
+ * with its own front stack and interior. `w` is the clear width (number or
+ * formula); sections without it share what is left.
+ */
+/** 32 mm rows of a section: none, or from / to (heights of the first and last hole above the carcase bottom; D57). */
+export const HolesSchema = z.union([z.literal(false), z.object({ from: VarInputSchema.optional(), to: VarInputSchema.optional() })]);
+
+export const SectionSchema = z.object({
+  w: VarInputSchema.optional(),
+  /** Front stack of this section, top to bottom (default: one door). */
+  fronts: z.array(FrontZone).max(12).optional(),
+  /** shelves, or hanging (rail, with a hat shelf unless option hat_shelf is off). Default from option interior. */
+  interior: z.enum(["shelves", "hanging"]).optional(),
+  /** Adjustable shelves in the tallest door/open zone (default: shelf_count). */
+  shelves: VarInputSchema.optional(),
+  /** Extra panels and changes to the automatic fixed shelves of this section (noBack is cabinet-wide only). */
+  construction: ConstructionSchema.optional(),
+  /** System hole rows beside this section (default: option system_holes). */
+  holes: HolesSchema.optional(),
+});
+export type SectionInput = z.infer<typeof SectionSchema>;
+
 export const CabinetSchema = z.object({
   /** Short id used in part numbers, e.g. "B01". Must stay stable. */
   id: z.string().regex(/^[A-Za-z0-9]{1,8}$/, "1–8 letters or digits"),
@@ -232,6 +257,10 @@ export const CabinetSchema = z.object({
   construction: ConstructionSchema.optional(),
   /** Parameters shown in the simple editor (D59). */
   params: z.array(ParamSchema).max(60).default([]),
+  /** Sections side by side, each with its own fronts and interior (D46); replaces `fronts` and partition_count. */
+  sections: z.array(SectionSchema).min(1).max(20).optional(),
+  /** System hole rows for every section without its own (D57). */
+  holes: HolesSchema.optional(),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
   /** Template this cabinet was made from (the app saves construction changes back to it). */
@@ -255,6 +284,8 @@ export const CabinetTemplateSchema = z.object({
     fronts: z.array(FrontZone).max(12).optional(),
     construction: ConstructionSchema.optional(),
     params: z.array(ParamSchema).max(60).default([]),
+    sections: z.array(SectionSchema).min(1).max(20).optional(),
+    holes: HolesSchema.optional(),
     parts: z.record(z.string(), PartOverride).default({}),
   }),
 });

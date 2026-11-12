@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-leg-60",
+  "name": { "en": "Adjustable leg 60 (generic)", "de": "Stellfuß 60 (generisch)" },
+  "category": "leg",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic plastic plinth leg with a plug-in base plate in a Ø10 bore, adjustable about 55–80 mm (low plinths), plinth clip on the front legs. Replace with the leg you use.",
+  "params": { "min_h": 55, "max_h": 80, "d": 50 },
+  "drilling": [{ "mount": "bottom", "d": 10, "depth": 12, "a": 0, "b": 0 }],
+  "limits": [{ "name": "plinth_h", "value": "plinth_h", "min": "min_h", "max": "max_h" }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

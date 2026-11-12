@@ -15,6 +15,7 @@
     locale: store.tr.locale,
     shaped: t("cutlist.shaped"),
     header: (col: string) => t(`col.${col}`),
+    edge: (e: string) => t(`edge.${e}`),
     role: (row: CutlistRow) => {
       if (row.label !== undefined) return localName(row.label, store.tr.locale);
       const codes = new Set(row.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));
