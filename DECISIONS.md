@@ -922,6 +922,10 @@ dimensioned parts fails:
   from the P-System brochure's article list and P-10 profile; minimum
   middle panel thickness and access hole still to be checked (untested).
 
+> D59–D71 were D45–D57 on the audit branch (claude/repo-audit-multiplatform-n18kd0);
+> they were renumbered when that branch was merged with D45–D58 from the
+> wardrobe-sections work. Older commit messages use the old numbers.
+
 ### D59 · 2026-11-09 · Free construction: parameters, free parts, free bores
 
 The box rule covers the usual carcase; it cannot foresee every way of
@@ -1128,7 +1132,7 @@ the earlier entries stay as written.
 ### D66 · 2026-11-10 · Door handles by grip height
 
 - Door handles (and handles on appliance fronts) no longer follow the
-  cabinet kind. `handle_grip_h` (since D72: `handle_height`) is the height above the floor where a
+  cabinet kind. `handle_grip_h` is the height above the floor where a
   handle is gripped; the handle sits as near to it as the door allows
   between `handle_end_offset` from its top and bottom ends. Base unit
   doors keep the handle at the top, wall unit doors at the bottom (as
@@ -1290,13 +1294,49 @@ Corrections from the first shop test. The earlier entries stay as written.
   line higher, drawer box 133 → 101 high) and the example kitchen's BOM
   (10 dowels more: the blind corner panel of B05).
 
-### D72 · 2026-11-12 · One rule for door handle height
+### D72 · 2026-11-12 · Merging the audit line with the wardrobe line
 
-- D51 (option `handle.door_y`, variable `handle_height`) and D66 (variable
-  `handle_grip_h`) described the same thing. Kept: `handle.door_y` and
-  `handle_height`; `handle_grip_h` is gone. The factory value of
-  `handle.door_y` is now `height`: a door handle sits as near to
-  `handle_height` above the floor as the door allows between
-  `handle_end_offset` from its ends. Base unit doors keep it at the top,
-  wall unit doors at the bottom (unchanged); doors spanning the height get
-  it there. `end` restores the old placement by cabinet kind.
+Both lines changed the same rules independently. Where they overlapped:
+
+- Door handle height (D51 and D66): one rule. Variable `handle_height`
+  (factory 1050, range 0–2500; the audit line's `handle_grip_h` is gone) is
+  the height above the floor where a handle is gripped. Option
+  `handle.door_y` stays, now with factory `height`: the handle sits as near
+  to `handle_height` as the door allows (D66), in every cabinet kind, below
+  the door's top at its opening edge (a door cut to a slope, D51). `end`
+  keeps the rule before D66: wall units at the bottom end, all others at
+  the top end. The tall unit preset no longer sets the option.
+- Shelves per zone (D46 and D71): `fronts[i].shelves` takes a number or a
+  formula and applies to door, open and flap zones (D71); a section's
+  `shelves` stays its shelf_count (D46).
+- Extra panels and zones (D46 and D71): a panel at a zone's edge (within
+  one front gap plus its thickness) bounds the zone (D46); a panel further
+  inside splits it into compartments that share the zone's shelves (D71).
+- Fixed shelves between fronts (D71) apply per section; their position
+  keeps `open_shelf: reveal` (D53). The clear interior under or over
+  upright rails (D64) bounds zones, fixed shelves and panels in every
+  section.
+- Dowel sequence (D45 and D64): a blocked position tries one to three
+  pitches forward, half a pitch either way, then one to three pitches back
+  (one and a half included); a moved dowel keeps `dowel_offset_front` and
+  `dowel_offset_rear` from the ends (D64, stricter than D45's smaller of the
+  two) and half a pitch from the dowel before it.
+- Connector slots (D55 and D64): a slot stays a pocket of its part and keeps
+  `bore_min_wall` from all machining, bores and pockets. Consecutive
+  connectors keep their own length apart (D64) also in shared middle-panel
+  positions (D58); paired positions (D55) are spaced for that already.
+- Legs (D46 and D64): a leg goes into the bottom piece above it and keeps
+  `bore_min_wall` inside that piece's ends.
+- Section ends are rounded like the middle panels' faces, so shelves and
+  joints meet them exactly (as the audit did for equal sections).
+- Free parts (D59) are built after the slope rules (D47) and are not cut by
+  a slope. Their formulas see the zones of the first column; `inner_x0` /
+  `inner_x1` are the carcase sides' inner faces.
+- Factory materials: the display colour moved out of the name (it had
+  landed inside the localized name map); 3D views now use it.
+- No golden file changed in the merge. Example projects: kitchen-basic and
+  attic-row come out as on the audit line; the wardrobe examples as on the
+  wardrobe line, except that shaped parts carry the cutlist remark (D62) and
+  in wardrobe-5-sections-clamex the backs between middle panels are 0.01 mm
+  narrower (607.86) and the middle panels' back grooves 6.33 instead of 6.34
+  deep (faces rounded where they lie).

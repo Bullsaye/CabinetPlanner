@@ -84,7 +84,6 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.edges,
       r.note,
       shape.get(r.part),
-      r.outline,
       r.bevels,
       groupRole(r.role),
       r.label ?? "",
@@ -211,7 +210,7 @@ export function cutlistTable(
           .filter((e) => r.bevels[e] !== undefined)
           .map((e) => `${text.edge ? text.edge(e) : e.toUpperCase()} ∠${formatNumber(r.bevels[e]!)}°`)
           .join(" ");
-        return [r.note, bevel, r.outline ? (text.shaped ?? "") : ""].filter((x) => x !== "").join("; ");
+        return [r.note, r.outline ? (text.shaped ?? "") : "", bevel].filter((x) => x !== "").join("; ");
       }
     }
   };

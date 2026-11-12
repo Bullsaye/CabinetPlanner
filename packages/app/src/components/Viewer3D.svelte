@@ -329,6 +329,7 @@
   function frame(only?: string): void {
     if (!root) return;
     // Frame the cabinets, not the floor grid (first child); or just one cabinet.
+    // Cabinet groups carry their placement as a fixed matrix: bring the world matrices up to date first.
     const b = new THREE.Box3();
     root.updateMatrixWorld(true);
     const objs = only ? root.children.filter((o) => o.userData.cabinetGroup === only) : root.children.slice(1);

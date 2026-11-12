@@ -127,7 +127,7 @@ export function machineBox(
       behind
         ? ["side_left", "side_right", "partition"].includes(p.role)
         : ["side_left", "side_right", "bottom", "top", "fixed_shelf", "partition"].includes(p.role) ||
-          // A flat rear rail at the bottom holds the back where the shortened bottom no longer does.
+          // A flat rear rail at the bottom holds the back where the shortened bottom no longer does (D64).
           (p.role === "rail_bottom" && thicknessAxis(p.lengthAxis, p.widthAxis) === "y"),
     );
     for (const back of parts.filter((p) => p.role === "back")) {
@@ -365,9 +365,9 @@ export function machineBox(
         delete (o as { sequence?: unknown }).sequence;
         // Connectors keep at least their own length along the joint apart (the grid alone allows one pitch, D64).
         const span = Math.max(0, ...c.drills.map((dr) => (dr.op === "groove" ? dr.len : dr.d))) + minWall;
-        const spaced = (all: number[]): number[] => {
+        const spaced = (list: number[]): number[] => {
           const out: number[] = [];
-          for (const z of all) if (out.length === 0 || out[out.length - 1]! - z >= span - 1e-9) out.push(z);
+          for (const z of list) if (out.length === 0 || out[out.length - 1]! - z >= span - 1e-9) out.push(z);
           return out;
         };
         // With a joint on the other face of the same panel: evenly spaced
@@ -516,7 +516,7 @@ export function machineBox(
       const part = byCode.get(door.code)!;
       const panel = byCode.get(door.panel);
       const item = panel?.role === "partition" ? middle : hinge;
-      const placed = placeHinges(rc, item, part, door.hinge, panel, diagnostics, parts);
+      const placed = placeHinges(rc, item, part, door.hinge, panel, parts, diagnostics);
       use(item, placed);
     }
   }
@@ -560,12 +560,11 @@ export function machineBox(
     };
     const edgeOff = num("handle_edge_offset");
     const endOff = num("handle_end_offset");
-    // Door handles (D51, D66, D72). handle.door_y `height` (factory): as near to
-    // handle_height above the floor as the door allows; `end`: at the door's
-    // end, low in wall units and high in the others.
     const wall = rc.cabinet.kind === "wall";
+    // Grip height in cabinet Y (D66, D72): the handle sits as near to it as the door allows.
+    // handle.door_y "end" keeps the old rule: wall units low, others high (D51).
     const byHeight = opt<string>("handle.door_y") === "height";
-    const grip = num("handle_height") - (wall ? num("wall_bottom") : num("plinth_h"));
+    const grip = byHeight ? num("handle_height") - (wall ? num("wall_bottom") : num("plinth_h")) : wall ? -Infinity : Infinity;
     const near = (lo: number, hi: number, want: number): number => (hi < lo ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, want)));
     for (const d of [...layout.doors, ...layout.applianceFronts]) {
       const p = byCode.get(d.code)!;
@@ -573,15 +572,15 @@ export function machineBox(
       if (!plan) continue;
       const { cc } = plan;
       const b = p.box;
-      // Opening edge is opposite the hinges. Top of the door at that edge: a door cut to a slope is lower there (D51).
+      // Opening edge is opposite the hinges; the top of the door at that edge
+      // (a door cut to a slope is lower there, D51).
       const xOpen = d.hinge === "left" ? b.x + b.dx - edgeOff : b.x + edgeOff;
-      const lo = b.y + endOff;
-      const hi = b.y + frontTopAt(p, xOpen) - endOff;
+      const top = b.y + frontTopAt(p, xOpen);
       if (cc !== 0 && opt<string>("handle.door") === "vertical") {
-        const yLo = near(lo, hi - cc, byHeight ? grip - cc / 2 : wall ? lo : hi - cc);
+        const yLo = near(b.y + endOff, top - endOff - cc, grip - cc / 2);
         drill(p, plan, [{ x: xOpen, y: yLo }, { x: xOpen, y: yLo + cc }]);
       } else {
-        const y = near(lo, hi, byHeight ? grip : wall ? lo : hi);
+        const y = near(b.y + endOff, top - endOff, grip);
         const inward = d.hinge === "left" ? -1 : 1;
         drill(p, plan, cc === 0 ? [{ x: xOpen, y }] : [{ x: xOpen, y }, { x: xOpen + inward * cc, y }]);
       }
@@ -810,6 +809,7 @@ export function machineBox(
     const minWall = num("bore_min_wall");
     /** The bottom piece a leg at x is drilled into (a leg under a middle panel has none). */
     const pieceAt = (x: number): Part | undefined => bottoms.find((b) => x >= b.box.x - 1e-6 && x <= b.box.x + b.box.dx + 1e-6);
+    // Free of other machining, and still on its bottom piece (a leg must not move off its end, under a side, D64).
     const fits = (x: number, z: number): boolean => {
       const b = pieceAt(x);
       if (!b) return false;
@@ -1118,17 +1118,16 @@ function sequencePositions(
     let p = raster[i]!;
     if (p >= L) break;
     const last = i === raster.length - 1;
-    // A moved last position never goes in front of the first one (offsetFront); it is dropped instead.
+    // No position moves in front of the first one (offsetFront): it would leave the joint or sit in its front edge (D64).
     if (last) while (L - p < o.offsetRear - 1e-9 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
     if (L - p < o.offsetRear - 1e-9) break;
     // Move off machining in the way: first towards the front in pitch steps
-    // (a groove), then half a pitch either way and one pitch back (dowels of
-    // the panel on the other face of a middle panel). A moved dowel stays at
-    // least the smaller end offset from either end (D45).
+    // (a groove), then half a pitch either way (dowels of the panel on the
+    // other face of a middle panel, D45), then to the rear in pitch steps.
+    // A moved dowel keeps offsetFront and offsetRear from the ends (D64).
     const prev = out.length ? zMax - out[out.length - 1]! : -Infinity;
-    const endMin = Math.min(o.offsetFront, o.offsetRear);
-    const ok = (q: number): boolean => q >= endMin - 1e-9 && L - q >= endMin - 1e-9 && q - prev >= o.pitch / 2 - 1e-9 && free(roundMm(zMax - q));
-    const moves = [0, -o.pitch, -2 * o.pitch, -3 * o.pitch, o.pitch / 2, -o.pitch / 2, o.pitch, (3 * o.pitch) / 2];
+    const ok = (q: number): boolean => q >= o.offsetFront - 1e-9 && L - q >= o.offsetRear - 1e-9 && q - prev >= o.pitch / 2 - 1e-9 && free(roundMm(zMax - q));
+    const moves = [0, -o.pitch, -2 * o.pitch, -3 * o.pitch, o.pitch / 2, -o.pitch / 2, o.pitch, (3 * o.pitch) / 2, 2 * o.pitch, 3 * o.pitch];
     const at = moves.map((d) => p + d).find((q) => (q === p ? free(roundMm(zMax - q)) : ok(q)));
     if (at === undefined) continue;
     p = at;
@@ -1184,7 +1183,7 @@ function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part
   return dr.mount === "face" ? { part: j.facePart, entry: p, dir: j.intoFace } : { part: j.edgePart, entry: p, dir: intoEdge };
 }
 
-/** The cabinet-space box of a connector groove (slot of width d, length len, depth into the part). */
+/** Slot of width d and length len (D36), `depth` into the part from the entry plane. */
 function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Direction): { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number } {
   const lo = { ...entry };
   const hi = { ...entry };
@@ -1202,8 +1201,8 @@ function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Dir
 function connectorFits(g: JointGeometry, c: ConnectorPlan, z: number): boolean {
   return c.drills.every((dr) => {
     const { part, entry, dir } = connectorDrill(g, dr, z);
-    // A slot must stay a pocket of its part (not through it, not off it) and clear of bores and other
-    // grooves, e.g. the slot of the joint on the other face of a middle panel (D55).
+    // A slot must stay a pocket of its part (not through it, not off it) and clear of other
+    // machining, e.g. the slot of the joint on the other face of a middle panel (D55).
     if (dr.op === "groove") return !pocketWouldCollide(part, grooveBox(g, dr, entry, dir), g.minWall);
     const depth = dr.through ? part.thickness : dr.depth;
     // A bore that would leave the part (e.g. too close to the end) does not fit either.
@@ -1315,9 +1314,9 @@ function placeHinges(
   side: "left" | "right",
   /** The side or middle panel the hinges go into (D46). */
   sidePart: Part | undefined,
+  /** All parts of the cabinet (fixed panels the plates keep clear of, D65). */
+  parts: readonly Part[],
   diagnostics: Diagnostic[],
-  /** All parts of the cabinet: fixed panels the plates must keep clear of (D65). */
-  parts: readonly Part[] = [],
 ): number {
   const at = { cabinet: rc.cabinet.id };
   const context = new Map(rc.values);

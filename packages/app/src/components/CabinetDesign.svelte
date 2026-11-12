@@ -138,7 +138,6 @@
       <OptRow key="handle.drawer" />
       <details>
         <summary class="small">{t("ui.handle_position")}</summary>
-        <OptRow key="handle.door_y" />
         <VarRow name="handle_height" />
         <VarRow name="handle_edge_offset" />
         <VarRow name="handle_end_offset" />

@@ -274,9 +274,9 @@ export function boreWouldCollide(
 /**
  * True when a pocket over `box` (cabinet coordinates) cannot be milled into
  * the part: it misses the part, is not open to any face, would cut through
- * the thickness, or comes within `margin` of existing machining (bores and
- * other pockets, e.g. the slot of the joint on the other face of a middle
- * panel). Used for connector grooves (D55, D64).
+ * the thickness, or comes closer than `margin` to existing machining (bores
+ * and other pockets, so connector grooves keep clear of back grooves and of
+ * grooves from the opposite face, D55).
  */
 export function pocketWouldCollide(
   part: Part,
