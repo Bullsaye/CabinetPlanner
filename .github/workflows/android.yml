@@ -13,8 +13,6 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
-    branches: ["claude/repo-audit-multiplatform-n18kd0"]
-    paths: [".github/workflows/android.yml"]
 
 jobs:
   apk:
