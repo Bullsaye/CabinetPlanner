@@ -13,6 +13,7 @@
   const text = $derived({
     locale: store.tr.locale,
     header: (col: string) => t(`col.${col}`),
+    edge: (e: string) => t(`edge.${e}`),
     role: (row: CutlistRow) => {
       const codes = new Set(row.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));
       if (row.qty > 1 && codes.has("SL") && codes.has("SR")) return t("role.side_pair");

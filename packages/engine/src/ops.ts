@@ -268,6 +268,31 @@ export function boreWouldCollide(
   return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
 }
 
+/**
+ * Would a pocket over this cabinet-space box (clipped to the part) come
+ * within `margin` of existing machining? Used for connector grooves (D55).
+ */
+export function pocketWouldCollide(
+  part: Part,
+  box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number },
+  margin: number,
+): boolean {
+  const lo = { x: Math.max(box.x0, part.box.x), y: Math.max(box.y0, part.box.y), z: Math.max(box.z0, part.box.z) };
+  const hi = { x: Math.min(box.x1, part.box.x + part.box.dx), y: Math.min(box.y1, part.box.y + part.box.dy), z: Math.min(box.z1, part.box.z + part.box.dz) };
+  if (hi.x - lo.x <= EPS || hi.y - lo.y <= EPS || hi.z - lo.z <= EPS) return false;
+  const a = toLocal(part, lo);
+  const b = toLocal(part, hi);
+  const grown: Aabb = {
+    u0: Math.min(a.u, b.u) - margin,
+    u1: Math.max(a.u, b.u) + margin,
+    v0: Math.min(a.v, b.v) - margin,
+    v1: Math.max(a.v, b.v) + margin,
+    w0: Math.min(a.w, b.w) - margin,
+    w1: Math.max(a.w, b.w) + margin,
+  };
+  return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
+}
+
 const isSplitPair = (a: Operation, b: Operation): boolean =>
   a.kind === "bore" &&
   b.kind === "bore" &&

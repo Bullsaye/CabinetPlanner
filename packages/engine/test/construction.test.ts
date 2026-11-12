@@ -40,6 +40,45 @@ describe("dowel sequence (D35)", () => {
     expect(fromFront(355)).toEqual([32, 64, 192, 288]);
     expect(fromFront(100)).toEqual([32]); // 64 → 32 meets the first one: dropped
   });
+  it("moves dowels blocked from the other face of a middle panel half a pitch, never onto the edge (D45)", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1000, partition_count: 1 },
+      options: { dowel_pattern: "sequence", "dowel.opposite": "offset" },
+      fronts: [{ type: "door", doors: 2 }, { type: "door", doors: 2, h: 400 }],
+    });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const vs = (ref: string): number[] => refs(p.MP1!, ref).map((b) => (b.kind === "bore" ? (b.v as number) : 0));
+    const left = vs("MP1-FS1");
+    const right = vs("MP1-FS2");
+    expect(left.length).toBeGreaterThanOrEqual(4);
+    expect(right.length).toBeGreaterThanOrEqual(4);
+    // No two bores of the two faces at the same place; all clear of the front edge.
+    for (const v of right) expect(left.every((u) => Math.abs(u - v) >= 16)).toBe(true);
+    expect(Math.max(...right)).toBeLessThanOrEqual(Math.max(...left));
+  });
+  it("drills dowels from both faces of a middle panel shallow, at the same positions (D56)", () => {
+    const r = buildOne({
+      kind: "tall",
+      presets: ["tall-unit"],
+      vars: { W: 1000, partition_count: 1 },
+      options: { dowel_pattern: "sequence" },
+      fronts: [{ type: "door", doors: 2 }, { type: "door", doors: 2, h: 400 }],
+    });
+    expect(r.diagnostics).toEqual([]);
+    const p = partsByCode(r);
+    const bores = (part: string, ref: string) => refs(p[part]!, ref).filter((o) => o.kind === "bore") as { v: number; depth: number }[];
+    const left = bores("MP1", "MP1-FS1");
+    const right = bores("MP1", "MP1-FS2");
+    expect(right.map((b) => b.v)).toEqual(left.map((b) => b.v));
+    // 19 mm panel, 2 mm wall: 8.5 from each face; the shelf ends 25 + 3.5 deep (dowel 35 sticks out 8.5).
+    expect(new Set(left.map((b) => b.depth))).toEqual(new Set([8.5]));
+    expect(new Set(bores("FS2", "MP1-FS2").map((b) => b.depth))).toEqual(new Set([28.5]));
+    // Joints into the sides (one face only) keep the normal depths.
+    expect(new Set(bores("SL", "SL-FS1").map((b) => b.depth))).toEqual(new Set([12]));
+  });
   it("is chosen per shop with dowel_pattern", () => {
     const r = buildOne({ options: { dowel_pattern: "sequence" }, vars: { dowel_offset_front: 32, dowel_offset_rear: 30 } });
     expect(r.diagnostics).toEqual([]);

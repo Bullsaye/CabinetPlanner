@@ -12,14 +12,15 @@ import {
   type PartRole,
 } from "../part.ts";
 import type { ResolvedCabinet } from "../resolve.ts";
-import type { FrontZone } from "../schema.ts";
+import type { ConstructionInput, FrontZone } from "../schema.ts";
 import { evaluateGraph } from "../graph.ts";
 import { buildDrawer } from "./drawer.ts";
 import type { CabinetContext } from "./machining.ts";
 
 /**
  * Rule for the parametric box cabinet: two sides, bottom, top (full panel or
- * two rails), back, adjustable shelves and 0–2 full-overlay doors.
+ * two rails), back, middle panels, adjustable shelves and a stack of
+ * full-overlay fronts — across the cabinet, or per section (D46).
  *
  * All geometry is derived from resolved variables; nothing here is a
  * hard-coded size. Coordinates: origin rear-left-bottom of the carcase,
@@ -34,14 +35,24 @@ export interface BoxLayout {
   /** Interior between bottom and top/rails. */
   innerBottomY: number;
   innerTopY: number;
-  /** Doors with the side their hinges are on. */
-  doors: { code: string; hinge: "left" | "right" }[];
-  /** Drawers: slide item, nominal length and rail screw axis height. */
-  drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal" }[];
+  /** Vertical panels whose inner face ends lower (sides under a slope, D47): code → top of the inner face. */
+  innerTop: Record<string, number>;
+  /** Clear section (x0…x1) and height (y0…y1) of every zone with adjustable shelves (D52). */
+  shelfRanges: { x0: number; x1: number; y0: number; y1: number }[];
+  /** Where the 32 mm rows go: section x0…x1 (the faces at both ends) and hole heights y0…y1 (D57). */
+  holeRanges: { x0: number; x1: number; y0: number; y1: number }[];
+  /** Roof sloping to the rear (D49): inner face sn·(D − z) + cs·y = line; holes stay below it. */
+  rearSlope?: { line: number; sn: number; cs: number; D: number };
+  /** Doors with the side their hinges are on and the panel (side or middle panel) the hinges go into. */
+  doors: { code: string; hinge: "left" | "right"; panel: string }[];
+  /** Drawers: slide item, nominal length, rail screw axis height and the clear width (x0…x1) they run in. */
+  drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal"; x0: number; x1: number }[];
   /** Panels fixed to an appliance door: they get a handle like a door. */
   applianceFronts: { code: string; hinge: "left" | "right" }[];
   /** Lift-up flaps (D39). */
   flaps: { code: string }[];
+  /** Fronts whose zone sets its own handle (hardware id, null: none), by part code (D48). */
+  frontHandles: Record<string, string | null>;
   /** Front zones top to bottom, and the automatic fixed shelf under each (bottom face; null: none) before construction changes. */
   zones: { type: FrontZone["type"]; y0: number; y1: number; fixedBelow: number | null }[];
   /** Wardrobe rails: clear section between x0 and x1, axis at y, z. */
@@ -54,6 +65,8 @@ export interface PlacedFront {
   front?: boolean;
   /** Door zones: hinge side of a single door. */
   hinge?: "left" | "right";
+  /** Handle of this zone's fronts, when the zone sets one (null: none). */
+  handle?: string | null;
   doors: number;
   /** Front bottom and top edge (cabinet Y). */
   y0: number;
@@ -107,6 +120,7 @@ export function layoutFronts(
       type: z.type,
       ...(z.type === "appliance" ? { front: z.front ?? false } : {}),
       ...(z.hinge ? { hinge: z.hinge } : {}),
+      ...(z.handle !== undefined ? { handle: z.handle } : {}),
       doors: z.doors ?? Math.max(1, doorCount),
       y0: roundMm(top - h),
       y1: roundMm(top),
@@ -132,6 +146,8 @@ export type AddPart = (
   widthAxis: Axis,
   materialKey: string,
   edges: PartEdges,
+  /** Board sizes when the box is only a bounding box (parts at an angle, D47). */
+  sizes?: { length: number; width: number; thickness: number },
 ) => void;
 
 export function buildBox(
@@ -197,6 +213,7 @@ export function buildBox(
     widthAxis: Axis,
     materialKey: string,
     edges: PartEdges,
+    sizes?: { length: number; width: number; thickness: number },
   ): void => {
     const code = ROLE_CODES[role] + (index ?? "");
     const override = rc.cabinet.parts[code];
@@ -216,9 +233,9 @@ export function buildBox(
       dy: roundMm(box.dy),
       dz: roundMm(box.dz),
     };
-    const length = boxSize(rounded, lengthAxis);
-    const width = boxSize(rounded, widthAxis);
-    const thickness = boxSize(rounded, thicknessAxis(lengthAxis, widthAxis));
+    const length = sizes ? roundMm(sizes.length) : boxSize(rounded, lengthAxis);
+    const width = sizes ? roundMm(sizes.width) : boxSize(rounded, widthAxis);
+    const thickness = sizes ? roundMm(sizes.thickness) : boxSize(rounded, thicknessAxis(lengthAxis, widthAxis));
     const id = `${cab}-${code}`;
 
     const mat = library.materials.get(material);
@@ -268,6 +285,11 @@ export function buildBox(
       operations: [],
       ...(override?.note ? { note: override.note } : {}),
     };
+    // Every part must come out of one board (turned when the material has no grain).
+    const sheet = mat?.sheet;
+    if (sheet && !((part.cutLength <= sheet.length + 1e-6 && part.cutWidth <= sheet.width + 1e-6) || (!part.grain && part.cutLength <= sheet.width + 1e-6 && part.cutWidth <= sheet.length + 1e-6))) {
+      diagnostics.push({ severity: "error", code: "part_larger_than_sheet", params: { part: id, length: part.cutLength, width: part.cutWidth, sheet: `${sheet.length} × ${sheet.width}` }, cabinet: cab, part: id });
+    }
     if (part.length <= 0 || part.width <= 0 || part.thickness <= 0 || part.cutLength <= 0 || part.cutWidth <= 0) {
       diagnostics.push({
         severity: "error",
@@ -283,14 +305,74 @@ export function buildBox(
   const front = (e: string | null): PartEdges => ({ l1: null, l2: e, w1: null, w2: null });
   const none: PartEdges = { l1: null, l2: null, w1: null, w2: null };
 
-  // --- Sides, bottom and top --------------------------------------------
-  // sides_over: sides run full height, bottom/top sit between them.
-  // sides_between: bottom/top run full width, sides sit between them.
   const sideY = joint === "sides_over" ? 0 : t;
   const sideH = joint === "sides_over" ? H : H - 2 * t;
   const hzX = joint === "sides_over" ? t : 0; // horizontal panels
   const hzW = joint === "sides_over" ? W - 2 * t : W;
 
+  // --- Sections and middle panels (D25, D46) ---------------------------------------
+  // Without `sections`, partition_count equal sections share one front stack.
+  // With `sections`, every section has its own fronts and interior; their
+  // count sets the middle panels.
+  const secIn = rc.cabinet.sections;
+  const sectioned = !!secIn && secIn.length > 0;
+  let nPart = sectioned ? secIn.length - 1 : num("partition_count");
+  if (sectioned) {
+    const pc = rc.vars.get("partition_count");
+    if (pc?.source.layer === "cabinet" && !pc.source.preset && num("partition_count") !== nPart) {
+      diagnostics.push({ severity: "warning", code: "sections_partition_count", params: { count: num("partition_count"), sections: secIn.length }, cabinet: cab });
+    }
+    if (rc.cabinet.fronts) diagnostics.push({ severity: "warning", code: "sections_fronts_ignored", params: {}, cabinet: cab });
+    if (rc.cabinet.construction?.noBack?.length) diagnostics.push({ severity: "warning", code: "sections_unsupported", params: { what: "noBack" }, cabinet: cab });
+  } else if (nPart > 0 && rc.cabinet.fronts?.some((f) => f.type === "drawer")) {
+    diagnostics.push({ severity: "warning", code: "partitions_with_drawers", params: { count: nPart }, cabinet: cab });
+    nPart = 0;
+  }
+  const evalIn = (v: string | number, what: string): number | undefined => {
+    const r = evaluateGraph(new Map([["__s", v]]), rc.values);
+    const x = r.values.get("__s");
+    if (x === undefined || r.diagnostics.length) {
+      diagnostics.push({ severity: "error", code: "section_value_invalid", params: { what, expr: String(v) }, cabinet: cab });
+      return undefined;
+    }
+    return x;
+  };
+  const LW = W - 2 * t - nPart * t;
+  const widthIn: (number | undefined)[] = sectioned
+    ? secIn.map((s, k) => (s.w === undefined ? undefined : evalIn(s.w, `section ${k + 1} w`)))
+    : Array.from({ length: nPart + 1 }, () => undefined);
+  {
+    const fixedW = widthIn.reduce<number>((a, w) => a + (w ?? 0), 0);
+    const restN = widthIn.filter((w) => w === undefined).length;
+    if (restN === 0 && Math.abs(fixedW - LW) > 0.01) {
+      diagnostics.push({ severity: "error", code: "sections_width_mismatch", params: { sum: roundMm(fixedW), available: roundMm(LW) }, cabinet: cab });
+    }
+    const restW = restN ? (LW - fixedW) / restN : 0;
+    for (let k = 0; k < widthIn.length; k++) if (widthIn[k] === undefined) widthIn[k] = restW;
+    if (widthIn.some((w) => w! <= 0)) {
+      diagnostics.push({ severity: "error", code: "sections_too_wide", params: { available: roundMm(LW) }, cabinet: cab });
+    }
+  }
+  const sections: [number, number][] = [];
+  {
+    let x = t;
+    for (const w of widthIn) {
+      sections.push([x, x + w!]);
+      x += w! + t;
+    }
+  }
+  // Middle panels between bottom and top (bottom and top run through), or
+  // through from the bottom edge to the top edge (bottom and top split per section).
+  const through = nPart > 0 && opt<string>("partition_joint") === "through";
+  /** Horizontal panels: one across the carcase, or one per section between the middle panels. */
+  const pieces: [number, number][] = through
+    ? sections.map(([sx0, sx1], k) => [k === 0 ? hzX : sx0, k === sections.length - 1 ? hzX + hzW : sx1])
+    : [[hzX, hzX + hzW]];
+  const pieceNo = (k: number): number | undefined => (pieces.length > 1 ? k + 1 : undefined);
+
+  // --- Sides, bottom and top --------------------------------------------
+  // sides_over: sides run full height, bottom/top sit between them.
+  // sides_between: bottom/top run full width, sides sit between them.
   add("side_left", undefined, { x: 0, y: sideY, z: carcaseZ0, dx: t, dy: sideH, dz: Dc }, "y", "z", "material.carcase", front(edgeCarcase));
   add("side_right", undefined, { x: W - t, y: sideY, z: carcaseZ0, dx: t, dy: sideH, dz: Dc }, "y", "z", "material.carcase", front(edgeCarcase));
   // Back behind the horizontals: bottom and top end at the back's front face (D35).
@@ -302,7 +384,9 @@ export function buildBox(
   // Bottom, shortened at the rear (room for pipes) and/or the front (D41).
   const bsRear = num("bottom_setback_rear");
   const bsFront = num("bottom_setback_front");
-  add("bottom", undefined, { x: hzX, y: 0, z: hz0 + bsRear, dx: hzW, dy: t, dz: D - bsFront - hz0 - bsRear }, "x", "z", "material.carcase", front(edgeCarcase));
+  pieces.forEach(([px0, px1], k) =>
+    add("bottom", pieceNo(k), { x: px0, y: 0, z: hz0 + bsRear, dx: px1 - px0, dy: t, dz: D - bsFront - hz0 - bsRear }, "x", "z", "material.carcase", front(edgeCarcase)),
+  );
   const uprightOk = (code: string): boolean => {
     if (joint === "sides_over") return true;
     diagnostics.push({ severity: "error", code: "upright_rail_needs_sides_over", params: { rail: code }, cabinet: cab });
@@ -310,16 +394,21 @@ export function buildBox(
   };
 
   if (top === "full") {
-    add("top", undefined, { x: hzX, y: H - t, z: hz0, dx: hzW, dy: t, dz: D - hz0 }, "x", "z", "material.carcase", front(edgeCarcase));
+    pieces.forEach(([px0, px1], k) =>
+      add("top", pieceNo(k), { x: px0, y: H - t, z: hz0, dx: px1 - px0, dy: t, dz: D - hz0 }, "x", "z", "material.carcase", front(edgeCarcase)),
+    );
   } else {
     // Rails: flat (in the top plane, rail_w deep) or upright (standing, rail_w high), or none.
     const railW = num("rail_w");
     const rf = opt<"flat" | "upright" | "none">("rail.front");
     const rr = opt<"flat" | "upright" | "none">("rail.rear");
-    if (rf === "flat") add("rail_front", undefined, { x: hzX, y: H - t, z: D - railW, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", front(edgeCarcase));
-    if (rf === "upright" && uprightOk("RF")) add("rail_front", undefined, { x: hzX, y: H - railW, z: D - t, dx: hzW, dy: railW, dz: t }, "x", "y", "material.carcase", front(edgeCarcase));
-    if (rr === "flat") add("rail_rear", undefined, { x: hzX, y: H - t, z: backFrontZ, dx: hzW, dy: t, dz: railW }, "x", "z", "material.carcase", none);
-    if (rr === "upright" && uprightOk("RR")) add("rail_rear", undefined, { x: hzX, y: H - railW, z: backFrontZ, dx: hzW, dy: railW, dz: t }, "x", "y", "material.carcase", none);
+    pieces.forEach(([px0, px1], k) => {
+      const dx = px1 - px0;
+      if (rf === "flat") add("rail_front", pieceNo(k), { x: px0, y: H - t, z: D - railW, dx, dy: t, dz: railW }, "x", "z", "material.carcase", front(edgeCarcase));
+      if (rf === "upright" && uprightOk("RF")) add("rail_front", pieceNo(k), { x: px0, y: H - railW, z: D - t, dx, dy: railW, dz: t }, "x", "y", "material.carcase", front(edgeCarcase));
+      if (rr === "flat") add("rail_rear", pieceNo(k), { x: px0, y: H - t, z: backFrontZ, dx, dy: t, dz: railW }, "x", "z", "material.carcase", none);
+      if (rr === "upright" && uprightOk("RR")) add("rail_rear", pieceNo(k), { x: px0, y: H - railW, z: backFrontZ, dx, dy: railW, dz: t }, "x", "y", "material.carcase", none);
+    });
     const depthOf = (o: string): number => (o === "flat" ? railW : o === "upright" ? t : 0);
     if (backFrontZ + depthOf(rr) > D - depthOf(rf)) {
       diagnostics.push({ severity: "error", code: "rails_overlap", params: { rail_w: railW, depth: D }, cabinet: cab });
@@ -333,127 +422,104 @@ export function buildBox(
     if (depth > bsRear + 1e-6) {
       diagnostics.push({ severity: "error", code: "bottom_rail_overlap", params: { need: roundMm(depth), setback: roundMm(bsRear) }, cabinet: cab });
     }
-    if (rb === "flat") add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: t, dz: bw }, "x", "z", "material.carcase", none);
-    else if (uprightOk("RB")) add("rail_bottom", undefined, { x: hzX, y: 0, z: hz0, dx: hzW, dy: bw, dz: t }, "x", "y", "material.carcase", none);
+    pieces.forEach(([px0, px1], k) => {
+      if (rb === "flat") add("rail_bottom", pieceNo(k), { x: px0, y: 0, z: hz0, dx: px1 - px0, dy: t, dz: bw }, "x", "z", "material.carcase", none);
+      else if (uprightOk("RB")) add("rail_bottom", pieceNo(k), { x: px0, y: 0, z: hz0, dx: px1 - px0, dy: bw, dz: t }, "x", "y", "material.carcase", none);
+    });
   }
 
   // --- Middle panels -----------------------------------------------------------
-  // Vertical panels between bottom and top, in front of the back, dividing
-  // the interior into equal sections (each gets its own shelves).
-  let nPart = num("partition_count");
-  if (nPart > 0 && rc.cabinet.fronts?.some((f) => f.type === "drawer")) {
-    diagnostics.push({ severity: "warning", code: "partitions_with_drawers", params: { count: nPart }, cabinet: cab });
-    nPart = 0;
+  // In front of the back, between bottom and top; or through from bottom to
+  // top edge, full depth with the back split per section into grooves in
+  // its faces (grooved backs; otherwise in front of the back, D46).
+  const backPerSection = through && backMount === "groove";
+  // The two backs' grooves sit opposite each other in a middle panel: shallower there (D56).
+  const grooveMid = num("back_groove_depth_middle");
+  if (backPerSection && 2 * grooveMid > t - num("bore_min_wall") + 1e-6) {
+    diagnostics.push({ severity: "error", code: "back_grooves_meet", params: { depth: grooveMid, thickness: t, wall: num("bore_min_wall") }, cabinet: cab });
   }
-  const LW = W - 2 * t;
-  const sw = (LW - nPart * t) / (nPart + 1);
-  const sections: [number, number][] = [];
-  for (let k = 0; k <= nPart; k++) sections.push([t + k * (sw + t), t + k * (sw + t) + sw]);
   if (nPart > 0) {
-    const z0 = backFrontZ;
+    const z0 = backPerSection ? carcaseZ0 : backFrontZ;
     for (let i = 1; i <= nPart; i++) {
-      add(
-        "partition",
-        i,
-        { x: t + i * sw + (i - 1) * t, y: t, z: z0, dx: t, dy: H - 2 * t, dz: D - num("partition_setback") - z0 },
-        "y",
-        "z",
-        "material.carcase",
-        front(edgeCarcase),
-      );
+      // Through: from the carcase bottom edge to the top edge, whatever the side joint.
+      const y0 = through ? 0 : t;
+      const y1 = through ? H : H - t;
+      add("partition", i, { x: sections[i - 1]![1], y: y0, z: z0, dx: t, dy: y1 - y0, dz: D - num("partition_setback") - z0 }, "y", "z", "material.carcase", front(edgeCarcase));
     }
   }
 
-  // --- Front stack -----------------------------------------------------------
-  const fz = layoutFronts(
-    rc.cabinet.fronts ?? (num("door_count") > 0 ? [{ type: "door" as const }] : []),
-    H,
-    { top: num("front_gap_top"), bottom: num("front_gap_bottom"), between: num("front_gap") },
-    num("door_count"),
-    rc.values,
-    { cabinet: cab },
-  );
-  diagnostics.push(...fz.diagnostics);
-  const fronts = fz.fronts;
+  // --- Columns: a front stack over one or more sections ---------------------------------
+  const gl = num("front_gap_left");
+  const gr = num("front_gap_right");
+  const gm = num("front_gap_middle");
+  const interiorOpt = opt<"shelves" | "hanging" | "hanging_first" | "hanging_last">("interior");
+  const panelLeft = (k: number): string => (k === 0 ? ROLE_CODES.side_left : `${ROLE_CODES.partition}${k}`);
+  const panelRight = (k: number): string => (k === sections.length - 1 ? ROLE_CODES.side_right : `${ROLE_CODES.partition}${k + 1}`);
+  interface Column {
+    /** Section indices the column spans. */
+    secs: number[];
+    /** Clear interior and front extent in X. */
+    x0: number;
+    x1: number;
+    fx0: number;
+    fx1: number;
+    zones: FrontZone[];
+    doorCount: number;
+    /** Section indices with a hanging rail (decided once the zones are known). */
+    hangingOpt: "none" | "all" | "first" | "last";
+    shelves: number;
+    cons: ConstructionInput | undefined;
+    hingeDefault: "left" | "right";
+    leftPanel: string;
+    rightPanel: string;
+  }
+  const doorDefault = (): FrontZone[] => (num("door_count") > 0 ? [{ type: "door" as const }] : []);
+  const columns: Column[] = sectioned
+    ? secIn.map((s, k) => {
+        const last = k === secIn.length - 1;
+        const hanging = s.interior ?? (interiorOpt === "hanging" || (interiorOpt === "hanging_first" && k === 0) || (interiorOpt === "hanging_last" && last) ? "hanging" : "shelves");
+        const shelves = s.shelves === undefined ? num("shelf_count") : Math.max(0, Math.round(evalIn(s.shelves, `section ${k + 1} shelves`) ?? 0));
+        const cc = rc.cabinet.construction;
+        const sc = s.construction;
+        return {
+          secs: [k],
+          x0: sections[k]![0],
+          x1: sections[k]![1],
+          fx0: k === 0 ? gl : sections[k]![0] - t / 2 + gm / 2,
+          fx1: last ? W - gr : sections[k]![1] + t / 2 - gm / 2,
+          zones: s.fronts ?? [{ type: "door" as const, doors: 1 }],
+          doorCount: 1,
+          hangingOpt: hanging === "hanging" ? "all" : "none",
+          shelves,
+          cons: cc || sc ? { panels: [...(cc?.panels ?? []), ...(sc?.panels ?? [])], fixed: { ...(cc?.fixed ?? {}), ...(sc?.fixed ?? {}) }, noBack: [] } : undefined,
+          hingeDefault: k === 0 ? "left" : last ? "right" : opt<"left" | "right">("door_hinge_side"),
+          leftPanel: panelLeft(k),
+          rightPanel: panelRight(k),
+        } satisfies Column;
+      })
+    : [
+        {
+          secs: sections.map((_, k) => k),
+          x0: t,
+          x1: W - t,
+          fx0: gl,
+          fx1: W - gr,
+          zones: rc.cabinet.fronts ?? doorDefault(),
+          doorCount: num("door_count"),
+          hangingOpt: interiorOpt === "hanging" ? "all" : interiorOpt === "hanging_first" ? "first" : interiorOpt === "hanging_last" ? "last" : "none",
+          shelves: num("shelf_count"),
+          cons: rc.cabinet.construction,
+          hingeDefault: opt<"left" | "right">("door_hinge_side"),
+          leftPanel: ROLE_CODES.side_left,
+          rightPanel: ROLE_CODES.side_right,
+        },
+      ];
 
-  // --- Fixed shelves ------------------------------------------------------------
-  // Structural shelves (dowelled like the bottom) where an appliance niche or
-  // an open zone meets another zone, and between stacked door zones. Under
-  // an appliance the shelf's top is the front's lower edge, above it the
-  // shelf sits one gap above the front, so the niche is front height + gap.
-  const between = num("front_gap");
-  const fixedAt: (number | undefined)[] = []; // bottom face of the shelf under zone i
-  for (let i = 0; i + 1 < fronts.length; i++) {
-    const a = fronts[i]!;
-    const b = fronts[i + 1]!;
-    const tallUnit = rc.cabinet.kind === "tall";
-    const needs =
-      a.type === "appliance" ||
-      b.type === "appliance" ||
-      a.type === "open" ||
-      b.type === "open" ||
-      (a.type === "door" && b.type === "door") ||
-      // Tall units close drawers off from the zone above (wardrobes).
-      (tallUnit && a.type !== b.type);
-    if (!needs) continue;
-    const y = a.type === "appliance" ? a.y0 - t : b.type === "appliance" ? b.y1 + between : (a.y0 + b.y1) / 2 - t / 2;
-    if (y < t - 1e-6 || y + t > H - t + 1e-6) {
-      diagnostics.push({ severity: "error", code: "fixed_shelf_outside", params: { index: i + 1 }, cabinet: cab });
-      continue;
-    }
-    fixedAt[i] = roundMm(y);
-  }
-  // --- Construction elements (D38) ------------------------------------------------
-  const fixedAuto = fronts.map((_, i) => fixedAt[i] ?? null);
-  const cons = rc.cabinet.construction;
-  const zoneVars = new Map(rc.values);
-  fronts.forEach((f, i) => {
-    zoneVars.set(`zone${i + 1}_y0`, f.y0);
-    zoneVars.set(`zone${i + 1}_y1`, f.y1);
-  });
-  const cval = (v: string | number, what: string): number => {
-    const r = evaluateGraph(new Map([["__c", v]]), zoneVars);
-    const x = r.values.get("__c");
-    if (x === undefined || r.diagnostics.length) {
-      diagnostics.push({ severity: "error", code: "construction_value_invalid", params: { what, expr: String(v) }, cabinet: cab });
-      return 0;
-    }
-    return x;
-  };
-  /** Setbacks of each fixed shelf by its bottom y (rear setback keeps it off the back). */
-  const fixedSetback = new Map<number, { front: number; rear: number }>();
-  for (const [k, f] of Object.entries(cons?.fixed ?? {})) {
-    const i = Number(k) - 1;
-    if (!(i >= 0 && i < fixedAt.length) || fixedAt[i] === undefined) {
-      diagnostics.push({ severity: "warning", code: "construction_fixed_unknown", params: { index: k }, cabinet: cab });
-      continue;
-    }
-    if (!f.panel) fixedAt[i] = undefined;
-    else fixedSetback.set(fixedAt[i]!, { front: cval(f.setbackFront, `fixed ${k}`), rear: cval(f.setbackRear, `fixed ${k}`) });
-  }
-  const extraPanels = (cons?.panels ?? []).map((pn, k) => {
-    const y = roundMm(cval(pn.y, `panel ${k + 1}`));
-    if (y < t - 1e-6 || y + t > H - t + 1e-6) diagnostics.push({ severity: "error", code: "construction_panel_outside", params: { index: k + 1 }, cabinet: cab });
-    return { y, front: cval(pn.setbackFront, `panel ${k + 1}`), rear: cval(pn.setbackRear, `panel ${k + 1}`) };
-  });
-  const noBack = new Set(cons?.noBack ?? []);
+  const noBack = new Set(sectioned ? [] : rc.cabinet.construction?.noBack ?? []);
   // A split back needs the panels it ends at to reach into its groove.
   const splitBack = noBack.size > 0;
   const backReachZ = splitBack && !backBehind && backMount !== "surface" && backMount !== "none" ? carcaseZ0 : backFrontZ;
-
-  // Clear interior of each zone, between fixed shelves (or bottom / top).
-  const zoneRange = (i: number): [number, number] => {
-    const f = fronts[i]!;
-    const below = fixedAt[i];
-    const above = i > 0 ? fixedAt[i - 1] : undefined;
-    return [below !== undefined ? below + t : Math.max(t, f.y0), above !== undefined ? above : Math.min(H - t, f.y1)];
-  };
-  // Drawers stop at fixed shelves, else at the carcase bottom and top.
-  const drawerBounds = (i: number): { floor: number; ceil: number } => ({
-    floor: fixedAt[i] !== undefined ? fixedAt[i]! + t : t,
-    ceil: i > 0 && fixedAt[i - 1] !== undefined ? fixedAt[i - 1]! : H - t,
-  });
-
+  const between = num("front_gap");
   const fsEdges = front(edgeCarcase);
   const fsZ1 = D - num("fixed_shelf_setback");
   let fixedNo = 0;
@@ -463,17 +529,123 @@ export function buildBox(
     const z0 = (sb.rear > 0 ? backFrontZ : backReachZ) + sb.rear;
     add("fixed_shelf", ++fixedNo, { x: x0, y, z: z0, dx: x1 - x0, dy: t, dz: fsZ1 - sb.front - z0 }, "x", "z", "material.carcase", fsEdges);
   };
-  for (let i = 0; i < fixedAt.length; i++) {
-    const y = fixedAt[i];
-    if (y === undefined) continue;
-    const sb = fixedSetback.get(y);
-    for (const [sx0, sx1] of sections) fixedShelf(sx0, sx1, y, sb);
-    if (!sb || sb.rear <= 0) backStops.push(y);
-  }
-  for (const pn of extraPanels) {
-    for (const [sx0, sx1] of sections) fixedShelf(sx0, sx1, pn.y, pn);
-    if (pn.rear <= 0) backStops.push(pn.y);
-  }
+
+  /** Per column: front stack, fixed shelves and zone ranges (phase A). */
+  const laid = columns.map((col) => {
+    const fz = layoutFronts(col.zones, H, { top: num("front_gap_top"), bottom: num("front_gap_bottom"), between }, col.doorCount, rc.values, { cabinet: cab });
+    diagnostics.push(...fz.diagnostics);
+    const fronts = fz.fronts;
+
+    // --- Fixed shelves ------------------------------------------------------------
+    // Structural shelves (dowelled like the bottom) where an appliance niche or
+    // an open zone meets another zone, and between stacked door zones. Under
+    // an appliance the shelf's top is the front's lower edge, above it the
+    // shelf sits one gap above the front, so the niche is front height + gap.
+    const fixedAt: (number | undefined)[] = []; // bottom face of the shelf under zone i
+    for (let i = 0; i + 1 < fronts.length; i++) {
+      const a = fronts[i]!;
+      const b = fronts[i + 1]!;
+      const tallUnit = rc.cabinet.kind === "tall";
+      const needs =
+        a.type === "appliance" ||
+        b.type === "appliance" ||
+        a.type === "open" ||
+        b.type === "open" ||
+        (a.type === "door" && b.type === "door") ||
+        // Tall units close drawers off from the zone above (wardrobes).
+        (tallUnit && a.type !== b.type);
+      if (!needs) continue;
+      // Open compartment over a front (option open_shelf: reveal, D53): the
+      // shelf's top face open_shelf_reveal above the front's top edge; under
+      // a front, its underside the reveal below the front's bottom edge.
+      const isFrontZone = (z: PlacedFront): boolean => z.type !== "open" && z.type !== "appliance";
+      const reveal = opt<string>("open_shelf") === "reveal" ? num("open_shelf_reveal") : undefined;
+      const y =
+        a.type === "appliance" ? a.y0 - t
+        : b.type === "appliance" ? b.y1 + between
+        : reveal !== undefined && a.type === "open" && isFrontZone(b) ? b.y1 + reveal - t
+        : reveal !== undefined && b.type === "open" && isFrontZone(a) ? a.y0 - reveal
+        : (a.y0 + b.y1) / 2 - t / 2;
+      if (y < t - 1e-6 || y + t > H - t + 1e-6) {
+        diagnostics.push({ severity: "error", code: "fixed_shelf_outside", params: { index: i + 1 }, cabinet: cab });
+        continue;
+      }
+      fixedAt[i] = roundMm(y);
+    }
+    // --- Construction elements (D38) ------------------------------------------------
+    const fixedAuto = fronts.map((_, i) => fixedAt[i] ?? null);
+    const cons = col.cons;
+    const zoneVars = new Map(rc.values);
+    fronts.forEach((f, i) => {
+      zoneVars.set(`zone${i + 1}_y0`, f.y0);
+      zoneVars.set(`zone${i + 1}_y1`, f.y1);
+    });
+    const cval = (v: string | number, what: string): number => {
+      const r = evaluateGraph(new Map([["__c", v]]), zoneVars);
+      const x = r.values.get("__c");
+      if (x === undefined || r.diagnostics.length) {
+        diagnostics.push({ severity: "error", code: "construction_value_invalid", params: { what, expr: String(v) }, cabinet: cab });
+        return 0;
+      }
+      return x;
+    };
+    /** Setbacks of each fixed shelf by its bottom y (rear setback keeps it off the back). */
+    const fixedSetback = new Map<number, { front: number; rear: number }>();
+    for (const [k, f] of Object.entries(cons?.fixed ?? {})) {
+      const i = Number(k) - 1;
+      if (!(i >= 0 && i < fixedAt.length) || fixedAt[i] === undefined) {
+        diagnostics.push({ severity: "warning", code: "construction_fixed_unknown", params: { index: k }, cabinet: cab });
+        continue;
+      }
+      if (!f.panel) fixedAt[i] = undefined;
+      else fixedSetback.set(fixedAt[i]!, { front: cval(f.setbackFront, `fixed ${k}`), rear: cval(f.setbackRear, `fixed ${k}`) });
+    }
+    const extraPanels = (cons?.panels ?? []).map((pn, k) => {
+      const y = roundMm(cval(pn.y, `panel ${k + 1}`));
+      if (y < t - 1e-6 || y + t > H - t + 1e-6) diagnostics.push({ severity: "error", code: "construction_panel_outside", params: { index: k + 1 }, cabinet: cab });
+      return { y, front: cval(pn.setbackFront, `panel ${k + 1}`), rear: cval(pn.setbackRear, `panel ${k + 1}`) };
+    });
+    // Clear interior of each zone: between the fixed shelves around it, or
+    // the front edges (bottom / top at most). An extra panel at the zone's
+    // edge (within one gap and its thickness) or inside it bounds it too (D46).
+    const reach = between + t;
+    const zoneRange = (i: number): [number, number] => {
+      const f = fronts[i]!;
+      const below = fixedAt[i];
+      const above = i > 0 ? fixedAt[i - 1] : undefined;
+      const mid = (f.y0 + f.y1) / 2;
+      let lo = below !== undefined ? below + t : Math.max(t, f.y0);
+      let hi = above !== undefined ? above : Math.min(H - t, f.y1);
+      const tops = extraPanels.map((p) => p.y + t).filter((y) => y >= f.y0 - reach - 1e-6 && y <= mid);
+      if (tops.length) lo = below !== undefined ? Math.max(lo, ...tops) : Math.max(...tops);
+      const bots = extraPanels.map((p) => p.y).filter((y) => y <= f.y1 + reach + 1e-6 && y >= mid);
+      if (bots.length) hi = above !== undefined ? Math.min(hi, ...bots) : Math.min(...bots);
+      return [lo, hi];
+    };
+    // Drawers stop at the nearest panel below and above (fixed shelves and
+    // extra panels), else at the carcase bottom and top.
+    const drawerBounds = (i: number): { floor: number; ceil: number } => {
+      const f = fronts[i]!;
+      const mid = (f.y0 + f.y1) / 2;
+      const ys = [...fixedAt.filter((y): y is number => y !== undefined), ...extraPanels.map((p) => p.y)];
+      return {
+        floor: Math.max(t, ...ys.filter((y) => y + t <= mid).map((y) => y + t)),
+        ceil: Math.min(H - t, ...ys.filter((y) => y >= mid)),
+      };
+    };
+    for (let i = 0; i < fixedAt.length; i++) {
+      const y = fixedAt[i];
+      if (y === undefined) continue;
+      const sb = fixedSetback.get(y);
+      for (const k of col.secs) fixedShelf(sections[k]![0], sections[k]![1], y, sb);
+      if (!sb || sb.rear <= 0) backStops.push(y);
+    }
+    for (const pn of extraPanels) {
+      for (const k of col.secs) fixedShelf(sections[k]![0], sections[k]![1], pn.y, pn);
+      if (pn.rear <= 0) backStops.push(pn.y);
+    }
+    return { col, fronts, fixedAt, fixedAuto, zoneRange, drawerBounds };
+  });
 
   // --- Back ----------------------------------------------------------------
   // Inner opening between the carcase panels; the back reaches `engage` mm
@@ -497,18 +669,33 @@ export function buildBox(
         : yHi >= topFace ? (top === "full" ? H - t + engage : H - play) : yHi + engage;
       return { x: t - engage, y: y0, z: zBack, dx: W - 2 * t + 2 * engage, dy: y1 - y0, dz: tBack };
     };
+    // Middle panels through, full depth: one back per section (D46).
+    let backNo = 0;
+    const addBack = (b: Box, many: boolean): void => {
+      if (!backPerSection) {
+        add("back", many ? ++backNo : undefined, b, "y", "x", "material.back", none);
+        return;
+      }
+      // Into the sides as usual, into the middle panels' shallower grooves (D56).
+      const engMid = grooveMid - play;
+      sections.forEach(([sx0, sx1], k) => {
+        const x0 = sx0 - (k === 0 ? engage : engMid);
+        const x1 = sx1 + (k === sections.length - 1 ? engage : engMid);
+        add("back", ++backNo, { ...b, x: x0, dx: x1 - x0 }, "y", "x", "material.back", none);
+      });
+    };
     if (backMount === "none") {
       // No back (sink units): nothing to add.
     } else if (!splitBack) {
-      add("back", undefined, backBox(0, topFace), "y", "x", "material.back", none);
+      addBack(backBox(0, topFace), false);
     } else {
       // Sections between the stops; a section keeps its back unless the zone at its middle has none.
+      const { fronts, zoneRange } = laid[0]!;
       const stops = [0, ...[...new Set(backStops)].sort((a, b) => a - b), topFace];
       const zoneAt = (y: number): number => fronts.findIndex((f, i) => {
         const [lo, hi] = zoneRange(i);
         return y >= lo - 1e-6 && y <= hi + 1e-6;
       }) + 1;
-      let k = 0;
       let runStart: number | undefined;
       for (let i = 0; i + 1 < stops.length; i++) {
         const mid = (stops[i]! + (i === 0 ? t : t) + stops[i + 1]!) / 2;
@@ -517,7 +704,7 @@ export function buildBox(
         const last = i + 2 === stops.length;
         if (runStart !== undefined && (!keep || last)) {
           const end = keep ? stops[i + 1]! : stops[i]!;
-          if (end > runStart) add("back", ++k, backBox(runStart, end), "y", "x", "material.back", none);
+          if (end > runStart) addBack(backBox(runStart, end), true);
           runStart = undefined;
         }
       }
@@ -526,159 +713,589 @@ export function buildBox(
 
   // Shelves (and a wardrobe interior) live in the tallest door or open zone;
   // without fronts, in the whole interior.
-  const shelfZones = fronts
-    .map((f, i) => ({ f, i, r: zoneRange(i) }))
-    .filter((z) => z.f.type === "door" || z.f.type === "open")
-    .sort((a, b) => b.r[1] - b.r[0] - (a.r[1] - a.r[0]));
-  const shelfRange: [number, number] | undefined = fronts.length === 0 ? [t, H - t] : shelfZones[0]?.r;
+  const plans = laid.map((l) => {
+    const shelfZones = l.fronts
+      .map((f, i) => ({ f, i, r: l.zoneRange(i) }))
+      .filter((z) => z.f.type === "door" || z.f.type === "open")
+      .sort((a, b) => b.r[1] - b.r[0] - (a.r[1] - a.r[0]));
+    const shelfRange: [number, number] | undefined = l.fronts.length === 0 ? [t, H - t] : shelfZones[0]?.r;
+    const hanging = new Set<number>();
+    const secs = l.col.secs;
+    if (shelfRange) {
+      if (l.col.hangingOpt === "all") secs.forEach((k) => hanging.add(k));
+      else if (l.col.hangingOpt === "first") hanging.add(secs[0]!);
+      else if (l.col.hangingOpt === "last") hanging.add(secs[secs.length - 1]!);
+    }
+    return { ...l, shelfZones, shelfRange, hanging };
+  });
 
   // --- Wardrobe interior: hat shelf and hanging rail per hanging section --------
-  const interior = opt<"shelves" | "hanging" | "hanging_first" | "hanging_last">("interior");
-  const hanging = new Set<number>();
-  if (interior !== "shelves" && shelfRange) {
-    if (interior === "hanging") sections.forEach((_, k) => hanging.add(k));
-    else hanging.add(interior === "hanging_first" ? 0 : sections.length - 1);
-  }
+  // Without a hat shelf (option hat_shelf off) the rail hangs rail_drop under
+  // the panel that closes the zone at the top (D46).
   const rails: BoxLayout["rails"] = [];
-  if (hanging.size && shelfRange) {
+  for (const { shelfRange, hanging } of plans) {
+    if (!hanging.size || !shelfRange) continue;
+    const hat = opt<boolean>("hat_shelf");
     const hatY = shelfRange[1] - num("hat_shelf_drop") - t;
-    const railY = hatY - num("rail_drop");
+    const railY = hat ? hatY - num("rail_drop") : shelfRange[1] - num("rail_drop");
     if (railY <= shelfRange[0]) {
       diagnostics.push({ severity: "error", code: "hanging_too_low", params: { space: roundMm(shelfRange[1] - shelfRange[0]) }, cabinet: cab });
-    } else {
-      for (const k of [...hanging].sort()) {
-        const [sx0, sx1] = sections[k]!;
-        fixedShelf(sx0, sx1, roundMm(hatY));
-        rails.push({ x0: roundMm(sx0), x1: roundMm(sx1), y: roundMm(railY), z: roundMm((backFrontZ + D) / 2) });
-      }
+      continue;
+    }
+    for (const k of [...hanging].sort()) {
+      const [sx0, sx1] = sections[k]!;
+      if (hat) fixedShelf(sx0, sx1, roundMm(hatY));
+      rails.push({ x0: roundMm(sx0), x1: roundMm(sx1), y: roundMm(railY), z: roundMm((backFrontZ + D) / 2) });
     }
   }
 
   // --- Adjustable shelves ----------------------------------------------------
-  const shelfCount = num("shelf_count");
-  if (shelfCount > 0 && !shelfRange && rc.vars.get("shelf_count")?.source.layer === "cabinet" && !rc.vars.get("shelf_count")?.source.preset) {
-    diagnostics.push({ severity: "warning", code: "shelves_no_door_zone", params: { count: shelfCount }, cabinet: cab });
-  }
-  // The tallest zone gets shelf_count shelves; other door/open zones get
-  // as many in proportion to their height (zones split by fixed shelves).
-  const shelfPlan: { range: [number, number]; count: number; main: boolean }[] =
-    fronts.length === 0
-      ? shelfRange
-        ? [{ range: shelfRange, count: shelfCount, main: true }]
-        : []
-      : shelfZones.map((z, k) => ({
-          range: z.r,
-          count: k === 0 ? shelfCount : Math.round((shelfCount * (z.r[1] - z.r[0])) / (shelfRange![1] - shelfRange![0])),
-          main: k === 0,
-        }));
   let shelfNo = 0;
-  for (const { range, count, main } of shelfPlan) {
-    if (count <= 0 || (!main && fixedAt.every((y) => y === undefined))) continue;
-    const gap = num("shelf_gap");
-    const zStart = backFrontZ + num("shelf_back_gap");
-    const zEnd = D - num("shelf_front_setback");
-    const [innerBottom, innerTop] = range;
-    const pitch = (innerTop - innerBottom) / (count + 1);
-    // With system holes, shelves rest on pins in the nearest hole row so the
-    // view shows a real position; height does not change the cutlist.
-    const holes =
-      opt<string>("system_holes") === "full"
-        ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
-        : [];
-    for (const [k, [sx0, sx1]] of sections.entries()) {
-      if (main && hanging.has(k)) continue;
-      for (let i = 1; i <= count; i++) {
-        const target = innerBottom + i * pitch - tShelf / 2;
-        const rest = num("shelf_pin_rest");
-        const nearest = holes.length
-          ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
-          : undefined;
-        const y = nearest !== undefined ? nearest + rest : target;
-        add(
-          "shelf",
-          ++shelfNo,
-          { x: sx0 + gap, y, z: zStart, dx: sx1 - sx0 - 2 * gap, dy: tShelf, dz: zEnd - zStart },
-          "x",
-          "z",
-          "material.shelf",
-          front(edgeShelf),
-        );
+  const shelfRanges: BoxLayout["shelfRanges"] = [];
+  for (const { col, fronts, fixedAt, shelfZones, shelfRange, hanging } of plans) {
+    const shelfCount = col.shelves;
+    if (!sectioned && shelfCount > 0 && !shelfRange && rc.vars.get("shelf_count")?.source.layer === "cabinet" && !rc.vars.get("shelf_count")?.source.preset) {
+      diagnostics.push({ severity: "warning", code: "shelves_no_door_zone", params: { count: shelfCount }, cabinet: cab });
+    }
+    // The tallest zone gets shelf_count shelves; other door/open zones get
+    // as many in proportion to their height (zones split by fixed shelves),
+    // unless the zone sets its own count.
+    const shelfPlan: { range: [number, number]; count: number; main: boolean; own: boolean }[] =
+      fronts.length === 0
+        ? shelfRange
+          ? [{ range: shelfRange, count: shelfCount, main: true, own: false }]
+          : []
+        : shelfZones.map((z, k) => {
+            const own = col.zones[z.i]?.shelves;
+            return {
+              range: z.r,
+              count: own ?? (k === 0 ? shelfCount : Math.round((shelfCount * (z.r[1] - z.r[0])) / (shelfRange![1] - shelfRange![0]))),
+              main: k === 0,
+              own: own !== undefined,
+            };
+          });
+    for (const { range, count, main, own } of shelfPlan) {
+      if (count <= 0 || (!main && !own && fixedAt.every((y) => y === undefined))) continue;
+      const gap = num("shelf_gap");
+      const zStart = backFrontZ + num("shelf_back_gap");
+      const zEnd = D - num("shelf_front_setback");
+      const [innerBottom, innerTop] = range;
+      const pitch = (innerTop - innerBottom) / (count + 1);
+      // With system holes, shelves rest on pins in the nearest hole row so the
+      // view shows a real position; height does not change the cutlist.
+      const holes =
+        opt<string>("system_holes") !== "none"
+          ? gridPositions(num("sys_grid_y0"), num("sys_pitch"), innerBottom + num("sys_margin"), innerTop - num("sys_margin"))
+          : [];
+      for (const k of col.secs) {
+        const [sx0, sx1] = sections[k]!;
+        if (main && hanging.has(k)) continue;
+        shelfRanges.push({ x0: roundMm(sx0), x1: roundMm(sx1), y0: roundMm(innerBottom), y1: roundMm(innerTop) });
+        for (let i = 1; i <= count; i++) {
+          const target = innerBottom + i * pitch - tShelf / 2;
+          const rest = num("shelf_pin_rest");
+          const nearest = holes.length
+            ? holes.reduce((a, b) => (Math.abs(b + rest - target) < Math.abs(a + rest - target) ? b : a))
+            : undefined;
+          const y = nearest !== undefined ? nearest + rest : target;
+          add(
+            "shelf",
+            ++shelfNo,
+            { x: sx0 + gap, y, z: zStart, dx: sx1 - sx0 - 2 * gap, dy: tShelf, dz: zEnd - zStart },
+            "x",
+            "z",
+            "material.shelf",
+            front(edgeShelf),
+          );
+        }
       }
     }
   }
 
+  // --- System hole rows per section (D57) ------------------------------------------
+  // Explicit ranges (section, else cabinet) win; otherwise option system_holes:
+  // full height, beside shelf zones, or none.
+  const holeRanges: BoxLayout["holeRanges"] = [];
+  {
+    const mode = opt<string>("system_holes");
+    const margin = num("sys_margin");
+    sections.forEach(([sx0, sx1], k) => {
+      const spec = (sectioned ? secIn[k]!.holes : undefined) ?? rc.cabinet.holes;
+      const x0 = roundMm(sx0);
+      const x1 = roundMm(sx1);
+      if (spec === false) return;
+      if (spec) {
+        const from = spec.from === undefined ? t + margin : evalIn(spec.from, `holes ${k + 1} from`);
+        const to = spec.to === undefined ? H - t - margin : evalIn(spec.to, `holes ${k + 1} to`);
+        if (from !== undefined && to !== undefined) holeRanges.push({ x0, x1, y0: roundMm(from), y1: roundMm(to) });
+        return;
+      }
+      if (mode === "full") holeRanges.push({ x0, x1, y0: roundMm(t + margin), y1: roundMm(H - t - margin) });
+      else if (mode === "shelves") {
+        for (const r of shelfRanges) if (Math.abs(r.x0 - x0) < 0.01) holeRanges.push({ x0, x1, y0: roundMm(r.y0 + margin), y1: roundMm(r.y1 - margin) });
+      }
+    });
+  }
+
   // --- Fronts: doors and drawer fronts (full overlay) ---------------------------
+  // Each column's fronts span its front extent: the outer edges less the side
+  // gaps, or to the middle of a middle panel less half the middle gap (D46).
   const drawers: BoxLayout["drawers"] = [];
   const applianceFronts: BoxLayout["applianceFronts"] = [];
   const flaps: BoxLayout["flaps"] = [];
+  const frontHandles: BoxLayout["frontHandles"] = {};
   {
-    // Vertical joints: left and right edge, between doors side by side (D35).
-    const gl = num("front_gap_left");
-    const gr = num("front_gap_right");
-    const gap = num("front_gap_middle");
+    const gap = gm;
+    /** The zone's own handle for the front just added (D48). */
+    const ownHandle = (f: PlacedFront, zi: number): void => {
+      if (f.handle === undefined) return;
+      const p = parts[parts.length - 1]!;
+      if (f.handle !== null) {
+        const item = library.hardware.get(f.handle);
+        const key = `fronts ${zi + 1}`;
+        if (!item) {
+          diagnostics.push({ severity: "error", code: "hardware_unknown", params: { key, value: f.handle }, cabinet: cab });
+          return;
+        }
+        if (item.category !== "handle") {
+          diagnostics.push({ severity: "error", code: "hardware_wrong_category", params: { key, value: f.handle, category: "handle" }, cabinet: cab });
+          return;
+        }
+      }
+      frontHandles[p.code] = f.handle;
+    };
     const all: PartEdges = { l1: edgeFront, l2: edgeFront, w1: edgeFront, w2: edgeFront };
     let doorNo = 0;
     let drawerNo = 0;
     let applianceNo = 0;
     let flapNo = 0;
-    for (const [fi, f] of fronts.entries()) {
-      const h = f.y1 - f.y0;
-      if (f.type === "open") continue;
-      if (f.type === "flap") {
-        flapNo++;
-        add("flap", flapNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
-        flaps.push({ code: `${ROLE_CODES.flap}${flapNo}` });
-        continue;
-      }
-      if (f.type === "panel") {
-        add("blind_panel", fi + 1, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "y", "x", "material.front", all);
-        continue;
-      }
-      if (f.type === "appliance") {
-        if (!f.front) continue;
-        applianceNo++;
-        add("appliance_front", applianceNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "y", "x", "material.front", all);
-        applianceFronts.push({ code: `${ROLE_CODES.appliance_front}${applianceNo}`, hinge: opt<"left" | "right">("door_hinge_side") });
-        continue;
-      }
-      if (f.type === "door") {
-        const n = f.doors;
-        // Blind corner: a fixed panel covers the blind side, doors the rest.
-        const corner = opt<"none" | "blind_left" | "blind_right">("corner");
-        let x0 = gl;
-        let x1 = W - gr;
-        if (corner !== "none") {
-          const bw = num("blind_w");
-          if (bw > W - num("door_min_w")) {
-            diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
+    let blindNo = 0;
+    for (const { col, fronts, drawerBounds } of laid) {
+      const X0 = col.fx0;
+      const X1 = col.fx1;
+      for (const [fi, f] of fronts.entries()) {
+        const h = f.y1 - f.y0;
+        const zoneNo = sectioned ? ++blindNo : fi + 1;
+        if (f.type === "open") continue;
+        if (f.type === "flap") {
+          if (sectioned) {
+            diagnostics.push({ severity: "error", code: "sections_unsupported", params: { what: "flap" }, cabinet: cab });
+            continue;
           }
-          const split = corner === "blind_right" ? W - bw : bw;
-          const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gr - split - gap / 2 } : { x: gl, dx: split - gap / 2 - gl };
-          add("blind_panel", fronts.indexOf(f) + 1, { x: panel.x, y: f.y0, z: D, dx: panel.dx, dy: h, dz: tFront }, "y", "x", "material.front", all);
-          if (corner === "blind_right") x1 = split - gap / 2;
-          else x0 = split + gap / 2;
+          flapNo++;
+          add("flap", flapNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "x", "y", "material.front", all);
+          ownHandle(f, fi);
+          flaps.push({ code: `${ROLE_CODES.flap}${flapNo}` });
+          continue;
         }
-        const doorW = (x1 - x0 - (n - 1) * gap) / n;
-        for (let i = 1; i <= n; i++) {
-          doorNo++;
-          const x = x0 + (i - 1) * (doorW + gap);
-          add("door", doorNo, { x, y: f.y0, z: D, dx: doorW, dy: h, dz: tFront }, "y", "x", "material.front", all);
-          // One door: hinge side from the option (corner units: away from the blind side).
-          // Two doors: hinged outwards.
-          const single = corner === "blind_right" ? "left" : corner === "blind_left" ? "right" : (f.hinge ?? opt<"left" | "right">("door_hinge_side"));
-          const hinge = n === 1 ? single : i === 1 ? "left" : "right";
-          doors.push({ code: `${ROLE_CODES.door}${doorNo}`, hinge });
+        if (f.type === "panel") {
+          add("blind_panel", zoneNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "y", "x", "material.front", all);
+          continue;
         }
-      } else {
-        drawerNo++;
-        if (opt<string>("corner") !== "none" && drawerNo === 1) {
-          diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
+        if (f.type === "appliance") {
+          if (!f.front) continue;
+          applianceNo++;
+          add("appliance_front", applianceNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "y", "x", "material.front", all);
+          ownHandle(f, fi);
+          applianceFronts.push({ code: `${ROLE_CODES.appliance_front}${applianceNo}`, hinge: col.hingeDefault });
+          continue;
         }
-        add("drawer_front", drawerNo, { x: gl, y: f.y0, z: D, dx: W - gl - gr, dy: h, dz: tFront }, "x", "y", "material.front", all);
-        const d = buildDrawer(rc, library, drawerNo, f, { W, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
-        if (d) drawers.push(d);
+        if (f.type === "door") {
+          const n = f.doors;
+          // Blind corner: a fixed panel covers the blind side, doors the rest.
+          const corner = opt<"none" | "blind_left" | "blind_right">("corner");
+          let x0 = X0;
+          let x1 = X1;
+          if (corner !== "none" && sectioned) {
+            if (fi === 0 && col.secs[0] === 0) diagnostics.push({ severity: "warning", code: "sections_unsupported", params: { what: "corner" }, cabinet: cab });
+          } else if (corner !== "none") {
+            const bw = num("blind_w");
+            if (bw > W - num("door_min_w")) {
+              diagnostics.push({ severity: "error", code: "blind_too_wide", params: { blind: bw, width: W }, cabinet: cab });
+            }
+            const split = corner === "blind_right" ? W - bw : bw;
+            const panel = corner === "blind_right" ? { x: split + gap / 2, dx: W - gr - split - gap / 2 } : { x: gl, dx: split - gap / 2 - gl };
+            add("blind_panel", fronts.indexOf(f) + 1, { x: panel.x, y: f.y0, z: D, dx: panel.dx, dy: h, dz: tFront }, "y", "x", "material.front", all);
+            if (corner === "blind_right") x1 = split - gap / 2;
+            else x0 = split + gap / 2;
+          }
+          const blind = sectioned ? "none" : corner;
+          const doorW = (x1 - x0 - (n - 1) * gap) / n;
+          for (let i = 1; i <= n; i++) {
+            doorNo++;
+            const x = x0 + (i - 1) * (doorW + gap);
+            add("door", doorNo, { x, y: f.y0, z: D, dx: doorW, dy: h, dz: tFront }, "y", "x", "material.front", all);
+            ownHandle(f, fi);
+            // One door: hinge side from the zone, else the section's outer side
+            // (or the option); corner units: away from the blind side. Two doors: hinged outwards.
+            const single = blind === "blind_right" ? "left" : blind === "blind_left" ? "right" : (f.hinge ?? col.hingeDefault);
+            const hinge = n === 1 ? single : i === 1 ? "left" : "right";
+            doors.push({ code: `${ROLE_CODES.door}${doorNo}`, hinge, panel: hinge === "left" ? col.leftPanel : col.rightPanel });
+          }
+        } else {
+          drawerNo++;
+          if (opt<string>("corner") !== "none" && drawerNo === 1) {
+            diagnostics.push({ severity: "warning", code: "corner_with_drawers", params: {}, cabinet: cab });
+          }
+          add("drawer_front", drawerNo, { x: X0, y: f.y0, z: D, dx: X1 - X0, dy: h, dz: tFront }, "x", "y", "material.front", all);
+          ownHandle(f, fi);
+          const d = buildDrawer(rc, library, drawerNo, f, { x0: col.x0, x1: col.x1, H, D, t, backFrontZ, ...drawerBounds(fi) }, add, diagnostics);
+          if (d) drawers.push(d);
+        }
       }
     }
+  }
+
+  // --- Sloped top corners (Schräge, D47) ---------------------------------------------
+  const innerTop: Record<string, number> = {};
+  let rearSlope: BoxLayout["rearSlope"];
+  for (const side of ["left", "right"] as const) {
+    const drop = num(`slope_${side}_drop`);
+    if (drop <= 0) continue;
+    applySlope(side, drop, num(`slope_${side}_angle`));
+  }
+  if (num("slope_rear_drop") > 0) {
+    if (num("slope_left_drop") > 0 || num("slope_right_drop") > 0) {
+      diagnostics.push({ severity: "error", code: "slope_rear_with_side", params: {}, cabinet: cab });
+    } else applyRearSlope(num("slope_rear_drop"), num("slope_rear_angle"));
+  }
+  function applySlope(side: "left" | "right", drop: number, angleDeg: number): void {
+    const where = { cabinet: cab };
+    const a = (angleDeg * Math.PI) / 180;
+    const sn = Math.sin(a);
+    const cs = Math.cos(a);
+    const run = drop / Math.tan(a);
+    const otherRun = (() => {
+      const o = side === "left" ? "right" : "left";
+      const d = num(`slope_${o}_drop`);
+      return d > 0 ? d / Math.tan((num(`slope_${o}_angle`) * Math.PI) / 180) : 0;
+    })();
+    if (top !== "full") {
+      diagnostics.push({ severity: "error", code: "slope_needs_full_top", params: {}, ...where });
+      return;
+    }
+    if (drop > H - sideY - 2 * t - 1e-6 || run + otherRun > W - 2 * t - 1e-6) {
+      diagnostics.push({ severity: "error", code: "slope_too_large", params: { side, drop: roundMm(drop), run: roundMm(run) }, ...where });
+      return;
+    }
+    // Work as if the slope were on the right; m() mirrors X for a left slope.
+    const m = (x: number): number => (side === "right" ? x : W - x);
+    const pt = (x: number, y: number): [number, number] => [roundMm(m(x)), roundMm(y)];
+    const ccw = (pts: [number, number][]): [number, number][] => {
+      let area = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, ay] = pts[i]!;
+        const [bx, by] = pts[(i + 1) % pts.length]!;
+        area += ax * by - bx * ay;
+      }
+      return area < 0 ? [...pts].reverse() : pts;
+    };
+    // Outer slope line: sn·x + cs·y = k; the inner face is t further in.
+    const k = sn * W + cs * (H - drop);
+    const P1 = { x: W - run, y: H }; // upper end (outer)
+    const P2 = { x: W, y: H - drop }; // lower end at the side (outer)
+    const Q1 = { x: P1.x - t * Math.tan(a / 2), y: H - t }; // mitre with the top, inner
+    const Q2 = { x: W - t, y: H - drop - (t * (1 - sn)) / cs }; // mitre with the side, inner
+    const bevelTop = roundMm(angleDeg / 2);
+    const bevelSide = roundMm((90 - angleDeg) / 2);
+    const resize = (p: Part, box: Box): void => {
+      const rounded: Box = { x: roundMm(box.x), y: roundMm(box.y), z: roundMm(box.z), dx: roundMm(box.dx), dy: roundMm(box.dy), dz: roundMm(box.dz) };
+      const length = boxSize(rounded, p.lengthAxis);
+      const width = boxSize(rounded, p.widthAxis);
+      p.cutLength = roundMm(p.cutLength + length - p.length);
+      p.cutWidth = roundMm(p.cutWidth + width - p.width);
+      p.length = length;
+      p.width = width;
+      p.box = rounded;
+    };
+    // Side: up to the slope's lower end, mitred.
+    const sideCode = side === "right" ? ROLE_CODES.side_right : ROLE_CODES.side_left;
+    const sp = parts.find((p) => p.code === sideCode)!;
+    resize(sp, { ...sp.box, y: sideY, dy: P2.y - sideY });
+    sp.profile = { points: ccw([pt(W - t, sideY), pt(W, sideY), pt(W, P2.y), pt(W - t, Q2.y)]) };
+    // The side's length runs along Y from the bottom: its top end is w2.
+    sp.bevels = { ...sp.bevels, w2: bevelSide };
+    innerTop[sideCode] = roundMm(Q2.y);
+    // Top (the piece reaching into the slope): up to the slope's upper end, mitred.
+    const tops = parts.filter((p) => p.role === "top");
+    const tp = side === "right" ? tops.reduce((a2, b) => (b.box.x > a2.box.x ? b : a2)) : tops.reduce((a2, b) => (b.box.x < a2.box.x ? b : a2));
+    const tx0 = side === "right" ? tp.box.x : W - (tp.box.x + tp.box.dx); // far end, in slope coordinates
+    if (Q1.x <= tx0 + 1e-6) {
+      diagnostics.push({ severity: "error", code: "slope_too_large", params: { side, drop: roundMm(drop), run: roundMm(run) }, ...where });
+      return;
+    }
+    resize(tp, side === "right" ? { ...tp.box, dx: P1.x - tp.box.x } : { ...tp.box, x: m(P1.x), dx: tp.box.x + tp.box.dx - m(P1.x) });
+    tp.profile = { points: ccw([pt(tx0, H - t), pt(Q1.x, H - t), pt(P1.x, H), pt(tx0, H)]) };
+    tp.bevels = { ...tp.bevels, [side === "right" ? "w2" : "w1"]: bevelTop };
+    // The sloped panel: outer face from P1 to P2, mitred at both ends.
+    // Its box is the board laid flat in the top plane (the frame for machining,
+    // part sheets and DXF); the profile gives its real position.
+    const slopeLen = drop / sn;
+    const z0 = tp.box.z;
+    add(
+      "top_slope",
+      side === "right" ? (num("slope_left_drop") > 0 ? 2 : undefined) : num("slope_right_drop") > 0 ? 1 : undefined,
+      { x: side === "right" ? W - slopeLen : 0, y: H - t, z: z0, dx: slopeLen, dy: t, dz: D - z0 },
+      "x",
+      "z",
+      "material.carcase",
+      front(edgeCarcase),
+    );
+    const ts = parts[parts.length - 1]!;
+    ts.profile = { points: ccw([pt(P1.x, P1.y), pt(Q1.x, Q1.y), pt(Q2.x, Q2.y), pt(P2.x, P2.y)]), rotated: true };
+    ts.bevels = { w1: bevelTop, w2: bevelSide };
+    // Back(s): cut along the slope, reaching into the slope panel's groove
+    // (inner face + engage), or up to the outer face for a surface back or
+    // a back behind the horizontals.
+    const engage = backMount === "groove" ? num("back_groove_depth") - play : backMount === "rebate" ? num("back_rebate_depth") - play : 0;
+    const limit = backMount === "surface" || backBehind ? k : k - t + engage;
+    for (const bk of parts.filter((p) => p.role === "back")) {
+      const b = bk.box;
+      const corners: [number, number][] = [[b.x, b.y], [b.x + b.dx, b.y], [b.x + b.dx, b.y + b.dy], [b.x, b.y + b.dy]];
+      const val = ([x, y]: [number, number]): number => sn * m(x) + cs * y - limit;
+      if (corners.every((q) => val(q) <= 1e-6)) continue;
+      // Clip the rectangle by the half-plane (Sutherland–Hodgman, one edge).
+      const out: [number, number][] = [];
+      const base = bk.outline
+        ? bk.outline.map(([u, v]) => [b[bk.widthAxis === "x" ? "x" : "y"] + (bk.widthAxis === "x" ? v : u), b.y + (bk.widthAxis === "x" ? u : v)] as [number, number])
+        : corners;
+      for (let i = 0; i < base.length; i++) {
+        const A = base[i]!;
+        const B = base[(i + 1) % base.length]!;
+        const va = val(A);
+        const vb = val(B);
+        if (va <= 1e-9) out.push(A);
+        if ((va < -1e-9 && vb > 1e-9) || (va > 1e-9 && vb < -1e-9)) {
+          const f = va / (va - vb);
+          out.push([A[0] + f * (B[0] - A[0]), A[1] + f * (B[1] - A[1])]);
+        }
+      }
+      // Part-local (u along the back's length = Y, v along X), counter-clockwise.
+      const local = out.map(([x, y]) => [roundMm(y - b.y), roundMm(x - b.x)] as [number, number]);
+      bk.outline = ccw(local);
+    }
+    // Parts under the slope: shelves shortened square, fixed shelves and
+    // middle panels cut to the slope with a bevel (their joint with the
+    // sloped panel is made by hand); fronts above the outer line warn.
+    const inner = k - t;
+    const manual = [tp.code, ts.code, sp.code];
+    // Touching the slope (within rounding) is not cutting into it.
+    const over = (x: number, y: number): boolean => sn * x + cs * y > inner + 0.01;
+    for (const p of parts) {
+      if (p === sp || p === tp || p === ts || p.role === "back" || p.role.startsWith("drawer_")) continue;
+      const b = p.box;
+      const xr = side === "right" ? b.x + b.dx : W - b.x; // end towards the slope, in slope coordinates
+      const xl = side === "right" ? b.x : W - (b.x + b.dx); // end away from it
+      const yt = b.y + b.dy;
+      const isFront = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"].includes(p.role);
+      if (isFront) {
+        // Fronts keep their size: reaching above the slope (front_gap_top clear
+        // of its outer face) is an error, unless slope_fronts: cut (D51, D54).
+        const limit = k - num("front_gap_top");
+        const f = (x: number, y: number): number => sn * (side === "right" ? x : W - x) + cs * y - limit;
+        const rect: [number, number][] = [[b.x, b.y], [b.x + b.dx, b.y], [b.x + b.dx, yt], [b.x, yt]];
+        if (rect.every(([x, y]) => f(x, y) <= 0.01)) continue;
+        if (opt<string>("slope_fronts") !== "cut") {
+          // Vertically, at the front's corner towards the slope.
+          const overBy = yt - (limit - sn * xr) / cs;
+          diagnostics.push({ severity: "error", code: "slope_front_above", params: { part: p.id, over: roundMm(overBy) }, ...where, part: p.id });
+          continue;
+        }
+        const poly: [number, number][] = [];
+        for (let i = 0; i < rect.length; i++) {
+          const A = rect[i]!;
+          const B = rect[(i + 1) % rect.length]!;
+          const va = f(A[0], A[1]);
+          const vb = f(B[0], B[1]);
+          if (va <= 1e-9) poly.push(A);
+          if ((va < -1e-9 && vb > 1e-9) || (va > 1e-9 && vb < -1e-9)) {
+            const u = va / (va - vb);
+            poly.push([A[0] + u * (B[0] - A[0]), A[1] + u * (B[1] - A[1])]);
+          }
+        }
+        // Too little left at the hinge or slope edge: the front does not fit under the slope.
+        const edgeLeft = Math.min(...poly.filter(([x]) => Math.abs(x - (side === "right" ? b.x + b.dx : b.x)) < 1e-6).map(([, y]) => y)) ;
+        if (poly.length < 3 || !Number.isFinite(edgeLeft) || Math.max(...poly.filter(([x]) => Math.abs(x - (side === "right" ? b.x + b.dx : b.x)) < 1e-6).map(([, y]) => y)) - b.y < 100) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        // Part-local (u along the length, v along the width).
+        const local = poly.map(([x, y]) => (p.lengthAxis === "y" ? [roundMm(y - b.y), roundMm(x - b.x)] : [roundMm(x - b.x), roundMm(y - b.y)]) as [number, number]);
+        p.outline = ccw(local);
+        continue;
+      }
+      if (["side_left", "side_right", "top", "bottom", "top_slope"].includes(p.role) || !over(xr, yt)) continue;
+      const xAt = (y: number): number => (inner - cs * y) / sn; // inner slope line, x at height y
+      const yAt = (x: number): number => (inner - sn * x) / cs; // … y at x
+      const box = (x0: number, x1: number, y0: number, y1: number): Box => (side === "right" ? { ...b, x: x0, dx: x1 - x0, y: y0, dy: y1 - y0 } : { ...b, x: W - x1, dx: x1 - x0, y: y0, dy: y1 - y0 });
+      if (p.role === "shelf") {
+        // Square cut, shelf_gap clear of the slope at its top face.
+        const x1 = xAt(yt) - num("shelf_gap");
+        if (x1 - xl < 50) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        resize(p, box(xl, x1, b.y, yt));
+      } else if (p.role === "fixed_shelf") {
+        // Fixed shelves keep their place and size: one reaching into the slope
+        // would meet the sloped panel instead of its side (D54).
+        diagnostics.push({ severity: "error", code: "slope_fixed_above_side", params: { part: p.id, top: roundMm(yt), limit: roundMm(yAt(xr)), over: roundMm(yt - yAt(xr)) }, ...where, part: p.id });
+      } else if (p.role === "partition") {
+        // Long point on the face away from the slope, bevel a at the top end.
+        const yl = Math.min(yt, yAt(xl));
+        const yr = yAt(xr);
+        if (yr - b.y < 100) {
+          diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+          continue;
+        }
+        resize(p, box(xl, xr, b.y, yl));
+        p.profile = { points: ccw([pt(xl, b.y), pt(xr, b.y), pt(xr, yr), pt(xl, yl)]) };
+        p.bevels = { ...p.bevels, w2: roundMm(angleDeg) };
+        innerTop[p.code] = roundMm(yr);
+        manual.push(p.code);
+      } else {
+        diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+      }
+    }
+    diagnostics.push({ severity: "warning", code: "slope_joints_manual", params: { parts: manual.join(", ") }, ...where });
+  }
+
+  /**
+   * Roof falling towards the wall behind the cabinet (D49): the top rear
+   * corner is cut in the side view. Sides and middle panels get an outline
+   * along the slope, the top ends at its upper edge (mitre), a sloped panel
+   * runs across the width down to the rear edge (lower end square), the back
+   * stops under it; shelves are shortened, fixed shelves bevelled.
+   */
+  function applyRearSlope(drop: number, angleDeg: number): void {
+    const where = { cabinet: cab };
+    const a = (angleDeg * Math.PI) / 180;
+    const sn = Math.sin(a);
+    const cs = Math.cos(a);
+    const run = drop / Math.tan(a);
+    if (top !== "full") {
+      diagnostics.push({ severity: "error", code: "slope_needs_full_top", params: {}, ...where });
+      return;
+    }
+    if (drop > H - sideY - 2 * t - 1e-6 || run > D - carcaseZ0 - 2 * t - 1e-6) {
+      diagnostics.push({ severity: "error", code: "slope_too_large", params: { side: "rear", drop: roundMm(drop), run: roundMm(run) }, ...where });
+      return;
+    }
+    // Side view (z, y). Outer slope line: sn·(D − z) + cs·y = k (D − z measured from the front).
+    const k = sn * D + cs * (H - drop);
+    const inner = k - t;
+    const yOn = (line: number, z: number): number => (line - sn * (D - z)) / cs;
+    const zOn = (line: number, y: number): number => D - (line - cs * y) / sn;
+    const below = (line: number) => (z: number, y: number): number => sn * (D - z) + cs * y - line;
+    const P1 = { z: run, y: H }; // upper end, outer
+    const P2 = { z: 0, y: H - drop }; // lower end at the rear edge, outer
+    const Q1 = { z: zOn(inner, H - t), y: H - t }; // mitre with the top, inner
+    const resize = (p: Part, box: Box): void => {
+      const r: Box = { x: roundMm(box.x), y: roundMm(box.y), z: roundMm(box.z), dx: roundMm(box.dx), dy: roundMm(box.dy), dz: roundMm(box.dz) };
+      const length = boxSize(r, p.lengthAxis);
+      const width = boxSize(r, p.widthAxis);
+      p.cutLength = roundMm(p.cutLength + length - p.length);
+      p.cutWidth = roundMm(p.cutWidth + width - p.width);
+      p.length = length;
+      p.width = width;
+      p.box = r;
+    };
+    const ccw = (pts: [number, number][]): [number, number][] => {
+      let area = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, ay] = pts[i]!;
+        const [bx, by] = pts[(i + 1) % pts.length]!;
+        area += ax * by - bx * ay;
+      }
+      return area < 0 ? [...pts].reverse() : pts;
+    };
+    /** Clip a polygon (z, y) to the side of the line below it (Sutherland–Hodgman). */
+    const clip = (poly: [number, number][], f: (z: number, y: number) => number): [number, number][] => {
+      const out: [number, number][] = [];
+      for (let i = 0; i < poly.length; i++) {
+        const A = poly[i]!;
+        const B = poly[(i + 1) % poly.length]!;
+        const va = f(A[0], A[1]);
+        const vb = f(B[0], B[1]);
+        if (va <= 1e-9) out.push(A);
+        if ((va < -1e-9 && vb > 1e-9) || (va > 1e-9 && vb < -1e-9)) {
+          const u = va / (va - vb);
+          out.push([A[0] + u * (B[0] - A[0]), A[1] + u * (B[1] - A[1])]);
+        }
+      }
+      return out;
+    };
+    /** Vertical part in the YZ plane (side, middle panel): outline in its face along the line. */
+    const cutUpright = (p: Part, line: number): boolean => {
+      const b = p.box;
+      const rect: [number, number][] = [[b.z, b.y], [b.z + b.dz, b.y], [b.z + b.dz, b.y + b.dy], [b.z, b.y + b.dy]];
+      const f = below(line);
+      if (rect.every(([z, y]) => f(z, y) <= 1e-6)) return false;
+      const poly = clip(rect, f);
+      // Part-local: u along the length (Y), v along the width (Z).
+      p.outline = ccw(poly.map(([z, y]) => [roundMm(y - b.y), roundMm(z - b.z)] as [number, number]));
+      return true;
+    };
+    const manual: string[] = [];
+    // Sides and middle panels. Sides over (and middle panels through) reach
+    // the outer face like they reach the top's upper face; otherwise the inner.
+    for (const p of parts.filter((x) => x.role === "side_left" || x.role === "side_right" || x.role === "partition")) {
+      const reachesTop = p.box.y + p.box.dy > H - t + 1e-6;
+      if (cutUpright(p, reachesTop ? k : inner) && p.role === "partition") manual.push(p.code);
+    }
+    // Top: from the slope's upper end to the front, mitred at its rear edge (l1 = rear).
+    for (const tp of parts.filter((x) => x.role === "top")) {
+      resize(tp, { ...tp.box, z: P1.z, dz: D - P1.z });
+      tp.profile = { axis: "x", points: ccw([[roundMm(P1.z), H], [roundMm(Q1.z), H - t], [D, H - t], [D, H]]) };
+      tp.bevels = { ...tp.bevels, l1: roundMm(angleDeg / 2) };
+      manual.push(tp.code);
+    }
+    // The sloped panel across the width: board laid flat in the top plane, length along X.
+    const slopeLen = drop / sn;
+    add("top_slope", undefined, { x: hzX, y: H - t, z: 0, dx: hzW, dy: t, dz: slopeLen }, "x", "z", "material.carcase", none);
+    const ts = parts[parts.length - 1]!;
+    ts.profile = {
+      axis: "x",
+      rotated: true,
+      points: ccw([[roundMm(P1.z), P1.y], [P2.z, roundMm(P2.y)], [roundMm(t * sn), roundMm(P2.y - t * cs)], [roundMm(Q1.z), roundMm(Q1.y)]]),
+    };
+    // Upper edge (v = width, l2) mitred with the top; the lower edge stays square.
+    ts.bevels = { l2: roundMm(angleDeg / 2) };
+    manual.unshift(ts.code);
+    // Back(s): up to the slope's inner face at their rear face (outer face for a surface back).
+    for (const bk of parts.filter((x) => x.role === "back")) {
+      const yMax = backMount === "surface" ? H - drop : yOn(inner, bk.box.z) - play;
+      if (bk.box.y + bk.box.dy > yMax) resize(bk, { ...bk.box, dy: yMax - bk.box.y });
+    }
+    // Shelves (square, shelf_gap clear) and fixed shelves (bevel 90° − a at the rear edge).
+    for (const p of parts.filter((x) => x.role === "shelf" || x.role === "fixed_shelf")) {
+      const b = p.box;
+      const yt = b.y + b.dy;
+      if (below(inner)(b.z, yt) <= 1e-6) continue;
+      const zt = zOn(inner, yt);
+      if (b.z + b.dz - zt < 100) {
+        diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+        continue;
+      }
+      if (p.role === "shelf") {
+        const z0 = zt + num("shelf_gap");
+        resize(p, { ...b, z: z0, dz: b.z + b.dz - z0 });
+      } else {
+        const zb = Math.max(b.z, zOn(inner, b.y));
+        resize(p, { ...b, z: zb, dz: b.z + b.dz - zb });
+        p.profile = { axis: "x", points: ccw([[roundMm(zb), b.y], [b.z + b.dz, b.y], [b.z + b.dz, yt], [roundMm(zt), yt]]) };
+        p.bevels = { ...p.bevels, l1: roundMm(90 - angleDeg) };
+        manual.push(p.code);
+      }
+    }
+    // Rails, drawers and fronts are not cut: a part reaching into the corner is an error.
+    for (const p of parts) {
+      if (["side_left", "side_right", "partition", "top", "top_slope", "back", "shelf", "fixed_shelf", "bottom"].includes(p.role)) continue;
+      const b = p.box;
+      if (below(inner)(b.z, b.y + b.dy) > 1e-6 && b.z < D - 1e-6) diagnostics.push({ severity: "error", code: "slope_cuts_part", params: { part: p.id }, ...where, part: p.id });
+    }
+    rearSlope = { line: inner, sn, cs, D };
+    diagnostics.push({ severity: "warning", code: "slope_joints_manual", params: { parts: manual.join(", ") }, ...where });
   }
 
   // --- Ceiling filler (Passblende, D44) -----------------------------------------------
@@ -730,7 +1347,7 @@ export function buildBox(
   return {
     parts,
     diagnostics,
-    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, doors, drawers, applianceFronts, flaps, rails,
-      zones: fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: fixedAuto[i] ?? null })) },
+    layout: { backFrontZ, carcaseZ0, innerBottomY: t, innerTopY: H - t, innerTop, shelfRanges, holeRanges, ...(rearSlope ? { rearSlope } : {}), doors, drawers, applianceFronts, flaps, frontHandles, rails,
+      zones: laid[0]!.fronts.map((f, i) => ({ type: f.type, y0: f.y0, y1: f.y1, fixedBelow: laid[0]!.fixedAuto[i] ?? null })) },
   };
 }

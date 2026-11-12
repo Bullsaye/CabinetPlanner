@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "lamello-clamex-p14-medius",
+  "name": {
+    "en": "Lamello Clamex P-14 with P-10 Medius (middle panel set)",
+    "de": "Lamello Clamex P-14 mit P-10 Medius (Satz für Mittelwände)"
+  },
+  "category": "connector",
+  "manufacturer": "Lamello",
+  "series": "Clamex P",
+  "articles": [
+    {
+      "code": "145334",
+      "note": "Clamex P-14 element with lever: 2 per set, one in each part fixed to the middle panel"
+    },
+    {
+      "code": "145369",
+      "note": "Clamex P-10 Medius element without lever: 1 per set, in the middle panel"
+    }
+  ],
+  "trust": "untested",
+  "source": "Lamello P-System brochure (EN): Clamex P-14 elements with lever pair with the Clamex P-10 Medius element without lever (article list, see docs/hardware-research/lamello-keku.json); P-10 profile groove plunge 10 mm, ~60.3 mm chord at the surface (pp. 70-75). Parts on both faces of a middle panel are joined at the same position: 14 mm P-14 groove and Ø6 lever access in each part, 10 mm P-10 groove from each face of the middle panel, where the two grooves meet and hold the Medius element. Check the minimum middle panel thickness and the access hole against the brochure (p. 86) before machining.",
+  "params": {
+    "end_min": 37,
+    "spacing_max": 300,
+    "groove_len": 69.6,
+    "groove_len_medius": 60.3
+  },
+  "drilling": [
+    {
+      "mount": "edge",
+      "op": "groove",
+      "d": 7,
+      "depth": 14,
+      "len": "groove_len",
+      "a": 0,
+      "b": 0
+    },
+    {
+      "mount": "face",
+      "op": "groove",
+      "d": 7,
+      "depth": 10,
+      "len": "groove_len_medius",
+      "a": 0,
+      "b": 0
+    },
+    {
+      "mount": "edge_face",
+      "d": 6,
+      "depth": "t_edge / 2",
+      "a": 0,
+      "b": 7.5
+    }
+  ],
+  "limits": [
+    {
+      "name": "t_edge",
+      "value": "t_edge",
+      "min": 15
+    },
+    {
+      "name": "t_face",
+      "value": "t_face",
+      "min": 16
+    }
+  ],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "set"
+  }
+}

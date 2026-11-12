@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "name": "Attic wardrobe",
+  "revision": 1,
+  "vars": {
+    "room_height": 2400
+  },
+  "options": {
+    "hardware.leg": "generic-leg-60"
+  },
+  "room": {
+    "walls": [
+      {
+        "id": "A",
+        "length": 3000
+      },
+      {
+        "id": "B",
+        "length": 2500
+      },
+      {
+        "id": "C",
+        "length": 3000
+      },
+      {
+        "id": "D",
+        "length": 2500
+      }
+    ],
+    "ceiling": {
+      "slopes": [
+        {
+          "wall": "B",
+          "knee": 1500,
+          "angle": 45
+        }
+      ]
+    }
+  },
+  "cabinets": [
+    {
+      "id": "K01",
+      "type": "box",
+      "kind": "tall",
+      "name": "Kleiderschrank",
+      "presets": [
+        "tall-unit",
+        "wardrobe"
+      ],
+      "vars": {
+        "W": 1050,
+        "H": 1720,
+        "D": 475,
+        "plinth_h": 60,
+        "front_gap": 4,
+        "front_gap_v": 4,
+        "front_gap_side": 2,
+        "front_gap_bottom": 4.5,
+        "back_groove_offset": 12,
+        "back_groove_depth": 10,
+        "back_play": 0,
+        "shelf_back_gap": 0,
+        "shelf_gap": 0.5,
+        "slope_right_drop": "max(0, H + plinth_h - ceiling_h)",
+        "slope_right_angle": 45
+      },
+      "options": {
+        "back_extent": "inside",
+        "hat_shelf": false
+      },
+      "sections": [
+        {
+          "fronts": [
+            {
+              "type": "open",
+              "shelves": 0
+            },
+            {
+              "type": "door",
+              "h": 1025
+            },
+            {
+              "type": "drawer",
+              "h": 161,
+              "handle": "generic-knob"
+            },
+            {
+              "type": "drawer",
+              "h": 235,
+              "handle": "generic-knob"
+            }
+          ],
+          "interior": "shelves",
+          "shelves": 3
+        },
+        {
+          "fronts": [
+            {
+              "type": "open",
+              "shelves": 0
+            },
+            {
+              "type": "door",
+              "h": 1025
+            },
+            {
+              "type": "drawer",
+              "h": 161,
+              "handle": "generic-knob"
+            },
+            {
+              "type": "drawer",
+              "h": 235,
+              "handle": "generic-knob"
+            }
+          ],
+          "interior": "hanging"
+        }
+      ],
+      "construction": {
+        "fixed": {
+          "2": {
+            "panel": false
+          }
+        },
+        "panels": [
+          {
+            "y": "t_carcase + 375"
+          }
+        ]
+      },
+      "place": {
+        "wall": "A",
+        "x": "3000 - 1050 - 5"
+      }
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import bar192 from "../../library/hardware/generic-bar-192.json" with { type: "j
 import knob from "../../library/hardware/generic-knob.json" with { type: "json" };
 import dowel from "../../library/hardware/dowel-8x35.json" with { type: "json" };
 import hinge from "../../library/hardware/generic-hinge-110.json" with { type: "json" };
+import hingeHalf from "../../library/hardware/generic-hinge-110-half.json" with { type: "json" };
 import grassTiomosK3 from "../../library/hardware/grass-tiomos-110-k3-screw.json" with { type: "json" };
 import grassTiomos from "../../library/hardware/grass-tiomos-110-screw.json" with { type: "json" };
 import hettichDuplo from "../../library/hardware/hettich-duplo-5.json" with { type: "json" };
@@ -16,10 +17,12 @@ import hettichSensysScrew from "../../library/hardware/hettich-sensys-8645i-scre
 import leg100 from "../../library/hardware/generic-leg-100.json" with { type: "json" };
 import leg100Screwed from "../../library/hardware/generic-leg-100-screwed.json" with { type: "json" };
 import leg150 from "../../library/hardware/generic-leg-150.json" with { type: "json" };
+import leg60 from "../../library/hardware/generic-leg-60.json" with { type: "json" };
 import rail from "../../library/hardware/generic-wardrobe-rail.json" with { type: "json" };
 import minifix from "../../library/hardware/hafele-minifix-15.json" with { type: "json" };
 import rastex from "../../library/hardware/hettich-rastex-15.json" with { type: "json" };
 import clamex from "../../library/hardware/lamello-clamex-p14.json" with { type: "json" };
+import clamexMedius from "../../library/hardware/lamello-clamex-p14-medius.json" with { type: "json" };
 import confirmat from "../../library/hardware/generic-confirmat-7x50.json" with { type: "json" };
 import cabinetScrew from "../../library/hardware/generic-cabinet-connector-screw.json" with { type: "json" };
 import sah130 from "../../library/hardware/hettich-sah-130.json" with { type: "json" };
@@ -37,6 +40,7 @@ import { HardwareItem } from "./schema.ts";
  */
 const RAW: readonly unknown[] = [
   hinge,
+  hingeHalf,
   dowel,
   shelfPin,
   hettichSensysScrew,
@@ -55,10 +59,12 @@ const RAW: readonly unknown[] = [
   leg100,
   leg100Screwed,
   leg150,
+  leg60,
   rail,
   minifix,
   rastex,
   clamex,
+  clamexMedius,
   confirmat,
   cabinetScrew,
   sah130,

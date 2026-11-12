@@ -20,8 +20,8 @@ export function buildDrawer(
   library: Library,
   index: number,
   front: PlacedFront,
-  /** floor / ceil: top of the panel below and underside of the panel above the drawer. */
-  c: { W: number; H: number; D: number; t: number; backFrontZ: number; floor: number; ceil: number },
+  /** x0 / x1: clear width between the panels the slides go on; floor / ceil: top of the panel below and underside of the panel above the drawer. */
+  c: { x0: number; x1: number; H: number; D: number; t: number; backFrontZ: number; floor: number; ceil: number },
   add: AddPart,
   diagnostics: Diagnostic[],
 ): BoxLayout["drawers"][number] | undefined {
@@ -51,7 +51,7 @@ export function buildDrawer(
   // down to a system-grid line, but never below the slide's minimum.
   const minAxis = c.floor + slide.axisMin;
   let axis = front.y0 + num("drawer_axis_offset");
-  if (rc.options.get("system_holes")!.value === "full") {
+  if (rc.options.get("system_holes")!.value !== "none") {
     const y0 = num("sys_grid_y0");
     const pitch = num("sys_pitch");
     axis = y0 + Math.floor((axis - y0) / pitch + 1e-9) * pitch;
@@ -66,7 +66,7 @@ export function buildDrawer(
   if (ff) {
     const lowest = front.y0 + ff.d / 2 + num("bore_min_wall") - ff.fromBox + slide.axisToBox;
     if (axis < lowest - 1e-9) {
-      if (rc.options.get("system_holes")!.value === "full") {
+      if (rc.options.get("system_holes")!.value !== "none") {
         const y0 = num("sys_grid_y0");
         const pitch = num("sys_pitch");
         axis = y0 + Math.ceil((lowest - y0) / pitch - 1e-9) * pitch;
@@ -77,7 +77,7 @@ export function buildDrawer(
   }
   axis = roundMm(axis);
 
-  const LWK = c.W - 2 * c.t;
+  const LWK = c.x1 - c.x0;
   const context = new Map(rc.values);
   context.set("LWK", LWK);
   context.set("NL", nl);
@@ -109,7 +109,7 @@ export function buildDrawer(
       return undefined;
     }
     const outer = innerW + 2 * ds;
-    const x0 = c.t + (LWK - outer) / 2;
+    const x0 = c.x0 + (LWK - outer) / 2;
     const z0 = z1 - length;
     const g = num("drawer_bottom_groove");
     const tb = num("drawer_bottom_t");
@@ -141,12 +141,12 @@ export function buildDrawer(
       return undefined;
     }
     const tb = num("drawer_side_t");
-    const x0 = c.t + (LWK - bw) / 2;
+    const x0 = c.x0 + (LWK - bw) / 2;
     add("drawer_bottom", index, { x: x0, y: yb, z: z1 - bl, dx: bw, dy: tb, dz: bl }, "x", "z", "material.drawer", none);
     add(
       "drawer_back",
       index,
-      { x: c.t + (LWK - backW) / 2, y: yb + tb, z: z1 - bl, dx: backW, dy: fit.back, dz: tb },
+      { x: c.x0 + (LWK - backW) / 2, y: yb + tb, z: z1 - bl, dx: backW, dy: fit.back, dz: tb },
       "x",
       "y",
       "material.drawer",
@@ -158,5 +158,5 @@ export function buildDrawer(
   if (boxTop > c.ceil + 1e-6) {
     diagnostics.push({ severity: "error", code: "drawer_too_high", params: { index, over: roundMm(boxTop - c.ceil) }, ...at });
   }
-  return { index, slide: item.id, nl, axisY: axis, box: slide.box };
+  return { index, slide: item.id, nl, axisY: axis, box: slide.box, x0: c.x0, x1: c.x1 };
 }

@@ -57,11 +57,17 @@ export function sceneOf(c: CabinetResult): Scene {
       role: p.role,
       material: p.material,
       box: p.box,
-      ...(p.outline
+      // Parts cut by a slope (D47): their cross-section extruded along Z.
+      ...(p.profile
+        ? p.profile.axis === "x"
+          ? { outline: { points: p.profile.points.map(([z, y]) => ({ x: p.box.x, y, z })), normal: "x" as const, thickness: p.box.dx } }
+          : { outline: { points: p.profile.points.map(([x, y]) => ({ x, y, z: p.box.z })), normal: "z" as const, thickness: p.box.dz } }
+        : p.outline
         ? { outline: { points: p.outline.map(([u, v]) => toCabinet(p, { u, v, w: 0 })), normal: cabinetAxisOf(p, "w"), thickness: p.thickness } }
         : {}),
       bores: p.operations.flatMap((o) => {
-        if (o.kind !== "bore") return [];
+        // A part at an angle keeps its operations in its own frame; the scene shows none.
+        if (o.kind !== "bore" || p.profile?.rotated) return [];
         const { normal } = faceAxes(o.face);
         return [
           {
@@ -74,7 +80,7 @@ export function sceneOf(c: CabinetResult): Scene {
         ];
       }),
       pockets: p.operations.flatMap((o) => {
-        if (o.kind !== "pocket") return [];
+        if (o.kind !== "pocket" || p.profile?.rotated) return [];
         const a = toCabinet(p, { u: o.u0, v: o.v0, w: o.w0 });
         const b = toCabinet(p, { u: o.u1, v: o.v1, w: o.w1 });
         return [

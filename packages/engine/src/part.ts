@@ -11,6 +11,7 @@ export type PartRole =
   | "side_right"
   | "bottom"
   | "top"
+  | "top_slope"
   | "rail_front"
   | "rail_rear"
   | "rail_bottom"
@@ -42,6 +43,7 @@ export const ROLE_CODES: Readonly<Record<PartRole, string>> = {
   side_right: "SR",
   bottom: "BO",
   top: "TO",
+  top_slope: "TS",
   rail_front: "RF",
   rail_rear: "RR",
   rail_bottom: "RB",
@@ -70,6 +72,7 @@ export const ROLE_ORDER: readonly PartRole[] = [
   "side_right",
   "bottom",
   "top",
+  "top_slope",
   "rail_front",
   "rail_rear",
   "rail_bottom",
@@ -145,6 +148,17 @@ export interface Part {
    * bounding rectangle.
    */
   outline?: [number, number][];
+  /**
+   * Parts cut by a sloped top (D47): the cross-section in cabinet X/Y,
+   * counter-clockwise, extruded along Z over the box's Z range (axis "x",
+   * D49: the cross-section in Z/Y, extruded along X). With
+   * `rotated` the part lies at an angle: its box is the board laid flat in
+   * the top plane, the frame for its operations, part sheet and DXF; only
+   * the profile shows where it really is (3D view, assembly drawing).
+   */
+  profile?: { points: [number, number][]; rotated?: boolean; axis?: "z" | "x" };
+  /** Bevel (mitre) cuts at the ends or edges, in degrees from square; the long point is on the outer face (D47). */
+  bevels?: Partial<Record<"l1" | "l2" | "w1" | "w2", number>>;
   note?: string;
 }
 
