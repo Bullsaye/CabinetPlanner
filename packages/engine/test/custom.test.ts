@@ -6,7 +6,7 @@ const codes = (r: ReturnType<typeof buildOne>): string[] => r.diagnostics.map((d
 const bores = (p: { operations: { kind: string; sources: { kind: string; ref: string }[] }[] }, ref: string): number =>
   p.operations.filter((o) => o.kind === "bore" && o.sources.some((s) => s.ref === ref)).length;
 
-describe("cabinet parameters (D45)", () => {
+describe("cabinet parameters (D59)", () => {
   it("a parameter default is a value under the cabinet's own; formulas may use it", () => {
     const cab = {
       vars: { W: 800, H: "2 * niche + 100" },
@@ -35,7 +35,7 @@ describe("cabinet parameters (D45)", () => {
   });
 });
 
-describe("free parts (D45)", () => {
+describe("free parts (D59)", () => {
   it("places a board by formulas; thickness follows the material; edges by cabinet direction", () => {
     const r = buildOne({
       vars: { W: 800, D: 500, shelf_count: 0 },
@@ -189,7 +189,7 @@ describe("free parts (D45)", () => {
   });
 });
 
-describe("free bores and extra hardware (D45)", () => {
+describe("free bores and extra hardware (D59)", () => {
   it("drills a row of holes by formula on a face of any part", () => {
     const r = buildOne({
       options: { system_holes: "none" },
@@ -241,7 +241,7 @@ describe("free bores and extra hardware (D45)", () => {
   });
 });
 
-describe("parameters in presets, layout variables, fittings (D45)", () => {
+describe("parameters in presets, layout variables, fittings (D59)", () => {
   const lock = {
     id: "lock-a",
     name: "Lock A",
@@ -330,7 +330,7 @@ describe("parameters in presets, layout variables, fittings (D45)", () => {
   });
 });
 
-describe("surface finishes (D53)", () => {
+describe("surface finishes (D67)", () => {
   const surf = (r: ReturnType<typeof buildOne>, code: string): string | undefined => partsByCode(r)[code]?.surface;
   it("fronts, carcase and visible sides take their surface; backs and drawer boxes none", () => {
     const r = buildOne({

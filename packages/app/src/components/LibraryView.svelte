@@ -117,7 +117,7 @@
       jsonError = String((e as Error).message);
     }
   }
-  /** A new fitting of the shop: its drilling is placed on a part in the construction editor (D45). */
+  /** A new fitting of the shop: its drilling is placed on a part in the construction editor (D59). */
   function addHardware(): void {
     const id = uniqueId("hardware", "fitting");
     lib().hardware.push({
@@ -218,7 +218,7 @@
     openPreset = id;
   }
   let openPreset = $state<string | null>(null);
-  /** Display texts of a preset's variable (D45): kept as a parameter of the preset. */
+  /** Display texts of a preset's variable (D59): kept as a parameter of the preset. */
   const paramOf = (p: Doc, k: string): Doc | undefined => (p.params ?? []).find((x: Doc) => x.name === k);
   function setParamText(p: Doc, k: string, field: "label" | "description", text: string): void {
     p.params ??= [];
@@ -241,7 +241,7 @@
       const { W: _w, ...vars } = snap.vars ?? {};
       lib().presets.push({ id: uniqueId("presets", "preset"), name: label, group: "shop", vars, options: snap.options ?? {} });
     } else {
-      // The whole cabinet: fronts, construction with free parts, parameters, part overrides (D40, D45).
+      // The whole cabinet: fronts, construction with free parts, parameters, part overrides (D40, D59).
       lib().templates.push({ id: uniqueId("templates", "template"), name: label, group: "shop", cabinet: templateBody(c) });
     }
     newName = "";

@@ -19,7 +19,7 @@
     };
     for (const c of store.project.cabinets ?? []) c.place ??= { wall: "A" };
   }
-  // Working without a room (D54): the cabinets stay, in a simple run; their places are kept for a later room.
+  // Working without a room (D68): the cabinets stay, in a simple run; their places are kept for a later room.
   let confirmRemove = $state(false);
   function removeRoom(): void {
     delete store.project.room;

@@ -15,7 +15,7 @@
   } from "../../lib/values.svelte.ts";
 
   /**
-   * One variable of a layer (D56): the field shows the value that applies;
+   * One variable of a layer (D70): the field shows the value that applies;
    * with focus it holds what the user edits (a number or a formula). Whether
    * the value is the layer's own or comes from elsewhere is a quiet cue on
    * the right; a tap on it explains in a sentence where the value comes from.
@@ -33,7 +33,7 @@
     layer?: Layer;
     label?: string;
     steppers?: boolean;
-    /** A cabinet parameter (D45): its label, description, step and limits. */
+    /** A cabinet parameter (D59): its label, description, step and limits. */
     param?: ParamInput;
     /** Keeps ids apart when the same variable is on the page twice. */
     scope?: string;

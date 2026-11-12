@@ -1,7 +1,7 @@
 import type { CabinetResult } from "../project.ts";
 import { formatNumber } from "../output/format.ts";
 import type { DrawingText } from "../drawing/render.ts";
-import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout, type WorktopLayout } from "./room.ts";
+import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout, type WorktopLayout, carcaseTopAt, carcaseTopKinks } from "./room.ts";
 
 /**
  * Room drawings (DECISIONS.md D28) on A3 landscape sheets, to scale, mm:
@@ -294,7 +294,9 @@ export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonl
     if (!c) continue;
     const X = (x: number): number => q.x + x;
     // Carcase outline and plinth.
-    o.push(poly(sh, "rm-cab", [[X(0), q.baseY], [X(q.W), q.baseY], [X(q.W), q.baseY + q.H], [X(0), q.baseY + q.H]]));
+    // Carcase outline, with sloped top corners cut off (D47).
+    const topXs = [...new Set(carcaseTopKinks(q))].sort((m, n) => n - m);
+    o.push(poly(sh, "rm-cab", [[X(0), q.baseY], [X(q.W), q.baseY], ...topXs.map((x) => [X(x), q.baseY + carcaseTopAt(q, x)] as [number, number])]));
     if (q.kind !== "wall" && q.baseY > 0 && !room.plinths.length) {
       o.push(poly(sh, "rm-plinth", [[X(0), 0], [X(q.W), 0], [X(q.W), q.baseY], [X(0), q.baseY]]));
     }

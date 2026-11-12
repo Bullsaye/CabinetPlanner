@@ -8,7 +8,7 @@ const view = (cabinet: Record<string, unknown>) => {
   return frontViewOf(r.cabinets[0]!);
 };
 
-describe("front view of a cabinet (D54)", () => {
+describe("front view of a cabinet (D68)", () => {
   it("base unit, door hinged left: hinges on the left edge, handle at the right", () => {
     const f = view({ presets: ["base-unit"], vars: { W: 600 }, fronts: [{ type: "door", doors: 1, hinge: "left" }] });
     const door = f.parts.find((p) => p.role === "door")!;

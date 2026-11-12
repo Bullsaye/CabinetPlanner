@@ -105,6 +105,8 @@ export function machineBox(
     return undefined;
   };
   const fixedShelves = parts.filter((p) => p.role === "fixed_shelf");
+  /** Height of a front at cabinet x, from its bottom edge: the box, or its outline when cut to a slope (D51). */
+  const frontTopAt = (p: Part, x: number): number => frontTop(p, x);
 
   const W = num("W");
   const D = num("D");
@@ -121,9 +123,10 @@ export function machineBox(
     // Back behind the horizontals: grooves/rebates only in the sides, full height.
     const behind = opt<string>("back_extent") === "behind_horizontals";
     const hosts = parts.filter((p) =>
+      // Middle panels hold a back only where they run through (backs per section, D46).
       behind
-        ? p.role === "side_left" || p.role === "side_right"
-        : ["side_left", "side_right", "bottom", "top", "fixed_shelf"].includes(p.role) ||
+        ? ["side_left", "side_right", "partition"].includes(p.role)
+        : ["side_left", "side_right", "bottom", "top", "fixed_shelf", "partition"].includes(p.role) ||
           // A flat rear rail at the bottom holds the back where the shortened bottom no longer does.
           (p.role === "rail_bottom" && thicknessAxis(p.lengthAxis, p.widthAxis) === "y"),
     );
@@ -145,7 +148,32 @@ export function machineBox(
   for (const mp of parts.filter((p) => p.role === "partition")) {
     for (const r of parts.filter((p) => ["rail_front", "rail_rear", "rail_bottom"].includes(p.role) && thicknessAxis(p.lengthAxis, p.widthAxis) === "z")) {
       const b = r.box;
+      // Middle panels through (D46): the rails are split per section and end at the panel's faces.
+      if (b.x + b.dx <= mp.box.x + 1e-6 || b.x >= mp.box.x + mp.box.dx - 1e-6) continue;
       addPocketFromBox(mp, { x0: mp.box.x, x1: mp.box.x + mp.box.dx, y0: b.y, y1: b.y + b.dy, z0: b.z, z1: b.z + b.dz }, { kind: "joint", ref: r.code }, { through: true });
+    }
+  }
+
+  // Sloped panels (D47): the back's groove or rebate along the inner face,
+  // in the panel's own frame (u along the slope, v along Z, w from the inner face).
+  if ((backMount === "groove" || backMount === "rebate") && opt<string>("back_extent") !== "behind_horizontals" && parts.some((p) => p.role === "back")) {
+    const c = num("back_groove_clearance") / 2;
+    const tb = num("t_back");
+    const z0 = backMount === "groove" ? num("back_groove_offset") - c : layout.carcaseZ0;
+    const z1 = (backMount === "groove" ? num("back_groove_offset") : layout.carcaseZ0) + tb + c;
+    const depth = backMount === "groove" ? num("back_groove_depth") : num("back_rebate_depth");
+    for (const ts of parts.filter((p) => p.role === "top_slope")) {
+      ts.operations.push({
+        kind: "pocket",
+        face: "t0",
+        u0: 0,
+        u1: ts.length,
+        v0: roundMm(Math.max(0, z0 - ts.box.z)),
+        v1: roundMm(z1 - ts.box.z),
+        w0: 0,
+        w1: depth,
+        sources: [{ kind: "back", ref: backMount }],
+      });
     }
   }
 
@@ -240,7 +268,22 @@ export function machineBox(
       return { item: screw, drills: jointDrills(screw, drills), endMin: 0, spacingMax: Infinity };
     };
 
-    for (const j of [...carcaseJoints(parts, opt<string>("carcase_joint")), ...customJoints(parts, layout.custom)]) {
+    const joints = [...carcaseJoints(parts, opt<string>("carcase_joint")), ...customJoints(parts, layout.custom)];
+    /**
+     * Joints meeting the same panel from its two faces at the same place
+     * (bottoms either side of a middle panel through, fixed shelves at one
+     * height): planned together (D55).
+     */
+    const opposite = new Map<Joint, Joint>();
+    for (const a of joints) {
+      for (const b of joints) {
+        if (a === b || a.facePart !== b.facePart || a.intoFace === b.intoFace || a.line !== b.line || a.across.axis !== b.across.axis) continue;
+        if (Math.abs(a.across.value - b.across.value) > a.edgePart.thickness) continue;
+        opposite.set(a, b);
+      }
+    }
+    const pairPlans = new Map<Joint, number[] | null>();
+    for (const j of joints) {
       // Positions along the joint line (Z for flat panels, Y for upright rails),
       // counted from its front end — the top for top rails, the bottom for bottom rails.
       const L = j.line;
@@ -255,37 +298,51 @@ export function machineBox(
         p[j.across.axis] = j.across.value;
         return p;
       };
+      // Dowels from both faces of one panel (middle panels): shallow face bores,
+      // (thickness − bore_min_wall) / 2, the edge bores deeper by the
+      // difference, so both joints can use the same positions (D56).
+      const dw = (() => {
+        if (!dowel || !opposite.has(j) || opt<string>("dowel.opposite") !== "shallow") return dowel;
+        const face = Math.min(dowel.faceDepth, (j.facePart.thickness - minWall) / 2);
+        return { d: dowel.d, faceDepth: roundMm(face), edgeDepth: roundMm(dowel.edgeDepth + dowel.faceDepth - face) };
+      })();
       const dowelFree = (z: number): boolean =>
-        !!dowel &&
-        !boreWouldCollide(j.facePart, point(z), j.intoFace, dowel.d, dowel.faceDepth, minWall) &&
-        !boreWouldCollide(j.edgePart, point(z), flip(j.intoFace), dowel.d, dowel.edgeDepth, minWall);
+        !!dw &&
+        !boreWouldCollide(j.facePart, point(z), j.intoFace, dw.d, dw.faceDepth, minWall) &&
+        !boreWouldCollide(j.edgePart, point(z), flip(j.intoFace), dw.d, dw.edgeDepth, minWall);
       const placeDowel = (z: number): void => {
         const src: OpSource = { kind: "joint", ref: j.ref };
-        addBore(j.facePart, point(z), j.intoFace, dowel!.d, dowel!.faceDepth, src);
-        addBore(j.edgePart, point(z), flip(j.intoFace), dowel!.d, dowel!.edgeDepth, src);
+        addBore(j.facePart, point(z), j.intoFace, dw!.d, dw!.faceDepth, src);
+        addBore(j.edgePart, point(z), flip(j.intoFace), dw!.d, dw!.edgeDepth, src);
       };
 
       // Connector drilling for this joint (panel thicknesses differ per joint).
-      let conn: ConnectorPlan | undefined;
-      if (fastener) {
+      const connectorPlan = (item: HardwareItem): ConnectorPlan => {
         const scope = new Map(rc.values);
         scope.set("t_edge", j.edgePart.thickness);
         scope.set("t_face", j.facePart.thickness);
-        const params = evaluateItemParams(fastener, scope, at);
+        const params = evaluateItemParams(item, scope, at);
         diagnostics.push(...params.diagnostics);
-        for (const d of checkLimits(fastener, params.values, at)) {
+        for (const d of checkLimits(item, params.values, at)) {
           const k = JSON.stringify(d.params);
           if (!seenLimits.has(k)) diagnostics.push(d), seenLimits.add(k);
         }
-        const { drills, diagnostics: dd } = evaluateDrilling(fastener, params.values, at);
+        const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
         diagnostics.push(...dd);
         for (const dr of drills) {
           if (dr.mount !== "face" && dr.mount !== "edge" && dr.mount !== "edge_face") {
-            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: fastener.id, mount: dr.mount, category: fastener.category }, ...at });
+            diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
           }
         }
-        conn = { item: fastener, drills: jointDrills(fastener, drills), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+        return { item, drills: jointDrills(item, drills), endMin: params.values.get("end_min") ?? 0, spacingMax: params.values.get("spacing_max") ?? Infinity };
+      };
+      // Joints on both faces of a middle panel use the connector's middle-panel
+      // set where it has one (Clamex P-14 + P-10 Medius), at shared positions (D58).
+      const middleItem = fastener?.middle !== undefined && opposite.has(j) ? library.hardware.get(fastener.middle) : undefined;
+      if (fastener?.middle !== undefined && opposite.has(j) && !middleItem) {
+        diagnostics.push({ severity: "error", code: "hardware_unknown", params: { key: `${fastener.id} middle`, value: fastener.middle }, ...at });
       }
+      const conn: ConnectorPlan | undefined = fastener ? connectorPlan(middleItem ?? fastener) : undefined;
       const geo: JointGeometry = { j, W, H, D, minWall, mode: opt<ThroughMode>("bore.through"), overlap: num("through_overlap"), sgn: j.fromMin ? -1 : 1 };
 
       let placed = 0;
@@ -306,15 +363,64 @@ export function machineBox(
           minCount: 2,
         };
         delete (o as { sequence?: unknown }).sequence;
-        // Connectors keep at least their own length along the joint apart (the grid alone allows one pitch).
+        // Connectors keep at least their own length along the joint apart (the grid alone allows one pitch, D64).
         const span = Math.max(0, ...c.drills.map((dr) => (dr.op === "groove" ? dr.len : dr.d))) + minWall;
-        const zs: number[] = [];
-        for (const z of dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)))) {
-          if (zs.length === 0 || zs[zs.length - 1]! - z >= span - 1e-9) zs.push(z);
-        }
+        const spaced = (all: number[]): number[] => {
+          const out: number[] = [];
+          for (const z of all) if (out.length === 0 || out[out.length - 1]! - z >= span - 1e-9) out.push(z);
+          return out;
+        };
+        // With a joint on the other face of the same panel: evenly spaced
+        // positions shared out alternately, so each joint has one end and the
+        // grooves never meet (D55). Otherwise the usual pattern.
+        const partner = opposite.get(j);
+        const grooveLen = Math.max(0, ...c.drills.filter((d) => d.op === "groove").map((d) => d.len));
+        const paired = (): number[] | undefined => {
+          if (!partner || grooveLen <= 0) return undefined;
+          // Planned once for both joints, before either is placed.
+          const cached = pairPlans.get(j);
+          if (cached !== undefined) return cached ?? undefined;
+          const pg: JointGeometry = { ...geo, j: partner, sgn: partner.fromMin ? -1 : 1 };
+          const fitsBoth = (z: number): boolean => connectorFits(geo, c, m(z)) && connectorFits(pg, c, m(z));
+          // Ends clear of other machining (the backs' grooves in a middle panel), in pitch steps.
+          let lo = zMin + o.offsetRear;
+          let hi = zMax - o.offsetFront;
+          for (let k = 0; k < 10 && !fitsBoth(lo); k++) lo += o.pitch;
+          for (let k = 0; k < 10 && !fitsBoth(hi); k++) hi -= o.pitch;
+          let plan: { mine: number[]; theirs: number[] } | undefined;
+          for (let n = Math.max(2, Math.ceil((hi - lo) / o.maxSpacing) + 1); n >= 1 && hi > lo && !plan; n--) {
+            const step = (hi - lo) / (2 * n - 1);
+            if (n > 1 && step < grooveLen + 2 * minWall) continue;
+            const all = Array.from({ length: 2 * n }, (_, i) => roundMm(hi - i * step));
+            // The joint whose ref sorts first takes the front end.
+            const first = j.ref < partner.ref;
+            const mine = all.filter((_, i) => (i % 2 === 0) === first);
+            const theirs = all.filter((_, i) => (i % 2 === 0) !== first);
+            if (all.every(fitsBoth)) plan = { mine, theirs };
+          }
+          pairPlans.set(j, plan?.mine ?? null);
+          pairPlans.set(partner, plan?.theirs ?? null);
+          return plan?.mine;
+        };
+        // Middle-panel set: both joints at the same positions, planned once before
+        // either is placed; one set per position (counted with the first joint).
+        const shared = (): number[] | undefined => {
+          if (!middleItem || !partner) return undefined;
+          const cached = pairPlans.get(j);
+          if (cached !== undefined) return cached ?? undefined;
+          const pg: JointGeometry = { ...geo, j: partner, sgn: partner.fromMin ? -1 : 1 };
+          // The partner's own grooves are not there yet: check each joint against what exists.
+          const zsBoth = spaced(dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z)) && connectorFits(pg, c, m(z))));
+          pairPlans.set(j, zsBoth);
+          pairPlans.set(partner, zsBoth);
+          return zsBoth;
+        };
+        const sharedZs = shared();
+        const zs = sharedZs ?? paired() ?? spaced(dowelPositions(zMin, zMax, o, (z) => connectorFits(geo, c, m(z))));
         for (const z of zs) placeConnector(geo, c, m(z));
         placed = zs.length;
-        use(c.item, zs.length);
+        // A middle-panel set joins both joints at one position: count it once.
+        if (!sharedZs || !partner || j.ref < partner.ref) use(c.item, zs.length);
       } else if (method === "connector_dowel" && conn) {
         const c = conn;
         // The dowel pattern without the free check, then connectors at its ends.
@@ -356,18 +462,16 @@ export function machineBox(
   }
 
   // --- 32 mm system holes -------------------------------------------------------
-  if (opt<string>("system_holes") === "full") {
+  if (layout.holeRanges.length) {
     const pitch = num("sys_pitch");
+    // Rows only where a section asks for them, on the faces at its ends (D52, D57).
+    const wanted = (x: number, y: number): boolean =>
+      layout.holeRanges.some((r) => (Math.abs(r.x0 - x) < 0.01 || Math.abs(r.x1 - x) < 0.01) && y >= r.y0 - 1e-6 && y <= r.y1 + 1e-6);
     const zFront = D - num("sys_row_front");
     const zRearMin = layout.backFrontZ + num("sys_row_rear_min");
     const k = Math.floor((zFront - zRearMin) / pitch + 1e-9);
     const rows = k >= 1 ? [zFront, zFront - k * pitch] : [zFront];
-    const ys = gridPositions(
-      num("sys_grid_y0"),
-      pitch,
-      layout.innerBottomY + num("sys_margin"),
-      layout.innerTopY - num("sys_margin"),
-    );
+    const ys = gridPositions(num("sys_grid_y0"), pitch, layout.innerBottomY, layout.innerTopY);
     const source: OpSource = { kind: "system", ref: "rows" };
     const faces: [Part | undefined, number, Direction][] = [
       [byCode.get("SL"), t, "-x"],
@@ -379,10 +483,16 @@ export function machineBox(
     }
     for (const [side, x, dir] of faces) {
       if (!side) continue;
+      // A side under a slope ends lower (D47).
+      const top = layout.innerTop[side.code];
+      const faceYs = top === undefined ? ys : ys.filter((y) => y <= top - num("sys_margin") + 1e-6);
       for (const z of rows) {
+        // Under a roof sloping to the rear (D49): no holes above the slope's inner face.
+        const rs = layout.rearSlope;
+        const yMax = rs ? (rs.line - rs.sn * (rs.D - z)) / rs.cs - num("sys_margin") : Infinity;
         if (z < side.box.z || z > side.box.z + side.box.dz) continue;
         const r = num("sys_hole_d") / 2 + num("bore_min_wall");
-        for (const y of ys) {
+        for (const y of faceYs.filter((v) => v <= yMax + 1e-6 && wanted(x, v))) {
           // No holes behind the end of a fixed shelf: it would cover them and meet its dowels.
           const covered = fixedShelves.some(
             (fs) =>
@@ -399,28 +509,44 @@ export function machineBox(
   // --- Hinges --------------------------------------------------------------------
   if (layout.doors.length > 0) {
     const hinge = library.hardware.get(opt<string>("hardware.hinge"))!;
+    // Doors hinged on a middle panel cover only half of it: their own hinge (D57).
+    const middleId = opt<string | null>("hardware.hinge_middle");
+    const middle = middleId === null ? hinge : library.hardware.get(middleId)!;
     for (const door of layout.doors) {
       const part = byCode.get(door.code)!;
-      const placed = placeHinges(rc, hinge, part, door.hinge, byCode, diagnostics);
-      use(hinge, placed);
+      const panel = byCode.get(door.panel);
+      const item = panel?.role === "partition" ? middle : hinge;
+      const placed = placeHinges(rc, item, part, door.hinge, panel, diagnostics, parts);
+      use(item, placed);
     }
   }
 
   // --- Handles and knobs ------------------------------------------------------------
+  // The cabinet's handle (option), or the one a front zone sets for its fronts (D48).
   const handleId = opt<string | null>("hardware.handle");
-  if (handleId !== null) {
-    const item = library.hardware.get(handleId)!;
-    const params = evaluateItemParams(item, rc.values, at);
-    diagnostics.push(...params.diagnostics);
-    const cc = params.values.get("cc") ?? 0;
-    const hd = params.values.get("hole_d") ?? 5;
+  {
     const mode = opt<ThroughMode>("bore.through");
     const overlap = num("through_overlap");
-    const source: OpSource = { kind: "hardware", ref: item.id };
-    const drill = (part: Part, pts: { x: number; y: number }[]): void => {
+    const planCache = new Map<string, { item: HardwareItem; params: ReadonlyMap<string, number>; cc: number; hd: number }>();
+    const planFor = (code: string): { item: HardwareItem; params: ReadonlyMap<string, number>; cc: number; hd: number } | undefined => {
+      const id = Object.hasOwn(layout.frontHandles, code) ? layout.frontHandles[code]! : handleId;
+      if (id === null) return undefined;
+      const cached = planCache.get(id);
+      if (cached) return cached;
+      const item = library.hardware.get(id);
+      if (!item) return undefined; // reported by the rule
+      const params = evaluateItemParams(item, rc.values, at);
+      diagnostics.push(...params.diagnostics);
+      const plan = { item, params: params.values, cc: params.values.get("cc") ?? 0, hd: params.values.get("hole_d") ?? 5 };
+      planCache.set(id, plan);
+      return plan;
+    };
+    const drill = (part: Part, plan: NonNullable<ReturnType<typeof planFor>>, pts: { x: number; y: number }[]): void => {
+      const { item, hd } = plan;
+      const source: OpSource = { kind: "hardware", ref: item.id };
       const z = part.box.z + part.box.dz;
       for (const p of pts) addThroughBore(part, { x: p.x, y: p.y, z }, "-z", hd, mode, overlap, source);
-      const pv = (n: string): number | undefined => params.values.get(n);
+      const pv = (n: string): number | undefined => plan.params.get(n);
       handles.push({
         item: item.id,
         part: part.id,
@@ -434,34 +560,49 @@ export function machineBox(
     };
     const edgeOff = num("handle_edge_offset");
     const endOff = num("handle_end_offset");
-    // Grip height in cabinet Y (D52): the handle sits as near to it as the door allows.
-    const grip = num("handle_grip_h") - (rc.cabinet.kind === "wall" ? num("wall_bottom") : num("plinth_h"));
+    // Door handles (D51, D66, D72). handle.door_y `height` (factory): as near to
+    // handle_height above the floor as the door allows; `end`: at the door's
+    // end, low in wall units and high in the others.
+    const wall = rc.cabinet.kind === "wall";
+    const byHeight = opt<string>("handle.door_y") === "height";
+    const grip = num("handle_height") - (wall ? num("wall_bottom") : num("plinth_h"));
     const near = (lo: number, hi: number, want: number): number => (hi < lo ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, want)));
     for (const d of [...layout.doors, ...layout.applianceFronts]) {
       const p = byCode.get(d.code)!;
+      const plan = planFor(d.code);
+      if (!plan) continue;
+      const { cc } = plan;
       const b = p.box;
-      // Opening edge is opposite the hinges.
+      // Opening edge is opposite the hinges. Top of the door at that edge: a door cut to a slope is lower there (D51).
       const xOpen = d.hinge === "left" ? b.x + b.dx - edgeOff : b.x + edgeOff;
+      const lo = b.y + endOff;
+      const hi = b.y + frontTopAt(p, xOpen) - endOff;
       if (cc !== 0 && opt<string>("handle.door") === "vertical") {
-        const yLo = near(b.y + endOff, b.y + b.dy - endOff - cc, grip - cc / 2);
-        drill(p, [{ x: xOpen, y: yLo }, { x: xOpen, y: yLo + cc }]);
+        const yLo = near(lo, hi - cc, byHeight ? grip - cc / 2 : wall ? lo : hi - cc);
+        drill(p, plan, [{ x: xOpen, y: yLo }, { x: xOpen, y: yLo + cc }]);
       } else {
-        const y = near(b.y + endOff, b.y + b.dy - endOff, grip);
+        const y = near(lo, hi, byHeight ? grip : wall ? lo : hi);
         const inward = d.hinge === "left" ? -1 : 1;
-        drill(p, cc === 0 ? [{ x: xOpen, y }] : [{ x: xOpen, y }, { x: xOpen + inward * cc, y }]);
+        drill(p, plan, cc === 0 ? [{ x: xOpen, y }] : [{ x: xOpen, y }, { x: xOpen + inward * cc, y }]);
       }
     }
     for (const p of parts.filter((x) => x.role === "flap")) {
+      const plan = planFor(p.code);
+      if (!plan) continue;
+      const { cc } = plan;
       const b = p.box;
       const xc = b.x + b.dx / 2;
       const y = b.y + num("handle_end_offset");
-      drill(p, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
+      drill(p, plan, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
     }
     for (const p of parts.filter((x) => x.role === "drawer_front")) {
+      const plan = planFor(p.code);
+      if (!plan) continue;
+      const { cc } = plan;
       const b = p.box;
       const y = opt<string>("handle.drawer") === "top" ? b.y + b.dy - num("handle_drawer_top") : b.y + b.dy / 2;
       const xc = b.x + b.dx / 2;
-      drill(p, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
+      drill(p, plan, cc === 0 ? [{ x: xc, y }] : [{ x: xc - cc / 2, y }, { x: xc + cc / 2, y }]);
     }
   }
 
@@ -469,22 +610,23 @@ export function machineBox(
   for (const [i, d] of layout.drawers.entries()) {
     const item = library.hardware.get(d.slide)!;
     const sd = item.slide!;
-    if (i === 0) {
+    // Limits once per clear width (sections may differ, D46).
+    if (layout.drawers.findIndex((e) => e.x1 - e.x0 === d.x1 - d.x0 && e.nl === d.nl) === i) {
       const ctx = new Map(rc.values);
-      ctx.set("LWK", W - 2 * t);
+      ctx.set("LWK", d.x1 - d.x0);
       ctx.set("NL", d.nl);
-      diagnostics.push(...checkLimits(item, evaluateItemParams(item, ctx, at).values, at));
+      for (const dg of checkLimits(item, evaluateItemParams(item, ctx, at).values, at)) {
+        if (!diagnostics.some((x) => x.code === dg.code && JSON.stringify(x.params) === JSON.stringify(dg.params))) diagnostics.push(dg);
+      }
     }
     const fix = sd.fixings.find((f) => d.nl <= f.upTo) ?? sd.fixings[sd.fixings.length - 1]!;
     const source: OpSource = { kind: "hardware", ref: item.id };
-    for (const [code, x, dir] of [
-      ["SL", t, "-x"],
-      ["SR", W - t, "+x"],
-    ] as const) {
-      const side = byCode.get(code);
-      if (!side) continue;
+    // Rails on the panels left and right of the drawer: sides or middle panels.
+    for (const x of [d.x0, d.x1]) {
+      const v = verticalAt(x);
+      if (!v) continue;
       for (const a of fix.at) {
-        addBore(side, { x, y: d.axisY, z: D - sd.firstFixing - a }, dir, num("sys_hole_d"), num("sys_hole_depth"), source);
+        addBore(v.part, { x, y: d.axisY, z: D - sd.firstFixing - a }, v.dir, num("sys_hole_d"), num("sys_hole_depth"), source);
       }
     }
     use(item, 1);
@@ -496,7 +638,7 @@ export function machineBox(
       const ff = sd.frontFixing;
       const yb = d.axisY - sd.axisToBox;
       const src: OpSource = { kind: "hardware", ref: `${item.id}:front` };
-      for (const x of [t + ff.fromSide, W - t - ff.fromSide]) {
+      for (const x of [d.x0 + ff.fromSide, d.x1 - ff.fromSide]) {
         for (const r of ff.rows) addBore(df, { x, y: yb + ff.fromBox + r, z: df.box.z }, "+z", ff.d, ff.depth, src);
       }
     } else if (d.box === "wood" && opt<string>("drawer_front.fixing") === "screws") {
@@ -506,7 +648,7 @@ export function machineBox(
         const s = num("front_screw_side");
         const e = num("front_screw_edge");
         const src: OpSource = { kind: "joint", ref: `DI${d.index}-DF${d.index}` };
-        // A low box (drawer_box_h) has no room for two rows: one row at mid-height (D57).
+        // A low box (drawer_box_h) has no room for two rows: one row at mid-height (D71).
         const rows = b.dy >= 2 * e + num("front_screw_d") + num("bore_min_wall") ? [b.y + e, b.y + b.dy - e] : [b.y + b.dy / 2];
         for (const x of [b.x + s, b.x + b.dx - s]) {
           for (const y of rows) {
@@ -551,7 +693,7 @@ export function machineBox(
     const source: OpSource = { kind: "hardware", ref: item.id };
     for (const f of layout.flaps) {
       const front = byCode.get(f.code)!;
-      // A flap closes against the panel below it and its fitting hangs under the panel above (D57).
+      // A flap closes against the panel below it and its fitting hangs under the panel above (D71).
       if (!f.panelBelow) diagnostics.push({ severity: "warning", code: "flap_no_panel_below", params: { part: front.id }, ...at, part: front.id });
       if (!f.panelAbove) {
         diagnostics.push({ severity: "error", code: "flap_no_panel_above", params: { part: front.id, item: item.id }, ...at, part: front.id });
@@ -638,12 +780,23 @@ export function machineBox(
 
   // --- Adjustable legs under floor units with a plinth -------------------------------------
   const legId = opt<string | null>("hardware.leg");
-  const bottom = byCode.get("BO");
+  // One bottom, or one per section when middle panels run through (D46).
+  const bottoms = parts.filter((p) => p.role === "bottom").sort((a, b) => a.box.x - b.box.x);
+  const bottom = bottoms[0];
   if (legId !== null && rc.cabinet.kind !== "wall" && num("plinth_h") > 0 && bottom) {
     const item = library.hardware.get(legId)!;
     const params = evaluateItemParams(item, rc.values, at);
     diagnostics.push(...params.diagnostics);
-    diagnostics.push(...checkLimits(item, params.values, at));
+    const limits = checkLimits(item, params.values, at);
+    diagnostics.push(...limits);
+    // Name the legs in the library that would fit (D50).
+    if (limits.some((d) => d.severity === "error")) {
+      const fit = [...library.hardware.values()]
+        .filter((h) => h.category === "leg" && h.id !== item.id)
+        .filter((h) => !checkLimits(h, evaluateItemParams(h, rc.values, at).values, at).some((d) => d.severity === "error"))
+        .map((h) => h.id);
+      if (fit.length) diagnostics.push({ severity: "warning", code: "hardware_alternatives", params: { option: "hardware.leg", items: fit.join(", ") }, ...at });
+    }
     const { drills, diagnostics: dd } = evaluateDrilling(item, params.values, at);
     diagnostics.push(...dd);
     const spread = (a: number, b: number): number[] => {
@@ -655,14 +808,18 @@ export function machineBox(
     const zs = spread(Math.max(layout.backFrontZ, bottom.box.z) + num("leg_inset_rear"), Math.min(D, bottom.box.z + bottom.box.dz) - num("leg_inset_front"));
     const source: OpSource = { kind: "hardware", ref: item.id };
     const minWall = num("bore_min_wall");
-    // Free of other machining, and still on the bottom (a leg must not move off its end, under a side).
-    const onBottom = (x: number, d: number): boolean => x - d / 2 - minWall >= bottom.box.x - 1e-6 && x + d / 2 + minWall <= bottom.box.x + bottom.box.dx + 1e-6;
-    const fits = (x: number, z: number): boolean =>
-      drills.every(
-        (dr) =>
-          dr.mount !== "bottom" ||
-          (onBottom(x + dr.a, dr.d) && !boreWouldCollide(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, minWall)),
-      );
+    /** The bottom piece a leg at x is drilled into (a leg under a middle panel has none). */
+    const pieceAt = (x: number): Part | undefined => bottoms.find((b) => x >= b.box.x - 1e-6 && x <= b.box.x + b.box.dx + 1e-6);
+    const fits = (x: number, z: number): boolean => {
+      const b = pieceAt(x);
+      if (!b) return false;
+      return drills.every((dr) => {
+        if (dr.mount !== "bottom") return true;
+        const p = { x: x + dr.a, y: b.box.y, z: z + dr.b };
+        if (p.x - dr.d / 2 < b.box.x + minWall - 1e-6 || p.x + dr.d / 2 > b.box.x + b.box.dx - minWall + 1e-6) return false;
+        return !boreWouldCollide(b, p, "+y", dr.d, dr.depth, minWall);
+      });
+    };
     for (const x0 of xs) {
       for (const z of zs) {
         // A leg that meets other machining (middle panel dowels) moves sideways in pitch steps.
@@ -672,12 +829,13 @@ export function machineBox(
           x = fits(x0 - step, z) ? x0 - step : x0 + step;
         }
         if (!fits(x, z)) x = x0;
+        const piece = pieceAt(x) ?? bottom;
         for (const dr of drills) {
           if (dr.mount !== "bottom") {
             diagnostics.push({ severity: "error", code: "hardware_unknown_mount", params: { item: item.id, mount: dr.mount, category: item.category }, ...at });
             continue;
           }
-          addBore(bottom, { x: x + dr.a, y: bottom.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, source);
+          addBore(piece, { x: x + dr.a, y: piece.box.y, z: z + dr.b }, "+y", dr.d, dr.depth, source);
         }
         fittings.push({ kind: "leg", item: item.id, x, y: 0, z, d: params.values.get("d") ?? 40, h: num("plinth_h") });
       }
@@ -685,7 +843,7 @@ export function machineBox(
     use(item, xs.length * zs.length);
   }
 
-  // --- Fixed blind panels (D57): joined to the carcase parts they lie on ----------------------
+  // --- Fixed blind panels (D71): joined to the carcase parts they lie on ----------------------
   // A carcase part standing behind the panel with its face (upright front
   // rail, free frontal part) is screwed through from inside like a drawer's
   // inner front (D26); a part that only meets it with its front edge (side,
@@ -766,7 +924,7 @@ export function machineBox(
     }
   }
 
-  // --- Free bores and extra hardware (D45) -------------------------------------------------
+  // --- Free bores and extra hardware (D59) -------------------------------------------------
   for (const f of applyCustomBores(rc, library, parts, diagnostics)) use(library.hardware.get(f.item)!, f.qty);
   for (const [k, h] of (rc.cabinet.construction?.hardware ?? []).entries()) {
     const item = library.hardware.get(h.item);
@@ -812,37 +970,51 @@ export interface Joint {
 function carcaseJoints(parts: Part[], jointType: string): Joint[] {
   const byCode = new Map(parts.map((p) => [p.code, p]));
   const sides = [byCode.get("SL"), byCode.get("SR")].filter((p): p is Part => !!p);
-  const horizontals = ["BO", "TO", "RF", "RR", "RB"].map((c) => byCode.get(c)).filter((p): p is Part => !!p);
+  // Bottom, top and rails: one each, or one per section (middle panels through, D46).
+  const hzRoles = ["bottom", "top", "rail_front", "rail_rear", "rail_bottom"];
+  const horizontals = parts.filter((p) => hzRoles.includes(p.role)).sort((a, b) => hzRoles.indexOf(a.role) - hzRoles.indexOf(b.role) || a.box.x - b.box.x);
   const upright = (p: Part): boolean => thicknessAxis(p.lengthAxis, p.widthAxis) === "z";
+  const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.01;
   const joints: Joint[] = [];
+  /** Vertical panel face, horizontal panel end (sides over, or middle panels through). */
+  const endJoint = (v: Part, h: Part, left: boolean): Joint => {
+    const up = upright(h);
+    return {
+      ref: `${v.code}-${h.code}`,
+      facePart: v,
+      edgePart: h,
+      plane: { axis: "x", value: left ? v.box.x + v.box.dx : v.box.x },
+      intoFace: left ? "-x" : "+x",
+      across: up ? { axis: "z", value: h.box.z + h.box.dz / 2 } : { axis: "y", value: h.box.y + h.box.dy / 2 },
+      line: up ? "y" : "z",
+      ...(up && h.box.y < v.box.y + v.box.dy / 2 ? { fromMin: true } : {}),
+    };
+  };
+  /** Horizontal panel face, vertical panel end (sides between, or middle panels between). */
+  const faceJoint = (h: Part, v: Part): Joint => {
+    const below = h.box.y + h.box.dy <= v.box.y + 1e-6;
+    return {
+      ref: `${h.code}-${v.code}`,
+      facePart: h,
+      edgePart: v,
+      plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
+      intoFace: below ? "-y" : "+y",
+      across: { axis: "x", value: v.box.x + v.box.dx / 2 },
+      line: "z",
+    };
+  };
+  /** The horizontal runs under/over the vertical part's whole thickness. */
+  const spans = (h: Part, v: Part): boolean => h.box.x <= v.box.x + 1e-6 && h.box.x + h.box.dx >= v.box.x + v.box.dx - 1e-6;
   for (const side of sides) {
     const left = side.code === "SL";
     for (const h of horizontals) {
       if (jointType === "sides_over") {
         // Side face, horizontal part's end. Upright rails: across their thickness (Z), along Y.
-        const up = upright(h);
-        joints.push({
-          ref: `${side.code}-${h.code}`,
-          facePart: side,
-          edgePart: h,
-          plane: { axis: "x", value: left ? side.box.x + side.box.dx : side.box.x },
-          intoFace: left ? "-x" : "+x",
-          across: up ? { axis: "z", value: h.box.z + h.box.dz / 2 } : { axis: "y", value: h.box.y + h.box.dy / 2 },
-          line: up ? "y" : "z",
-          ...(up && h.box.y < side.box.y + side.box.dy / 2 ? { fromMin: true } : {}),
-        });
-      } else if (!upright(h)) {
+        if (!near(left ? side.box.x + side.box.dx : side.box.x, left ? h.box.x : h.box.x + h.box.dx)) continue;
+        joints.push(endJoint(side, h, left));
+      } else if (!upright(h) && spans(h, side)) {
         // Horizontal part's face, side's end. Bottom is below the side, top/rails above.
-        const below = h.box.y + h.box.dy <= side.box.y + 1e-6;
-        joints.push({
-          ref: `${h.code}-${side.code}`,
-          facePart: h,
-          edgePart: side,
-          plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
-          intoFace: below ? "-y" : "+y",
-          across: { axis: "x", value: side.box.x + side.box.dx / 2 },
-          line: "z",
-        });
+        joints.push(faceJoint(h, side));
       }
     }
   }
@@ -863,19 +1035,14 @@ function carcaseJoints(parts: Part[], jointType: string): Joint[] {
       });
     }
   }
-  // Middle panels always stand between bottom and top/rails.
+  // Middle panels stand between bottom and top/rails, or run through with
+  // the horizontals' ends against their faces (D46).
   for (const mp of parts.filter((p) => p.role === "partition")) {
-    for (const h of horizontals.filter((x) => !upright(x) && x.box.z < mp.box.z + mp.box.dz && mp.box.z < x.box.z + x.box.dz)) {
-      const below = h.box.y + h.box.dy <= mp.box.y + 1e-6;
-      joints.push({
-        ref: `${h.code}-${mp.code}`,
-        facePart: h,
-        edgePart: mp,
-        plane: { axis: "y", value: below ? h.box.y + h.box.dy : h.box.y },
-        intoFace: below ? "-y" : "+y",
-        across: { axis: "x", value: mp.box.x + mp.box.dx / 2 },
-        line: "z",
-      });
+    for (const h of horizontals) {
+      if (h.box.z >= mp.box.z + mp.box.dz || mp.box.z >= h.box.z + h.box.dz) continue;
+      if (near(h.box.x + h.box.dx, mp.box.x)) joints.push(endJoint(mp, h, false));
+      else if (near(h.box.x, mp.box.x + mp.box.dx)) joints.push(endJoint(mp, h, true));
+      else if (!upright(h) && spans(h, mp)) joints.push(faceJoint(h, mp));
     }
   }
   return joints;
@@ -951,21 +1118,21 @@ function sequencePositions(
     let p = raster[i]!;
     if (p >= L) break;
     const last = i === raster.length - 1;
-    // No position moves in front of the first one (offsetFront): it would leave the joint or sit in its front edge.
+    // A moved last position never goes in front of the first one (offsetFront); it is dropped instead.
     if (last) while (L - p < o.offsetRear - 1e-9 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
     if (L - p < o.offsetRear - 1e-9) break;
-    // Move off machining in the way (e.g. a groove), towards the front; where that is not possible, to the rear.
-    const p0 = p;
-    let tries = 0;
-    while (!free(roundMm(zMax - p)) && tries++ < 3 && p - o.pitch >= o.offsetFront - 1e-9) p -= o.pitch;
-    if (!free(roundMm(zMax - p))) {
-      p = p0;
-      tries = 0;
-      while (!free(roundMm(zMax - p)) && tries++ < 3 && L - p - o.pitch >= o.offsetRear - 1e-9) p += o.pitch;
-    }
-    if (!free(roundMm(zMax - p))) continue;
+    // Move off machining in the way: first towards the front in pitch steps
+    // (a groove), then half a pitch either way and one pitch back (dowels of
+    // the panel on the other face of a middle panel). A moved dowel stays at
+    // least the smaller end offset from either end (D45).
     const prev = out.length ? zMax - out[out.length - 1]! : -Infinity;
-    if (p - prev < o.pitch - 1e-9) continue;
+    const endMin = Math.min(o.offsetFront, o.offsetRear);
+    const ok = (q: number): boolean => q >= endMin - 1e-9 && L - q >= endMin - 1e-9 && q - prev >= o.pitch / 2 - 1e-9 && free(roundMm(zMax - q));
+    const moves = [0, -o.pitch, -2 * o.pitch, -3 * o.pitch, o.pitch / 2, -o.pitch / 2, o.pitch, (3 * o.pitch) / 2];
+    const at = moves.map((d) => p + d).find((q) => (q === p ? free(roundMm(zMax - q)) : ok(q)));
+    if (at === undefined) continue;
+    p = at;
+    if (p - prev < o.pitch / 2 - 1e-9 || (p === raster[i] && p - prev < o.pitch - 1e-9)) continue;
     out.push(roundMm(zMax - p));
   }
   return out;
@@ -1017,7 +1184,7 @@ function connectorDrill(g: JointGeometry, dr: EvaluatedDrill, z: number): { part
   return dr.mount === "face" ? { part: j.facePart, entry: p, dir: j.intoFace } : { part: j.edgePart, entry: p, dir: intoEdge };
 }
 
-/** Slot of width d and length len (D36), `depth` into the part from the entry plane. */
+/** The cabinet-space box of a connector groove (slot of width d, length len, depth into the part). */
 function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Direction): { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number } {
   const lo = { ...entry };
   const hi = { ...entry };
@@ -1035,7 +1202,8 @@ function grooveBox(g: JointGeometry, dr: EvaluatedDrill, entry: Point3, dir: Dir
 function connectorFits(g: JointGeometry, c: ConnectorPlan, z: number): boolean {
   return c.drills.every((dr) => {
     const { part, entry, dir } = connectorDrill(g, dr, z);
-    // A slot must stay a pocket of its part (not through it, not off it) and clear of bores.
+    // A slot must stay a pocket of its part (not through it, not off it) and clear of bores and other
+    // grooves, e.g. the slot of the joint on the other face of a middle panel (D55).
     if (dr.op === "groove") return !pocketWouldCollide(part, grooveBox(g, dr, entry, dir), g.minWall);
     const depth = dr.through ? part.thickness : dr.depth;
     // A bore that would leave the part (e.g. too close to the end) does not fit either.
@@ -1053,6 +1221,7 @@ function placeConnector(g: JointGeometry, c: ConnectorPlan, z: number): void {
   for (const dr of c.drills) {
     const { part, entry, dir } = connectorDrill(g, dr, z);
     if (dr.op === "groove") {
+      // Slot of width d and length len, depth into the part from the joint plane.
       addPocketFromBox(part, grooveBox(g, dr, entry, dir), source);
     } else if (dr.through) {
       addThroughBore(part, entry, dir, dr.d, g.mode, g.overlap, source);
@@ -1122,16 +1291,35 @@ function placeFlapHinges(rc: ResolvedCabinet, item: HardwareItem, flap: Part, pa
   return xs.length;
 }
 
+/** Height of an upright front (length along Y) at cabinet x, from its bottom edge; follows its outline (D51). */
+function frontTop(p: Part, x: number): number {
+  if (!p.outline || p.lengthAxis !== "y") return p.box.dy;
+  const v = x - p.box.x;
+  // Highest point of the outline's vertical section at v.
+  let top = 0;
+  const pts = p.outline;
+  for (let i = 0; i < pts.length; i++) {
+    const [ua, va] = pts[i]!;
+    const [ub, vb] = pts[(i + 1) % pts.length]!;
+    if ((va - v) * (vb - v) > 1e-9) continue;
+    const u = Math.abs(vb - va) < 1e-9 ? Math.max(ua, ub) : ua + ((ub - ua) * (v - va)) / (vb - va);
+    top = Math.max(top, u);
+  }
+  return top;
+}
+
 function placeHinges(
   rc: ResolvedCabinet,
   item: HardwareItem,
   door: Part,
   side: "left" | "right",
-  byCode: Map<string, Part>,
+  /** The side or middle panel the hinges go into (D46). */
+  sidePart: Part | undefined,
   diagnostics: Diagnostic[],
+  /** All parts of the cabinet: fixed panels the plates must keep clear of (D65). */
+  parts: readonly Part[] = [],
 ): number {
   const at = { cabinet: rc.cabinet.id };
-  const sidePart = byCode.get(side === "left" ? "SL" : "SR");
   const context = new Map(rc.values);
   context.set("door_h", door.length);
   context.set("door_w", door.width);
@@ -1166,22 +1354,23 @@ function placeHinges(
   }
   const n = Math.max(1, Math.round(count));
   const y0 = door.box.y + endOffset;
-  const y1 = door.box.y + door.box.dy - endOffset;
+  // A door cut to a slope (D51): the hinge edge may end lower than the door's box.
+  const y1 = door.box.y + frontTop(door, side === "left" ? door.box.x : door.box.x + door.box.dx) - endOffset;
   let centres = n === 1 ? [(y0 + y1) / 2] : Array.from({ length: n }, (_, i) => y0 + (i * (y1 - y0)) / (n - 1));
 
   // Snap so the mounting plate lands on the system grid.
   const gridOffset = params.values.get("grid_offset");
-  if (gridOffset !== undefined && rc.options.get("system_holes")!.value === "full") {
+  if (gridOffset !== undefined && rc.options.get("system_holes")!.value !== "none") {
     const gy0 = rc.values.get("sys_grid_y0")!;
     const pitch = rc.values.get("sys_pitch")!;
     centres = centres.map((c) => gy0 + Math.round((c - gridOffset - gy0) / pitch) * pitch + gridOffset);
   }
 
-  // A mounting plate never sits on the end of a fixed panel (D51): the hinge
+  // A mounting plate never sits on the end of a fixed panel (D65): the hinge
   // moves towards the door's middle in pitch steps until its plate holes are clear.
   if (sidePart) {
     const face = side === "left" ? sidePart.box.x + sidePart.box.dx : sidePart.box.x;
-    const panels = [...byCode.values()].filter(
+    const panels = parts.filter(
       (p) =>
         (p.role === "fixed_shelf" || p.role === "custom") &&
         thicknessAxis(p.lengthAxis, p.widthAxis) === "y" &&

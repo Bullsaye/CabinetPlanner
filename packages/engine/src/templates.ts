@@ -1,5 +1,12 @@
 import type { LocalizedText } from "./text.ts";
 
+type TemplateFront = { type: "door" | "drawer" | "open" | "appliance" | "panel" | "flap"; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number; handle?: string | null };
+type TemplateConstruction = {
+  panels?: { y: number | string; setbackFront?: number | string; setbackRear?: number | string }[];
+  fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;
+  noBack?: number[];
+};
+
 /**
  * Factory cabinet templates (D30): starting points the app offers in its
  * "add cabinet" menu. A template is plain cabinet input without an id; all
@@ -15,7 +22,7 @@ export interface CabinetTemplate {
     presets: string[];
     vars: Record<string, number | string>;
     options?: Record<string, string | boolean | null>;
-    fronts?: { type: "door" | "drawer" | "open" | "appliance" | "panel" | "flap"; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean }[];
+    fronts?: TemplateFront[];
     construction?: {
       panels?: { y: number | string; setbackFront?: number | string; setbackRear?: number | string }[];
       fixed?: Record<string, { panel?: boolean; setbackFront?: number | string; setbackRear?: number | string }>;
@@ -26,6 +33,7 @@ export interface CabinetTemplate {
       hardware?: { item: string; qty?: number | string }[];
     };
     params?: { name: string; label?: LocalizedText; default?: number | string; min?: number; max?: number; step?: number; integer?: boolean; unit?: "mm" | "count" }[];
+    sections?: { w?: number | string; fronts?: TemplateFront[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: TemplateConstruction; holes?: false | { from?: number | string; to?: number | string } }[];
   };
 }
 
@@ -123,7 +131,7 @@ export const FACTORY_TEMPLATES: readonly CabinetTemplate[] = [
   },
   { id: "sideboard", group: "storage", name: { en: "Sideboard, two doors", de: "Sideboard, zwei Türen" }, cabinet: base({ W: 1200, D: 450, door_count: 2 }) },
   {
-    // Free construction (D45): nothing of the box rule, four free parts and two parameters.
+    // Free construction (D59): nothing of the box rule, four free parts and two parameters.
     id: "bench",
     group: "storage",
     name: { en: "Bench (free construction)", de: "Sitzbank (freie Konstruktion)" },

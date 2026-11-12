@@ -20,7 +20,7 @@ export type LayerName = (typeof LAYERS)[number];
 export interface Source {
   layer: LayerName;
   preset?: string;
-  /** The default of a cabinet parameter (D45). */
+  /** The default of a cabinet parameter (D59). */
   param?: boolean;
 }
 
@@ -48,7 +48,7 @@ export interface ResolvedCabinet {
   options: Map<string, ResolvedOption>;
   /** Evaluated numbers by variable name, including material constants. */
   values: Map<string, number>;
-  /** Parameters in effect (D45): from the presets of every layer, then the cabinet's own; later ones replace earlier ones by name. */
+  /** Parameters in effect (D59): from the presets of every layer, then the cabinet's own; later ones replace earlier ones by name. */
   params: ParamInput[];
   diagnostics: Diagnostic[];
 }
@@ -120,7 +120,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     }
   };
 
-  // Parameters (D45): definitions by name; a default sits under the values of its layer.
+  // Parameters (D59): definitions by name; a default sits under the values of its layer.
   const params = new Map<string, ParamInput>();
   const applyParams = (list: readonly ParamInput[], source: Source): void => {
     for (const p of list) {
@@ -217,7 +217,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     }
   }
 
-  // Limits of the parameters (D45).
+  // Limits of the parameters (D59).
   for (const p of params.values()) {
     const value = graph.values.get(p.name);
     if (value === undefined) continue;

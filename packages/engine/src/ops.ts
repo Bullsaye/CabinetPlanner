@@ -274,8 +274,9 @@ export function boreWouldCollide(
 /**
  * True when a pocket over `box` (cabinet coordinates) cannot be milled into
  * the part: it misses the part, is not open to any face, would cut through
- * the thickness, or comes closer than `margin` to an existing bore. Pockets
- * may meet other pockets (D17).
+ * the thickness, or comes within `margin` of existing machining (bores and
+ * other pockets, e.g. the slot of the joint on the other face of a middle
+ * panel). Used for connector grooves (D55, D64).
  */
 export function pocketWouldCollide(
   part: Part,
@@ -291,12 +292,18 @@ export function pocketWouldCollide(
   if (hi.x - lo.x <= EPS || hi.y - lo.y <= EPS || hi.z - lo.z <= EPS) return true;
   const a = toLocal(part, lo);
   const b = toLocal(part, hi);
-  const t0 = a.w <= EPS;
-  const t1 = b.w >= part.thickness - EPS;
+  const u0 = Math.min(a.u, b.u);
+  const u1 = Math.max(a.u, b.u);
+  const v0 = Math.min(a.v, b.v);
+  const v1 = Math.max(a.v, b.v);
+  const w0 = Math.min(a.w, b.w);
+  const w1 = Math.max(a.w, b.w);
+  const t0 = w0 <= EPS;
+  const t1 = w1 >= part.thickness - EPS;
   if (t0 && t1) return true;
-  if (!t0 && !t1 && a.v > EPS && b.v < part.width - EPS && a.u > EPS && b.u < part.length - EPS) return true;
-  const grown: Aabb = { u0: a.u - margin, u1: b.u + margin, v0: a.v - margin, v1: b.v + margin, w0: a.w - margin, w1: b.w + margin };
-  return part.operations.some((o) => o.kind === "bore" && overlaps(grown, opBounds(part, o)));
+  if (!t0 && !t1 && v0 > EPS && v1 < part.width - EPS && u0 > EPS && u1 < part.length - EPS) return true;
+  const grown: Aabb = { u0: u0 - margin, u1: u1 + margin, v0: v0 - margin, v1: v1 + margin, w0: w0 - margin, w1: w1 + margin };
+  return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
 }
 
 const isSplitPair = (a: Operation, b: Operation): boolean =>

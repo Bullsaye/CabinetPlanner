@@ -18,7 +18,7 @@ export interface CutlistRow {
   /** Free parts: the name their author gave them (shown in place of the role). */
   label?: LocalizedText;
   material: string;
-  /** Surface finish id, "" for none (D53). */
+  /** Surface finish id, "" for none (D67). */
   surface: string;
   length: number;
   width: number;
@@ -32,6 +32,8 @@ export interface CutlistRow {
   note: string;
   /** Not a rectangle: cut from the bounding size to the part's outline (D43). */
   outline: boolean;
+  /** Bevel (mitre) cuts per edge in degrees (D47). */
+  bevels: Partial<Record<"l1" | "l2" | "w1" | "w2", number>>;
 }
 
 export interface CutlistOptions {
@@ -59,6 +61,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     edges: [code(p.edges.l1), code(p.edges.l2), code(p.edges.w1), code(p.edges.w2)],
     note: p.note ?? "",
     outline: !!p.outline,
+    bevels: p.bevels ?? {},
   }));
   if (!opts.group) return rows;
   // Shaped parts only group with parts of the same shape (D43).
@@ -81,6 +84,8 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.edges,
       r.note,
       shape.get(r.part),
+      r.outline,
+      r.bevels,
       groupRole(r.role),
       r.label ?? "",
     ]);
@@ -118,7 +123,7 @@ export type CutlistColumn =
   | "edge_w2"
   | "note";
 
-/** Order as on a shop list (D53): what, how many, size, board, finish, cut size, edges, remark. */
+/** Order as on a shop list (D67): what, how many, size, board, finish, cut size, edges, remark. */
 export const DEFAULT_COLUMNS: readonly CutlistColumn[] = [
   "part",
   "cabinet",
@@ -152,6 +157,8 @@ export interface CutlistText {
    * part sheet and in the DXF.
    */
   shaped?: string;
+  /** Short edge name for mitre notes (default L1, L2, W1, W2). */
+  edge?: (edge: "l1" | "l2" | "w1" | "w2") => string;
 }
 
 export function cutlistTable(
@@ -198,8 +205,14 @@ export function cutlistTable(
         return r.edges[2];
       case "edge_w2":
         return r.edges[3];
-      case "note":
-        return [r.note, r.outline ? (text.shaped ?? "") : ""].filter((s) => s !== "").join("; ");
+      case "note": {
+        // Mitres in a language-neutral form after the note, e.g. "W2 ∠22.5°" (D47).
+        const bevel = (["l1", "l2", "w1", "w2"] as const)
+          .filter((e) => r.bevels[e] !== undefined)
+          .map((e) => `${text.edge ? text.edge(e) : e.toUpperCase()} ∠${formatNumber(r.bevels[e]!)}°`)
+          .join(" ");
+        return [r.note, bevel, r.outline ? (text.shaped ?? "") : ""].filter((x) => x !== "").join("; ");
+      }
     }
   };
   return [columns.map(text.header), ...rows.map((r) => columns.map((c) => cell(r, c)))];

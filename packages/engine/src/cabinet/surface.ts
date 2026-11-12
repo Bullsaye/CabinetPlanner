@@ -11,7 +11,7 @@ const FRONT_ROLES = new Set<PartRole>(["door", "drawer_front", "blind_panel", "a
 const CARCASE_ROLES = new Set<PartRole>(["side_left", "side_right", "bottom", "top", "rail_front", "rail_rear", "rail_bottom", "partition", "fixed_shelf", "shelf"]);
 
 /**
- * Surface finishes (D53): fronts take `surface.front`, carcase parts
+ * Surface finishes (D67): fronts take `surface.front`, carcase parts
  * `surface.carcase`, a side that can be seen `surface.visible_side` (when
  * set). A part override or a free part's own `surface` wins. Backs, drawer
  * boxes, worktops and plinths have none.

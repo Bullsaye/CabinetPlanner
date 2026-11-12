@@ -4,7 +4,7 @@
   import { highlightFor, layerView, originOf } from "../../lib/values.svelte.ts";
 
   /**
-   * One option of a layer (D56): the select shows the choice that applies.
+   * One option of a layer (D70): the select shows the choice that applies.
    * Own choices can be reset; inherited ones carry a quiet origin label.
    */
   let { key, layer = "cabinet", label, scope = "" }: { key: string; layer?: Layer; label?: string; scope?: string } = $props();

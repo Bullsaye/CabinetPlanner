@@ -28,7 +28,7 @@ export interface ScenePart {
   code: string;
   role: PartRole;
   material: string;
-  /** Display colour (#rrggbb) from the surface finish, else the board (D53). */
+  /** Display colour (#rrggbb) from the surface finish, else the board (D67). */
   color?: string;
   box: Box;
   /** Non-rectangular parts: contour on the t0 face (cabinet coordinates) and the thickness axis. */
@@ -67,11 +67,17 @@ export function sceneOf(c: CabinetResult, library?: Library): Scene {
       material: p.material,
       ...(colorOf(p) ? { color: colorOf(p)! } : {}),
       box: p.box,
-      ...(p.outline
+      // Parts cut by a slope (D47): their cross-section extruded along Z.
+      ...(p.profile
+        ? p.profile.axis === "x"
+          ? { outline: { points: p.profile.points.map(([z, y]) => ({ x: p.box.x, y, z })), normal: "x" as const, thickness: p.box.dx } }
+          : { outline: { points: p.profile.points.map(([x, y]) => ({ x, y, z: p.box.z })), normal: "z" as const, thickness: p.box.dz } }
+        : p.outline
         ? { outline: { points: p.outline.map(([u, v]) => toCabinet(p, { u, v, w: 0 })), normal: cabinetAxisOf(p, "w"), thickness: p.thickness } }
         : {}),
       bores: p.operations.flatMap((o) => {
-        if (o.kind !== "bore") return [];
+        // A part at an angle keeps its operations in its own frame; the scene shows none.
+        if (o.kind !== "bore" || p.profile?.rotated) return [];
         const { normal } = faceAxes(o.face);
         const axis = cabinetAxisOf(p, normal);
         const sign = atMax(o.face) ? -1 : 1;
@@ -91,7 +97,7 @@ export function sceneOf(c: CabinetResult, library?: Library): Scene {
         return [entry, { ...entry, at: far, dir: { axis, sign: sign === 1 ? -1 : 1 }, exit: true as const }];
       }),
       pockets: p.operations.flatMap((o) => {
-        if (o.kind !== "pocket") return [];
+        if (o.kind !== "pocket" || p.profile?.rotated) return [];
         const a = toCabinet(p, { u: o.u0, v: o.v0, w: o.w0 });
         const b = toCabinet(p, { u: o.u1, v: o.v1, w: o.w1 });
         return [

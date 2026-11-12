@@ -66,7 +66,7 @@
     document.documentElement.lang = store.ui.lang;
   });
 
-  /** The cabinet view on a narrow screen carries the settings itself (D54). */
+  /** The cabinet view on a narrow screen carries the settings itself (D68). */
   const inlinePane = $derived(store.narrow && store.ui.tab === "view" && store.viewMode === "cabinet");
   $effect(() => {
     if (inlinePane && store.ui.panel === "inspector") store.ui.panel = null;

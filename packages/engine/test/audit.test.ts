@@ -161,7 +161,11 @@ describe("dowel sequence pattern (D35)", () => {
     // Positions from the front: 37, 69, 197, 325, 453 — all taken (e.g. by the shelf on the other face of a middle panel).
     const taken = new Set([37, 69, 197, 325, 453].map((p) => 562 - p));
     const zs = dowelPositions(0, 562, o, (z) => !taken.has(z));
-    expect(zs.map((z) => 562 - z)).toEqual([101, 165, 293, 421]);
+    // Blocked positions move by half a pitch first (D45), never in front of dowel_offset_front (D64).
+    const fromFront = zs.map((z) => 562 - z);
+    expect(fromFront).toEqual([53, 85, 165, 293, 421]);
+    for (const p of fromFront) expect(p).toBeGreaterThanOrEqual(37);
+    for (const p of fromFront) expect(taken.has(562 - p)).toBe(false);
   });
 
   it("drops the only position of a joint too short for the rear offset instead of moving it out", () => {
@@ -293,7 +297,7 @@ describe("upright rails and the interior", () => {
   });
 });
 
-describe("hinges and fixed panels (D51)", () => {
+describe("hinges and fixed panels (D65)", () => {
   it("moves a hinge whose plate would sit on the end of a fixed panel towards the door's middle", async () => {
     const { FACTORY_TEMPLATES, buildProject, loadProject } = await import("../src/index.ts");
     const tpl = FACTORY_TEMPLATES.find((t) => t.id === "tall-fridge")!;
@@ -314,7 +318,7 @@ describe("hinges and fixed panels (D51)", () => {
   });
 });
 
-describe("door handles by grip height (D52)", () => {
+describe("door handles by grip height (D66)", () => {
   const ys = (r: ReturnType<typeof buildOne>, part: string): number[] => r.cabinets[0]!.handles.filter((h) => h.part === part).flatMap((h) => h.points.map((p) => p.y));
   const handle = { "hardware.handle": "generic-bar-160" };
   it("upper door of a tall unit: at grip height, not at its top; lower door: at the top; full-height door: at grip height", () => {

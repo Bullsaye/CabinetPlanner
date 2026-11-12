@@ -1,7 +1,7 @@
 <script lang="ts">
   import { store } from "../lib/store.svelte.ts";
 
-  // Main view: the selected cabinet alone (front view or 3D) or the room (D54).
+  // Main view: the selected cabinet alone (front view or 3D) or the room (D68).
   const t = $derived(store.tr.t);
 </script>
 

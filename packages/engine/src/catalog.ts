@@ -20,7 +20,7 @@ export type VarGroup =
   | "drawers"
   | "machining"
   | "costing";
-export type VarUnit = "mm" | "count" | "kg" | "percent";
+export type VarUnit = "mm" | "count" | "kg" | "percent" | "deg";
 
 export interface VarDef {
   name: string;
@@ -42,7 +42,8 @@ const v = (d: VarDef): VarDef => d;
 /** In UI order. */
 export const VARIABLES: readonly VarDef[] = [
   // Dimensions. H is the carcase height without plinth; D is the carcase depth without fronts.
-  v({ name: "W", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 2800, step: 50, quick: true }),
+  // Wider than a board only works with parts that are split (middle panels through); each part must fit its sheet (D55).
+  v({ name: "W", group: "dimensions", unit: "mm", factory: 600, min: 100, max: 6000, step: 50, quick: true }),
   v({ name: "H", group: "dimensions", unit: "mm", factory: "base_h", min: 100, max: 2800, step: 10, quick: true }),
   v({ name: "D", group: "dimensions", unit: "mm", factory: "worktop_d - 40", min: 100, max: 1200, step: 10, quick: true }),
   v({ name: "base_h", group: "dimensions", unit: "mm", factory: 720, min: 100, max: 2800, step: 10 }),
@@ -71,6 +72,13 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "fridge_h", group: "room", unit: "mm", factory: 1772, min: 500, max: 2200, step: 1 }),
   v({ name: "wardrobe_h", group: "room", unit: "mm", factory: "tall_h", min: 500, max: 2800, step: 10 }),
   v({ name: "wardrobe_d", group: "room", unit: "mm", factory: 580, min: 300, max: 900, step: 10 }),
+  // Sloped top corners (D47): how far the outer corner drops at the side, and the slope angle from the horizontal.
+  v({ name: "slope_left_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
+  v({ name: "slope_left_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
+  v({ name: "slope_right_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
+  v({ name: "slope_right_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
+  v({ name: "slope_rear_drop", group: "dimensions", unit: "mm", factory: 0, min: 0, max: 2000, step: 10 }),
+  v({ name: "slope_rear_angle", group: "dimensions", unit: "deg", factory: 45, min: 5, max: 85, step: 1 }),
 
   // Board thicknesses follow the chosen materials unless overridden.
   v({ name: "t_carcase", group: "board", unit: "mm", factory: "mat_carcase_t", min: 3, max: 60 }),
@@ -111,6 +119,8 @@ export const VARIABLES: readonly VarDef[] = [
   // Back panel.
   v({ name: "back_groove_offset", group: "back", unit: "mm", factory: 10, min: 0, max: 100 }),
   v({ name: "back_groove_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
+  // In middle panels with a back on both faces (middle panels through): about a third of the panel stays (D56).
+  v({ name: "back_groove_depth_middle", group: "back", unit: "mm", factory: "min(back_groove_depth, t_carcase / 3)", min: 1, max: 30, step: 0.5 }),
   v({ name: "back_rebate_depth", group: "back", unit: "mm", factory: 8, min: 1, max: 30 }),
   v({ name: "back_play", group: "back", unit: "mm", factory: 1, min: 0, max: 10, step: 0.5 }),
   v({ name: "back_groove_clearance", group: "back", unit: "mm", factory: 0.5, min: 0, max: 5, step: 0.1 }),
@@ -122,6 +132,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "shelf_back_gap", group: "shelves", unit: "mm", factory: 2, min: 0, max: 50 }),
   v({ name: "shelf_pin_rest", group: "shelves", unit: "mm", factory: 3, min: 0, max: 30 }),
   v({ name: "fixed_shelf_setback", group: "shelves", unit: "mm", factory: 0, min: 0, max: 200 }),
+  v({ name: "open_shelf_reveal", group: "shelves", unit: "mm", factory: 1.5, min: -20, max: 20, step: 0.5 }),
   v({ name: "hat_shelf_drop", group: "shelves", unit: "mm", factory: 330, min: 100, max: 1000, step: 10 }),
   v({ name: "rail_drop", group: "shelves", unit: "mm", factory: 50, min: 20, max: 300, step: 5 }),
 
@@ -143,7 +154,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "hinge_count", group: "hardware", unit: "count", factory: 0, min: 0, max: 8, integer: true, step: 1 }),
   v({ name: "handle_edge_offset", group: "hardware", unit: "mm", factory: 40, min: 10, max: 400, step: 5 }),
   v({ name: "handle_end_offset", group: "hardware", unit: "mm", factory: 60, min: 10, max: 800, step: 5 }),
-  v({ name: "handle_grip_h", group: "hardware", unit: "mm", factory: 1050, min: 0, max: 2500, step: 10 }),
+  v({ name: "handle_height", group: "hardware", unit: "mm", factory: 1050, min: 300, max: 2200, step: 10 }),
   v({ name: "flap_handle_weight", group: "hardware", unit: "kg", factory: 0.2, min: 0, max: 5, step: 0.05 }),
   v({ name: "handle_drawer_top", group: "hardware", unit: "mm", factory: 40, min: 10, max: 300, step: 5 }),
   v({ name: "leg_inset_side", group: "hardware", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
@@ -155,7 +166,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "drawer_side_t", group: "drawers", unit: "mm", factory: "mat_drawer_t", min: 8, max: 25 }),
   v({ name: "drawer_bottom_t", group: "drawers", unit: "mm", factory: "mat_drawer_bottom_t", min: 3, max: 25 }),
   v({ name: "drawer_clearance", group: "drawers", unit: "mm", factory: 40, min: 0, max: 200, step: 5 }),
-  // Side height of the drawer box; 0 = as high as fits under drawer_clearance (D57).
+  // Side height of the drawer box; 0 = as high as fits under drawer_clearance (D71).
   v({ name: "drawer_box_h", group: "drawers", unit: "mm", factory: 0, min: 0, max: 600, step: 1 }),
   v({ name: "drawer_box_min_h", group: "drawers", unit: "mm", factory: 40, min: 20, max: 300, step: 1 }),
   v({ name: "drawer_setback", group: "drawers", unit: "mm", factory: 3, min: 0, max: 100 }),
@@ -165,7 +176,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "front_screw_d", group: "drawers", unit: "mm", factory: 4, min: 2, max: 10, step: 0.5 }),
   v({ name: "front_screw_side", group: "drawers", unit: "mm", factory: 40, min: 10, max: 300 }),
   v({ name: "front_screw_edge", group: "drawers", unit: "mm", factory: 25, min: 8, max: 200 }),
-  // Fixed blind panels (D57): dowels into the front edges of the carcase parts they lie on.
+  // Fixed blind panels (D71): dowels into the front edges of the carcase parts they lie on.
   v({ name: "blind_dowel_offset", group: "fronts", unit: "mm", factory: 50, min: 10, max: 500, step: 1 }),
   v({ name: "blind_dowel_max_spacing", group: "fronts", unit: "mm", factory: 300, min: 50, max: 2000, step: 10 }),
 
@@ -201,7 +212,7 @@ export type OptionKind =
   | { type: "material" }
   | { type: "hardware"; category: HardwareCategory; nullable?: boolean }
   | { type: "edgeband" } // edgeband id, or null for "no banding"
-  | { type: "surface" } // surface id, or null: the board as it comes (D53)
+  | { type: "surface" } // surface id, or null: the board as it comes (D67)
   | { type: "boolean" };
 
 export interface OptionDef {
@@ -218,6 +229,8 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["sides_over", "sides_between"] },
     factory: "sides_over",
   },
+  /** Middle panels between bottom and top (these run through), or through from the bottom edge to the top edge with bottom and top split per section (D46). */
+  { key: "partition_joint", group: "construction", kind: { type: "enum", values: ["between", "through"] }, factory: "between" },
   /** Top: full panel or two rails; auto = top.base_unit for base units, a full panel otherwise. */
   { key: "top", group: "construction", kind: { type: "enum", values: ["auto", "full", "rails"] }, factory: "auto" },
   /** Rails under top: rails — each flat (rail_w deep), upright (rail_w high) or left out (D41). */
@@ -238,6 +251,8 @@ export const OPTIONS: readonly OptionDef[] = [
   /** Back between the sides and behind bottom and top (horizontals end at the back), or inside them. */
   { key: "back_extent", group: "back", kind: { type: "enum", values: ["inside", "behind_horizontals"] }, factory: "inside" },
   /** Dowel positions: on the system grid thinned to dowel_max_spacing, or front offset, second, then every dowel_spacing. */
+  /** Dowel joints on both faces of one panel: shallow face bores at the same positions, or offset positions (D45, D56). */
+  { key: "dowel.opposite", group: "construction", kind: { type: "enum", values: ["shallow", "offset"] }, factory: "shallow" },
   { key: "dowel_pattern", group: "construction", kind: { type: "enum", values: ["grid", "sequence"] }, factory: "grid" },
   {
     key: "joint_method",
@@ -259,8 +274,15 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "hardware", category: "connector" },
     factory: "dowel-8x35",
   },
-  { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "none"] }, factory: "full" },
+  /** Fixed shelf between an open compartment and a front: centred on the gap, or open_shelf_reveal beyond the front's edge (D53). */
+  { key: "open_shelf", group: "shelves", kind: { type: "enum", values: ["centred", "reveal"] }, factory: "centred" },
+  /** Fronts reaching above a slope: keep their size (an error), or are cut to the slope (D54). */
+  { key: "slope_fronts", group: "fronts", kind: { type: "enum", values: ["keep", "cut"] }, factory: "keep" },
+  /** 32 mm rows: full height, only beside zones with adjustable shelves (D52), or none. */
+  { key: "system_holes", group: "system", kind: { type: "enum", values: ["full", "shelves", "none"] }, factory: "full" },
   { key: "hardware.hinge", group: "hardware", kind: { type: "hardware", category: "hinge" }, factory: "generic-hinge-110" },
+  /** Doors hinged on a middle panel (half overlay, two doors sharing the panel); null: hardware.hinge (D57). */
+  { key: "hardware.hinge_middle", group: "hardware", kind: { type: "hardware", category: "hinge", nullable: true }, factory: "generic-hinge-110-half" },
   {
     key: "hardware.shelf_support",
     group: "hardware",
@@ -278,13 +300,15 @@ export const OPTIONS: readonly OptionDef[] = [
   },
   { key: "hardware.handle", group: "hardware", kind: { type: "hardware", category: "handle", nullable: true }, factory: null },
   { key: "handle.door", group: "hardware", kind: { type: "enum", values: ["vertical", "horizontal"] }, factory: "vertical" },
+  /** Door handles at the door end (low in wall units, high in the others), or as near to handle_height above the floor as the door allows (D51, D72). */
+  { key: "handle.door_y", group: "hardware", kind: { type: "enum", values: ["end", "height"] }, factory: "height" },
   { key: "handle.drawer", group: "hardware", kind: { type: "enum", values: ["center", "top"] }, factory: "center" },
   /** Wooden drawers without a system front fixing: screws through the inner front, or nothing drilled. */
   { key: "drawer_front.fixing", group: "drawers", kind: { type: "enum", values: ["screws", "none"] }, factory: "screws" },
   { key: "hardware.slide", group: "drawers", kind: { type: "hardware", category: "slide" }, factory: "generic-undermount" },
   /** Corner unit: which side is blind (hidden behind the perpendicular run). */
   { key: "corner", group: "fronts", kind: { type: "enum", values: ["none", "blind_left", "blind_right"] }, factory: "none" },
-  /** Fixed blind panels (corner units, panel zones): joined to the carcase behind them, or nothing drilled (D57). */
+  /** Fixed blind panels (corner units, panel zones): joined to the carcase behind them, or nothing drilled (D71). */
   { key: "blind_panel.fixing", group: "fronts", kind: { type: "enum", values: ["auto", "none"] }, factory: "auto" },
   /** Passblende above the fronts up to the ceiling (D44). */
   { key: "ceiling_filler", group: "room", kind: { type: "enum", values: ["none", "front"] }, factory: "none" },
@@ -297,6 +321,8 @@ export const OPTIONS: readonly OptionDef[] = [
     kind: { type: "enum", values: ["shelves", "hanging", "hanging_first", "hanging_last"] },
     factory: "shelves",
   },
+  /** Hanging sections: a hat shelf above the rail, or the rail straight under the panel that closes the zone (D46). */
+  { key: "hat_shelf", group: "shelves", kind: { type: "boolean" }, factory: true },
   { key: "hardware.rail", group: "hardware", kind: { type: "hardware", category: "rail" }, factory: "generic-wardrobe-rail" },
   /** Wall units: cabinet hangers (D39); hidden sides get the rail notch. */
   { key: "hardware.hanger", group: "hardware", kind: { type: "hardware", category: "hanger", nullable: true }, factory: null },
@@ -313,7 +339,7 @@ export const OPTIONS: readonly OptionDef[] = [
   { key: "material.plinth", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer", group: "materials", kind: { type: "material" }, factory: "mel-white-16" },
   { key: "material.drawer_bottom", group: "materials", kind: { type: "material" }, factory: "hdf-white-8" },
-  // Surface finishes (D53); null = the board as it comes.
+  // Surface finishes (D67); null = the board as it comes.
   { key: "surface.carcase", group: "materials", kind: { type: "surface" }, factory: null },
   { key: "surface.front", group: "materials", kind: { type: "surface" }, factory: null },
   { key: "surface.visible_side", group: "materials", kind: { type: "surface" }, factory: null },
