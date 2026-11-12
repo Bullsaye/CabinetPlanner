@@ -1,5 +1,6 @@
 import type { HardwareUse } from "../cabinet/machining.ts";
 import type { Library } from "../library.ts";
+import { localName } from "../text.ts";
 import { cutlistRows, type CutlistRow } from "../output/cutlist.ts";
 import { formatNumber } from "../output/format.ts";
 import { thicknessAxis, type Part, type PartRole } from "../part.ts";
@@ -106,6 +107,7 @@ function offset(role: PartRole, c: { W: number; H: number; D: number }, e: numbe
     case "fixed_shelf":
       return [0, 0.06 * c.H * k, 0.35 * fwd * k];
     case "partition":
+    case "custom":
       return [0, 0.12 * c.H * k, 0.2 * fwd * k];
     case "door":
     case "blind_panel":
@@ -379,6 +381,7 @@ function fit(s: string, width: number, size: number): string {
 }
 
 function roleLabel(r: CutlistRow, text: DrawingText): string {
+  if (r.label !== undefined) return localName(r.label, text.locale ?? "en");
   const codes = new Set(r.parts.map((p) => p.slice(p.lastIndexOf("-") + 1)));
   if (codes.has("SL") && codes.has("SR")) return text.t("role.side_pair");
   if (codes.has("RF") && codes.has("RR")) return text.t("role.rail_pair");

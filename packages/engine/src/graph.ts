@@ -138,5 +138,9 @@ function exprDiagnostic(name: string, src: string, e: unknown): Diagnostic {
       variable: name,
     };
   }
+  // Thousands of nested brackets or terms exhaust the stack: user data, so a finding like any other.
+  if (e instanceof RangeError) {
+    return { severity: "error", code: "expr_too_complex", params: { name, expr: `${src.slice(0, 40)}…` }, variable: name };
+  }
   throw e;
 }

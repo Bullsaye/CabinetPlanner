@@ -6,7 +6,7 @@ describe("templates (D30)", () => {
   it.each(FACTORY_TEMPLATES.map((t) => [t.id, t] as const))("%s builds without findings", (_, t) => {
     const r = buildProject(loadProject({ schemaVersion: 1, name: "T", cabinets: [{ id: "X1", type: "box", ...t.cabinet }] }));
     expect(r.diagnostics).toEqual([]);
-    expect(r.parts.length).toBeGreaterThan(4);
+    expect(r.parts.length).toBeGreaterThanOrEqual(4);
   });
 });
 

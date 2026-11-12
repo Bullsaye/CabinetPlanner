@@ -47,6 +47,14 @@ describe("variable graph", () => {
     expect(r.diagnostics).toMatchObject([{ code: "expr_division_by_zero", variable: "x", params: { name: "x" } }]);
   });
 
+  it("reports expressions too deep for the evaluator instead of overflowing the stack", () => {
+    for (const src of ["(".repeat(20000) + "600" + ")".repeat(20000), Array.from({ length: 20000 }, () => "0.03").join("+"), "-".repeat(30000) + "600"]) {
+      const r = graph({ W: src });
+      expect(r.values.has("W")).toBe(false);
+      expect(r.diagnostics.map((d) => d.code)).toEqual(["expr_too_complex"]);
+    }
+  });
+
   it("is deterministic in its order", () => {
     const a = graph({ z: 1, y: "z", x: "y" }).order;
     const b = graph({ x: "y", y: "z", z: 1 }).order;

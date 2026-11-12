@@ -8,13 +8,15 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 - `packages/engine` – pure TypeScript engine. No DOM, no Node APIs, no UI
   text. Pipeline: presets → variables (expression graph) → cabinet rules →
   parts → machining (back pockets, joints, system holes, hardware) → checks
-  → output writers. Hardware seed items are JSON in `packages/engine/library/hardware/`.
+  → output writers (`src/output`: cutlist, BOM D61, DXF, sheets). Hardware seed items are JSON in `packages/engine/library/hardware/`.
 - `packages/i18n` – message catalogues (`en` base, `de` complete) and the
   translator.
 - `packages/cli` – `cabinet-planner` command; the first client of the engine.
 - `packages/app` – Svelte 5 web app (PWA). Talks to its host only through
   `src/lib/platform.ts` (storage, file dialogs, downloads).
 - `packages/desktop` – Tauri 2 shell around the app (native dialogs only).
+- `packages/server` – optional server (Node 22, `node:sqlite`, no native
+  deps): accounts, community packs, library sync. See its README and D63.
 - `reference/` – reference cabinets with golden cutlists (byte-exact tests).
 - `examples/` – example project and shop files.
 - `design/` – UI mockups (visual reference only).
@@ -28,11 +30,15 @@ pnpm test -u         # regenerate golden files after an intended change; review 
 pnpm typecheck
 pnpm check           # typecheck + tests (what CI runs)
 pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --format table --lang de
+pnpm cp bom examples/kitchen-basic.project.json --shop examples/shop.json --format table --per-cabinet   # board m², edgeband m, hardware, prices
+pnpm cp sheets examples/kitchen-basic.project.json --zip sheets.zip   # every drawing sheet as SVG
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + hardware per part
 pnpm app             # web app dev server (http://localhost:5173)
 pnpm desktop         # desktop window (Tauri) around the dev server
 pnpm desktop:build   # desktop installers
+pnpm run server      # account/community server on :8787 (`pnpm server` is a pnpm built-in)
+pnpm server:build    # one-file bundle packages/server/dist/server.mjs
 ```
 
 ## Rules

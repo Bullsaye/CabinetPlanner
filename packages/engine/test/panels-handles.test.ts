@@ -88,14 +88,15 @@ describe("handles", () => {
 });
 
 describe("drawer front fixing (D26)", () => {
+  // The drawer stands on the fixed shelf between it and the door (D71), so its box is 69 high.
   it("wooden drawers: four screw holes through the inner front", () => {
     const r = buildOne({ fronts: [{ type: "drawer", h: 150 }, { type: "door" }] });
     const di = bores(partsByCode(r).DI1!, "DI1-DF1");
     expect(di.map((b) => [b.u, b.v, b.d, b.face, b.through])).toEqual([
       [40, 25, 4, "t0", true],
-      [40, 76, 4, "t0", true],
+      [40, 44, 4, "t0", true],
       [480, 25, 4, "t0", true],
-      [480, 76, 4, "t0", true],
+      [480, 44, 4, "t0", true],
     ]);
     const none = buildOne({ fronts: [{ type: "drawer" }], options: { "drawer_front.fixing": "none" } });
     expect(bores(partsByCode(none).DI1!, "DI1-DF1")).toEqual([]);

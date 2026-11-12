@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { formatNumber, layoutFronts, localName } from "@cabinet-planner/engine";
+  import { formatNumber, frontViewOf, layoutFronts, localName } from "@cabinet-planner/engine";
+  import { swingPoints } from "../lib/elevation.ts";
   import { parseInput, store } from "../lib/store.svelte.ts";
 
-  type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number; handle?: string | null };
+  type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number | string; boxH?: number | string; handle?: string | null };
   type Holes = false | { from?: number | string; to?: number | string };
   type Section = { w?: number | string; fronts?: Zone[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: unknown; holes?: Holes };
   const TYPES = ["door", "drawer", "flap", "open", "appliance", "panel"] as const;
@@ -203,6 +204,20 @@
     }
     return [{ x: X0, w: X1 - X0, ...(z.type === "door" ? { hinge: doorMode(z, col.hingeDefault, col.doorDefault) as "left" | "right" } : {}) }];
   }
+
+  /** Hinges and handles as the engine drilled them (D68), so the opening direction is plain to see. */
+  const fv = $derived(store.cabinet?.parts.length ? frontViewOf(store.cabinet) : undefined);
+  const doorOf = (id: string) => fv?.parts.find((p) => p.id === id);
+  /** A zone picked in a drawing (only in the stack being edited): bring its row into view. */
+  const pick = (k: number, i: number): void => {
+    if (!sections || k === cur) store.ui.zone = i;
+  };
+  let rowsEl = $state<HTMLDivElement>();
+  $effect(() => {
+    const z = store.ui.zone;
+    if (z === null || !rowsEl) return;
+    rowsEl.querySelector(`[data-zone="${z}"]`)?.scrollIntoView({ block: "nearest" });
+  });
 </script>
 
 {#if c}
@@ -268,15 +283,14 @@
                 {#if col.zones[i]?.type === "open" || (col.zones[i]?.type === "appliance" && !col.zones[i]?.front)}
                   <rect class="hole" class:dim={sections && col.k !== cur} x={r.x * s} {y} width={r.w * s} height={h} />
                 {:else}
-                  <rect class="front {col.zones[i]?.type}" class:dim={sections && col.k !== cur} x={r.x * s} {y} width={r.w * s} height={h} />
+                  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                  <rect class="front {col.zones[i]?.type}" class:dim={sections && col.k !== cur} class:on={(!sections || col.k === cur) && store.ui.zone === i} x={r.x * s} {y} width={r.w * s} height={h} onclick={() => pick(col.k, i)} />
                   {#if r.hinge}
-                    <!-- Opening symbol: lines from the opening edge to the middle of the hinge edge. -->
-                    {@const hx = r.hinge === "left" ? r.x * s : (r.x + r.w) * s}
-                    {@const ox = r.hinge === "left" ? (r.x + r.w) * s : r.x * s}
-                    <polyline class="swing" points={`${ox},${y} ${hx},${y + h / 2} ${ox},${y + h}`} />
+                    <!-- Opening symbol: tip at the hinge edge or at the handle edge (preference). -->
+                    <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, r.hinge, store.ui.hingeSymbol)} />
                   {/if}
                   {#if col.zones[i]?.type === "flap"}
-                    <polyline class="swing" points={`${r.x * s},${y + h} ${(r.x + r.w / 2) * s},${y} ${(r.x + r.w) * s},${y + h}`} />
+                    <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, "top", store.ui.hingeSymbol)} />
                   {/if}
                 {/if}
               {/each}
@@ -285,11 +299,29 @@
               {/if}
             {/each}
           {/each}
+          {#if fv}
+            {#each fv.hinges as hg}
+              {@const d = doorOf(hg.part)}
+              {#if d && hg.edge === "top"}
+                <rect class="mark" x={hg.x * s - 3.5} y={(H - d.y - d.h) * s} width="7" height="2.5" />
+              {:else if d}
+                <rect class="mark" x={hg.edge === "left" ? d.x * s : (d.x + d.w) * s - 2.5} y={(H - hg.y) * s - 3.5} width="2.5" height="7" />
+              {/if}
+            {/each}
+            {#each fv.handles as hd}
+              {#if hd.kind === "knob"}
+                <circle class="mark" cx={hd.x1 * s} cy={(H - hd.y1) * s} r="2.2" />
+              {:else}
+                <line class="grip" x1={hd.x1 * s} y1={(H - hd.y1) * s} x2={hd.x2 * s} y2={(H - hd.y2) * s} />
+              {/if}
+            {/each}
+          {/if}
         </svg>
       {/if}
-      <div class="rows">
+      <div class="rows" bind:this={rowsEl}>
         {#each zones as z, i}
-          <div class="row">
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="row" class:on={store.ui.zone === i} data-zone={i} onfocusin={() => (store.ui.zone = i)}>
             <select id={`fz-type-${i}`} aria-label={t("ui.front_type")} value={z.type} onchange={(e) => edit((l) => (l[i]!.type = (e.target as HTMLSelectElement).value))}>
               {#each TYPES as ty}<option value={ty}>{t(`ui.zone.${ty}`)}</option>{/each}
             </select>
@@ -314,10 +346,15 @@
               </div>
             {:else if z.type === "appliance"}
               <label class="chk"><input type="checkbox" checked={z.front ?? false} onchange={(e) => edit((l) => (l[i]!.front = (e.target as HTMLInputElement).checked))} /> {t("ui.appliance_front")}</label>
-            {:else if z.type === "open"}
+            {:else if z.type === "drawer"}
+              <input class="mono shelves" type="text" inputmode="decimal" value={z.boxH ?? ""} placeholder={t("ui.zone_box_h_short")} title={t("ui.zone_box_h")} aria-label={t("ui.zone_box_h")} onchange={(e) => {
+                const val = parseInput((e.target as HTMLInputElement).value);
+                edit((l) => (val === undefined ? delete l[i]!.boxH : (l[i]!.boxH = val)));
+              }} />
+            {:else if z.type === "open" || z.type === "flap"}
               <input class="mono shelves" type="text" inputmode="numeric" value={z.shelves ?? ""} placeholder={t("ui.zone_shelves")} title={t("ui.zone_shelves")} aria-label={t("ui.zone_shelves")} onchange={(e) => {
                 const val = parseInput((e.target as HTMLInputElement).value);
-                edit((l) => (typeof val === "number" ? (l[i]!.shelves = Math.max(0, Math.round(val))) : delete l[i]!.shelves));
+                edit((l) => (val === undefined ? delete l[i]!.shelves : (l[i]!.shelves = typeof val === "number" ? Math.max(0, Math.round(val)) : val)));
               }} />
             {:else}<span></span>{/if}
             {#if z.type === "door" || z.type === "drawer" || z.type === "flap" || (z.type === "appliance" && z.front)}
@@ -365,7 +402,12 @@
   .dim { opacity: .45; }
   .hole { fill: var(--view); stroke: var(--part-edge); stroke-width: .6; stroke-dasharray: 3 2; }
   .swing { fill: none; stroke: var(--muted); stroke-width: .8; stroke-dasharray: 4 2; }
-  .h { font: 9px var(--font-mono); fill: var(--fg); }
+  .h { font: 9px var(--font-mono); fill: var(--fg); pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5; stroke-linejoin: round; }
+  .front { cursor: pointer; }
+  .front.on { stroke: var(--accent); stroke-width: 2; }
+  .mark { fill: var(--fg); pointer-events: none; }
+  .grip { stroke: var(--fg); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+  .row.on { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
   .row > select:first-child { flex: 1 1 84px; min-width: 0; }

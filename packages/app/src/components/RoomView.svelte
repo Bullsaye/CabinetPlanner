@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { drawingText, floorPlanSvg, type CabinetPlacement } from "@cabinet-planner/engine";
+  import type { CabinetPlacement } from "@cabinet-planner/engine";
   import { parseInput, store } from "../lib/store.svelte.ts";
+  import RoomPlan from "./RoomPlan.svelte";
 
   const t = $derived(store.tr.t);
   const room = $derived(store.project.room as Record<string, any> | undefined);
   const layout = $derived(store.result?.room);
-  const plan = $derived(layout && store.result ? floorPlanSvg(layout, store.project.name, drawingText(store.tr, store.result.library), false) : "");
 
   function createRoom(): void {
     store.project.room = {
@@ -18,6 +18,12 @@
       openings: [],
     };
     for (const c of store.project.cabinets ?? []) c.place ??= { wall: "A" };
+  }
+  // Working without a room (D68): the cabinets stay, in a simple run; their places are kept for a later room.
+  let confirmRemove = $state(false);
+  function removeRoom(): void {
+    delete store.project.room;
+    confirmRemove = false;
   }
   function nextWallId(): string {
     const used = new Set((room?.walls ?? []).map((w: any) => w.id));
@@ -36,12 +42,22 @@
   {#if !room}
     <div class="empty">
       <p>{t("ui.room_none")}</p>
+      <p class="muted">{t("ui.room_none_run")}</p>
       <button class="primary" onclick={createRoom}>{t("ui.room_create")}</button>
     </div>
   {:else}
     <div class="cols">
-      <div class="sheet plan">{@html plan}</div>
+      <RoomPlan />
       <div class="edit">
+        <div class="row">
+          {#if confirmRemove}
+            <span role="alert">{t("ui.room_remove_confirm")}</span>
+            <button class="danger" onclick={removeRoom}>{t("ui.room_remove_yes")}</button>
+            <button onclick={() => (confirmRemove = false)}>{t("ui.cancel")}</button>
+          {:else}
+            <button onclick={() => (confirmRemove = true)}>{t("ui.room_remove")}</button>
+          {/if}
+        </div>
         <h2 class="label">{t("ui.walls")}</h2>
         <p class="hint muted">{t("ui.walls_hint")}</p>
         <table class="grid">
@@ -133,8 +149,8 @@
           <thead><tr><th>{t("ui.cabinet")}</th><th>{t("ui.wall")}</th><th>{t("ui.position")}</th><th></th></tr></thead>
           <tbody>
             {#each store.project.cabinets ?? [] as c, i}
-              <tr>
-                <td class="mono">{c.id}</td>
+              <tr class:current={store.ui.selected === c.id}>
+                <td><button class="quiet mono" aria-pressed={store.ui.selected === c.id} onclick={() => (store.ui.selected = c.id)}>{c.id}</button></td>
                 <td>
                   <select id={`pl-wall-${i}`} value={c.place?.wall ?? room.walls[0].id} onchange={(e) => (c.place = { ...(c.place ?? {}), wall: (e.target as HTMLSelectElement).value })}>
                     {#each room.walls as w}<option value={w.id}>{w.id}</option>{/each}
@@ -156,7 +172,12 @@
                     }}
                   />
                 </td>
-                <td class="muted small">{c.kind === "wall" ? t("ui.kind.wall") : t("ui.floor_unit")}</td>
+                <td class="muted small">
+                  {c.kind === "wall" ? t("ui.kind.wall") : t("ui.floor_unit")}
+                  {#if c.place?.x !== undefined}
+                    <button class="to-run" title={t("ui.arrange_to_run_hint")} onclick={() => (c.place = { wall: c.place.wall })}>{t("ui.arrange_to_run")}</button>
+                  {/if}
+                </td>
               </tr>
             {/each}
           </tbody>
@@ -169,8 +190,11 @@
 <style>
   .rv { padding: 12px; min-height: 460px; }
   .empty { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 16px; }
+  .empty p { margin: 0; max-width: 60ch; }
+  .danger { color: var(--err); border-color: var(--err); }
   .cols { display: flex; flex-direction: column; gap: 16px; }
-  .plan :global(svg) { max-height: 62vh; }
+  tr.current td { background: var(--accent-soft); }
+  .to-run { margin-left: 6px; padding: 2px 8px; font-size: 12px; }
   .edit { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   h2 { margin: 8px 0 0; }
   .hint { margin: 0; font-size: 12px; }
@@ -178,5 +202,4 @@
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   td input { width: 64px; }
   td select { max-width: 110px; }
-  .plan { min-width: 0; }
 </style>

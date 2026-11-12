@@ -1,6 +1,7 @@
 import { localName, type Library } from "../library.ts";
 import type { Part, PartRole } from "../part.ts";
 import { formatNumber, toCsv } from "./format.ts";
+import type { LocalizedText } from "../text.ts";
 
 /**
  * Cutlist rows, independent of format and language. Text that depends on
@@ -14,7 +15,11 @@ export interface CutlistRow {
   parts: string[];
   cabinet: string;
   role: PartRole;
+  /** Free parts: the name their author gave them (shown in place of the role). */
+  label?: LocalizedText;
   material: string;
+  /** Surface finish id, "" for none (D67). */
+  surface: string;
   length: number;
   width: number;
   thickness: number;
@@ -43,7 +48,9 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     parts: [p.id],
     cabinet: p.cabinet,
     role: p.role,
+    ...(p.label !== undefined ? { label: p.label } : {}),
     material: p.material,
+    surface: p.surface ?? "",
     length: p.length,
     width: p.width,
     thickness: p.thickness,
@@ -57,6 +64,8 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     bevels: p.bevels ?? {},
   }));
   if (!opts.group) return rows;
+  // Shaped parts only group with parts of the same shape (D43).
+  const shape = new Map(parts.map((p) => [p.id, p.outline ? JSON.stringify(p.outline) : ""]));
 
   // Group by everything that matters for cutting and banding. Left and right
   // sides of the same size collapse into one row with qty 2.
@@ -65,6 +74,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     const key = JSON.stringify([
       r.cabinet,
       r.material,
+      r.surface,
       r.length,
       r.width,
       r.thickness,
@@ -73,9 +83,11 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.grain,
       r.edges,
       r.note,
+      shape.get(r.part),
       r.outline,
       r.bevels,
       groupRole(r.role),
+      r.label ?? "",
     ]);
     const g = groups.get(key);
     if (g) {
@@ -97,6 +109,7 @@ export type CutlistColumn =
   | "cabinet"
   | "role"
   | "material"
+  | "surface"
   | "length"
   | "width"
   | "thickness"
@@ -110,17 +123,19 @@ export type CutlistColumn =
   | "edge_w2"
   | "note";
 
+/** Order as on a shop list (D67): what, how many, size, board, finish, cut size, edges, remark. */
 export const DEFAULT_COLUMNS: readonly CutlistColumn[] = [
   "part",
   "cabinet",
   "role",
-  "material",
+  "qty",
   "length",
   "width",
   "thickness",
+  "material",
+  "surface",
   "cut_length",
   "cut_width",
-  "qty",
   "grain",
   "edge_l1",
   "edge_l2",
@@ -136,6 +151,12 @@ export interface CutlistText {
   role: (row: CutlistRow) => string;
   /** Locale used for library names. */
   locale: string;
+  /**
+   * Remark for parts that are not rectangles (D43), printed in the note
+   * column: the sizes are the bounding rectangle, the contour is on the
+   * part sheet and in the DXF.
+   */
+  shaped?: string;
   /** Short edge name for mitre notes (default L1, L2, W1, W2). */
   edge?: (edge: "l1" | "l2" | "w1" | "w2") => string;
 }
@@ -157,6 +178,10 @@ export function cutlistTable(
       case "material": {
         const m = library.materials.get(r.material);
         return m ? localName(m.name, text.locale) : r.material;
+      }
+      case "surface": {
+        const s = library.surfaces.get(r.surface);
+        return s ? localName(s.name, text.locale) : r.surface;
       }
       case "length":
         return formatNumber(r.length);
@@ -186,7 +211,7 @@ export function cutlistTable(
           .filter((e) => r.bevels[e] !== undefined)
           .map((e) => `${text.edge ? text.edge(e) : e.toUpperCase()} ∠${formatNumber(r.bevels[e]!)}°`)
           .join(" ");
-        return [r.note, bevel].filter((x) => x !== "").join("; ");
+        return [r.note, bevel, r.outline ? (text.shaped ?? "") : ""].filter((x) => x !== "").join("; ");
       }
     }
   };

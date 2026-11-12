@@ -12,6 +12,7 @@ export const FACTORY_PRESETS: readonly Preset[] = [
     group: "kind",
     vars: { H: "base_h", D: "worktop_d - 40", shelf_count: 1, door_count: 1 },
     options: {},
+    params: [],
   },
   {
     id: "wall-unit",
@@ -19,6 +20,7 @@ export const FACTORY_PRESETS: readonly Preset[] = [
     group: "kind",
     vars: { H: "wall_h", D: "wall_d", shelf_count: 2, door_count: 1, front_gap_bottom: 0 },
     options: {},
+    params: [],
   },
   {
     id: "tall-unit",
@@ -26,6 +28,7 @@ export const FACTORY_PRESETS: readonly Preset[] = [
     group: "kind",
     vars: { H: "tall_h", D: "worktop_d - 40", shelf_count: 4, door_count: 1 },
     options: { "handle.door_y": "height", system_holes: "shelves", open_shelf: "reveal" },
+    params: [],
   },
   {
     id: "wardrobe",
@@ -33,5 +36,6 @@ export const FACTORY_PRESETS: readonly Preset[] = [
     group: "kind",
     vars: { H: "wardrobe_h", D: "wardrobe_d", shelf_count: 0, door_count: 2 },
     options: { interior: "hanging" },
+    params: [],
   },
 ];

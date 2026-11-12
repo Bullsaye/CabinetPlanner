@@ -140,6 +140,29 @@ describe("part drawing", () => {
     expect(d.svg).not.toMatch(/>F\d+</); // system holes stay out of the table
   });
 
+  it("names the edge of edge bores in the hole table", () => {
+    const d = drawPart({ part: p.BO!, cabinet: cab, style: resolveStyle("upright"), text });
+    // Dowel holes in the ends of the bottom: left and right edge of the sheet.
+    expect(d.svg).toContain('>drawing.where.edge{"edge":"drawing.dir.left"}</text><text class="pd-mono"');
+    expect(d.svg).toContain('>drawing.where.edge{"edge":"drawing.dir.right"}</text><text class="pd-mono"');
+    expect(d.svg).not.toContain(">drawing.where.edge<");
+  });
+
+  it("moves the legend's description column right of the longest size text", () => {
+    // e.g. German "124× Ø5 × 10 (von beiden Seiten)" is wider than the default column.
+    const long: DrawingText = { t: (k) => (k === "drawing.pocket" ? "Pocket with a rather long name" : k) };
+    const d = drawPart({ part: p.SR!, cabinet: cab, style: resolveStyle("machine"), text: long });
+    const spec = /<text class="pd-mono" x="([\d.]+)"[^>]*>(Pocket with a rather long name[^<]*)</.exec(d.svg)!;
+    const descr = [...d.svg.matchAll(/<text class="pd-sub" x="([\d.]+)"[^>]*>[^<]*drawing\.where\.face/g)].map((m) => Number(m[1]));
+    const end = Number(spec[1]) + spec[2]!.length * 2.5 * 0.6;
+    expect(descr.length).toBeGreaterThan(1);
+    expect(new Set(descr).size).toBe(1); // one column
+    expect(descr[0]).toBeGreaterThan(end);
+    // Short texts keep the usual column.
+    const short = drawPart({ part: p.SR!, cabinet: cab, style: resolveStyle("machine"), text });
+    expect(short.svg).toMatch(/<text class="pd-sub" x="62"[^>]*>[^<]*drawing\.where\.face/);
+  });
+
   it("hides groups a rule hides", () => {
     const style = resolveStyle("x", [{ id: "x", name: "X", extends: "machine", rules: [{ match: { source: ["system"] }, hide: true }] }]);
     const d = drawPart({ part: p.SR!, cabinet: cab, style, text });
@@ -199,6 +222,16 @@ describe("machined faces and two-sided parts (D22)", () => {
     // Turned off by style: one sheet.
     const one = resolveStyle("o", [{ id: "o", name: "O", extends: "machine", show: { bothSides: false }, rules: [] }]);
     expect(drawPartSheets({ part: sh, cabinet: cab, style: one, text })).toHaveLength(1);
+  });
+
+  it("does not count a through notch as machining of the other face", () => {
+    const w = partsByCode(buildOne({ kind: "wall", presets: ["wall-unit"], options: { "hardware.hanger": "hettich-sah-130" } }));
+    for (const side of [w.SL!, w.SR!]) {
+      const sheets = drawPartSheets({ part: side, cabinet: { W: 600, H: 720, D: 320 }, style: resolveStyle("machine"), text });
+      expect(sheets).toHaveLength(1);
+      expect(sheets[0]!.view.face).toBe(side.role === "side_left" ? "t1" : "t0");
+      expect(sheets[0]!.svg).not.toContain('class="pd-pocket-far"');
+    }
   });
 
   it("keeps one-sided parts on one sheet", () => {

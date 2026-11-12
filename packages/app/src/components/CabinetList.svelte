@@ -1,19 +1,9 @@
 <script lang="ts">
-  import { addCabinet, addFromTemplate, duplicateCabinet, moveCabinet, removeCabinet, store } from "../lib/store.svelte.ts";
-  import { FACTORY_TEMPLATES, formatNumber, localName } from "@cabinet-planner/engine";
+  import { addCabinet, duplicateCabinet, moveCabinet, removeCabinet, store } from "../lib/store.svelte.ts";
+  import { formatNumber } from "@cabinet-planner/engine";
+  import TemplatePicker from "./TemplatePicker.svelte";
 
-  const groups = ["kitchen", "storage", "wardrobe", "bath"] as const;
-  // Shop templates with a factory id replace that factory template (saved from the construction editor).
-  const allShop = $derived(store.built.shop?.library.templates ?? []);
-  const factoryIds = new Set(FACTORY_TEMPLATES.map((x) => x.id));
-  const shopTemplates = $derived(allShop.filter((x) => !factoryIds.has(x.id)));
-  const factoryList = $derived(FACTORY_TEMPLATES.map((f) => allShop.find((x) => x.id === f.id) ?? f));
-  function pick(e: Event): void {
-    const sel = e.target as HTMLSelectElement;
-    const tpl = factoryList.find((x) => x.id === sel.value) ?? shopTemplates.find((x) => `shop:${x.id}` === sel.value);
-    if (tpl) addFromTemplate(tpl as never);
-    sel.value = "";
-  }
+  let picking = $state(false);
 
   const t = $derived(store.tr.t);
   const cabinets = $derived((store.project.cabinets ?? []) as Record<string, any>[]);
@@ -35,21 +25,7 @@
     <button onclick={() => addCabinet("base")}>+ {t("ui.kind.base")}</button>
     <button onclick={() => addCabinet("wall")}>+ {t("ui.kind.wall")}</button>
     <button onclick={() => addCabinet("tall")}>+ {t("ui.kind.tall")}</button>
-    <select id="add-template" aria-label={t("ui.add_from_template")} onchange={pick}>
-      <option value="">{t("ui.add_from_template")}</option>
-      {#if shopTemplates.length}
-        <optgroup label={t("ui.my_templates")}>
-          {#each shopTemplates as tpl}<option value={`shop:${tpl.id}`}>{localName(tpl.name, store.ui.lang)}</option>{/each}
-        </optgroup>
-      {/if}
-      {#each groups as g}
-        <optgroup label={t(`ui.template_group.${g}`)}>
-          {#each FACTORY_TEMPLATES.filter((x) => x.group === g).map((f) => factoryList.find((x) => x.id === f.id) ?? f) as tpl}
-            <option value={tpl.id}>{localName(tpl.name, store.ui.lang)}</option>
-          {/each}
-        </optgroup>
-      {/each}
-    </select>
+    <button id="add-template" class="more" onclick={() => (picking = true)}>{t("ui.add_from_template")}</button>
   </div>
   <ul>
     {#each cabinets as c (c.id)}
@@ -85,17 +61,18 @@
     </div>
   {/if}
 </section>
+{#if picking}<TemplatePicker onclose={() => (picking = false)} />{/if}
 
 <style>
   .list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
   .add { display: flex; flex-wrap: wrap; gap: 6px; }
   .add button { flex: 1 1 auto; padding: 4px 8px; }
-  .add select { flex: 1 1 100%; }
+  .add .more { flex: 1 1 100%; }
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .item { width: 100%; display: grid; grid-template-columns: 34px 1fr auto; gap: 6px; text-align: left; align-items: baseline; }
   .id { font-size: 12px; }
   .id.err { color: var(--err); }
-  .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nm { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
   .w { color: var(--muted); font-size: 12px; }
   .actions { display: flex; flex-wrap: wrap; gap: 2px; border-top: 1px solid var(--line); padding-top: 8px; }
   .danger { color: var(--err); }

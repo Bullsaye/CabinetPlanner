@@ -13,7 +13,7 @@ export type Face = "t0" | "t1" | "l1" | "l2" | "w1" | "w2";
 
 /** Why an operation exists; used for labels, BOM and collision messages. */
 export interface OpSource {
-  kind: "system" | "joint" | "hardware" | "back";
+  kind: "system" | "joint" | "hardware" | "back" | "custom";
   /** e.g. "SL-BO" for a joint, a hardware item id, "rows" for system holes. */
   ref: string;
   /** Operations of one fitting that are meant to meet (cam housing and bolt hole). */
@@ -125,9 +125,11 @@ export function addBore(
   const l = toLocal(part, entry);
   const { normal } = faceAxes(face);
   const expected = faceAtMax(face) ? sizeOf(part, normal) : 0;
-  if (Math.abs(l[normal] - expected) > 1e-3) {
+  // One rounding step (0.01) off is still the face: part faces are rounded, entry points are computed.
+  if (Math.abs(l[normal] - expected) > 0.011) {
     throw new Error(`bore entry not on face ${face} of ${part.id}: ${JSON.stringify(l)}`);
   }
+  l[normal] = expected;
   const bore: Bore = { kind: "bore", face, ...l, d: roundMm(d), depth: roundMm(depth), sources: [source] };
   addOperation(part, bore);
   return bore;
@@ -189,9 +191,10 @@ function addOperation(part: Part, op: Operation): void {
       (o): o is Bore =>
         o.kind === "bore" &&
         o.face === op.face &&
-        Math.abs(o.u - op.u) < 1e-3 &&
-        Math.abs(o.v - op.v) < 1e-3 &&
-        Math.abs(o.w - op.w) < 1e-3,
+        // Within one rounding step (0.01): the same hole reached by two computations.
+        Math.abs(o.u - op.u) < 0.011 &&
+        Math.abs(o.v - op.v) < 0.011 &&
+        Math.abs(o.w - op.w) < 0.011,
     );
     if (same) {
       same.depth = Math.max(same.depth, op.depth);
@@ -269,27 +272,37 @@ export function boreWouldCollide(
 }
 
 /**
- * Would a pocket over this cabinet-space box (clipped to the part) come
- * within `margin` of existing machining? Used for connector grooves (D55).
+ * True when a pocket over `box` (cabinet coordinates) cannot be milled into
+ * the part: it misses the part, is not open to any face, would cut through
+ * the thickness, or comes within `margin` of existing machining (bores and
+ * other pockets, e.g. the slot of the joint on the other face of a middle
+ * panel). Used for connector grooves (D55, D64).
  */
 export function pocketWouldCollide(
   part: Part,
   box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number },
   margin: number,
 ): boolean {
-  const lo = { x: Math.max(box.x0, part.box.x), y: Math.max(box.y0, part.box.y), z: Math.max(box.z0, part.box.z) };
-  const hi = { x: Math.min(box.x1, part.box.x + part.box.dx), y: Math.min(box.y1, part.box.y + part.box.dy), z: Math.min(box.z1, part.box.z + part.box.dz) };
-  if (hi.x - lo.x <= EPS || hi.y - lo.y <= EPS || hi.z - lo.z <= EPS) return false;
+  const lo: Point3 = { x: Math.max(box.x0, part.box.x), y: Math.max(box.y0, part.box.y), z: Math.max(box.z0, part.box.z) };
+  const hi: Point3 = {
+    x: Math.min(box.x1, part.box.x + part.box.dx),
+    y: Math.min(box.y1, part.box.y + part.box.dy),
+    z: Math.min(box.z1, part.box.z + part.box.dz),
+  };
+  if (hi.x - lo.x <= EPS || hi.y - lo.y <= EPS || hi.z - lo.z <= EPS) return true;
   const a = toLocal(part, lo);
   const b = toLocal(part, hi);
-  const grown: Aabb = {
-    u0: Math.min(a.u, b.u) - margin,
-    u1: Math.max(a.u, b.u) + margin,
-    v0: Math.min(a.v, b.v) - margin,
-    v1: Math.max(a.v, b.v) + margin,
-    w0: Math.min(a.w, b.w) - margin,
-    w1: Math.max(a.w, b.w) + margin,
-  };
+  const u0 = Math.min(a.u, b.u);
+  const u1 = Math.max(a.u, b.u);
+  const v0 = Math.min(a.v, b.v);
+  const v1 = Math.max(a.v, b.v);
+  const w0 = Math.min(a.w, b.w);
+  const w1 = Math.max(a.w, b.w);
+  const t0 = w0 <= EPS;
+  const t1 = w1 >= part.thickness - EPS;
+  if (t0 && t1) return true;
+  if (!t0 && !t1 && v0 > EPS && v1 < part.width - EPS && u0 > EPS && u1 < part.length - EPS) return true;
+  const grown: Aabb = { u0: u0 - margin, u1: u1 + margin, v0: v0 - margin, v1: v1 + margin, w0: w0 - margin, w1: w1 + margin };
   return part.operations.some((o) => overlaps(grown, opBounds(part, o)));
 }
 

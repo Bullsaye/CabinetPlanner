@@ -94,6 +94,8 @@ export function buildDrawer(
   const top: PartEdges = { l1: null, l2: edgeDrawer, w1: null, w2: null };
   const none: PartEdges = { l1: null, l2: null, w1: null, w2: null };
 
+  const want = front.boxH ?? num("drawer_box_h");
+  const minH = num("drawer_box_min_h");
   let boxTop: number;
   if (slide.box === "wood") {
     const innerW = p("inner_w");
@@ -103,8 +105,17 @@ export function buildDrawer(
       return undefined;
     }
     const ds = num("drawer_side_t");
-    const hBox = Math.floor(room + 1e-9);
-    if (hBox < 40) {
+    // Side height: the zone's own, else drawer_box_h; 0 = as high as fits (D71).
+    const fit = Math.floor(room + 1e-9);
+    let hBox = fit;
+    if (want > 0 && want > room + 1e-9) {
+      diagnostics.push({ severity: "error", code: "drawer_box_too_high", params: { index, want, room: fit }, ...at });
+    } else if (want > 0 && want < minH) {
+      diagnostics.push({ severity: "error", code: "drawer_box_too_small", params: { index, want, min: minH }, ...at });
+    } else if (want > 0) {
+      hBox = want;
+    }
+    if (hBox < minH) {
       diagnostics.push({ severity: "error", code: "drawer_too_low", params: { index, front: roundMm(front.y1 - front.y0), clearance }, ...at });
       return undefined;
     }
@@ -135,7 +146,13 @@ export function buildDrawer(
       diagnostics.push({ severity: "error", code: "hardware_param_missing", params: { item: item.id, params: "bottom_w, bottom_l" }, ...at });
       return undefined;
     }
-    const fit = [...slide.heights].sort((a, b) => b.h - a.h).find((h) => h.h <= room + 1e-9);
+    // Metal sides come in the slide's heights: the largest that fits, and is not above the wanted height (D71).
+    const fitting = [...slide.heights].sort((a, b) => b.h - a.h).filter((h) => h.h <= room + 1e-9);
+    const wanted = want > 0 ? fitting.find((h) => h.h <= want + 1e-9) : fitting[0];
+    if (fitting.length && !wanted) {
+      diagnostics.push({ severity: "error", code: "drawer_box_too_small", params: { index, want, min: fitting[fitting.length - 1]!.h }, ...at });
+    }
+    const fit = wanted ?? fitting[fitting.length - 1];
     if (!fit) {
       diagnostics.push({ severity: "error", code: "drawer_too_low", params: { index, front: roundMm(front.y1 - front.y0), clearance }, ...at });
       return undefined;

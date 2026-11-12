@@ -3,7 +3,7 @@ import { DrawingStyleSchema } from "./drawing/style.ts";
 import { DxfProfileSchema } from "./output/dxf.ts";
 import { PlacementSchema, RoomSchema } from "./room/room.ts";
 import { HardwareItem } from "./hardware/schema.ts";
-import { Edgeband, Material } from "./library.ts";
+import { Edgeband, Material, Surface } from "./library.ts";
 import { LocalizedText } from "./text.ts";
 
 /**
@@ -28,6 +28,27 @@ const layerFields = {
 export const Layer = z.object(layerFields);
 export type Layer = z.infer<typeof Layer>;
 
+/**
+ * A parameter (D59): a variable its author puts into the simple editor.
+ * `name` is the function name used in formulas (shown when there is no
+ * label); `label` and `description` are display texts anyone may change or
+ * translate without touching a formula. The name may be a catalogue
+ * variable (then the parameter only adds it to the simple editor).
+ * Cabinets, templates and presets carry parameters.
+ */
+export const ParamSchema = z.object({
+  name: identifier,
+  label: LocalizedText.optional(),
+  description: LocalizedText.optional(),
+  default: VarInputSchema.optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  step: z.number().positive().optional(),
+  integer: z.boolean().optional(),
+  unit: z.enum(["mm", "count"]).default("mm"),
+});
+export type ParamInput = z.infer<typeof ParamSchema>;
+
 /** A named, partial set of variables and options. */
 export const Preset = z.object({
   id: z.string().min(1),
@@ -36,6 +57,8 @@ export const Preset = z.object({
   group: z.string().optional(),
   vars: z.record(identifier, VarInputSchema).default({}),
   options: z.record(z.string(), OptionValueSchema).default({}),
+  /** Variables this preset introduces or puts into the simple editor (D59). */
+  params: z.array(ParamSchema).max(60).default([]),
 });
 export type Preset = z.infer<typeof Preset>;
 
@@ -45,6 +68,8 @@ export const PartOverride = z.object({
   edges: z
     .object({ l1: EdgeRef.optional(), l2: EdgeRef.optional(), w1: EdgeRef.optional(), w2: EdgeRef.optional() })
     .optional(),
+  /** Surface finish of this part (D67); null: the board as it comes. */
+  surface: z.string().nullable().optional(),
   note: z.string().optional(),
 });
 export type PartOverride = z.infer<typeof PartOverride>;
@@ -70,10 +95,98 @@ export const FrontZone = z.object({
   front: z.boolean().optional(),
   /** Handle (hardware id) on the fronts of this zone; null: none. Default: option hardware.handle (D48). */
   handle: z.string().nullable().optional(),
-  /** Door and open zones: adjustable shelves in this zone (default: shelf_count for the tallest zone, a share for the others). */
-  shelves: z.number().int().min(0).max(20).optional(),
+  /**
+   * Door, open and flap zones: adjustable shelves in this compartment (number or formula). Without it:
+   * shelf_count for the tallest zone, a share for the others (D46, D71).
+   */
+  shelves: VarInputSchema.optional(),
+  /** Drawer zones with a wooden box: side height of the box (number or formula, 0 = as high as fits); without it drawer_box_h applies (D71). */
+  boxH: VarInputSchema.optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;
+
+const EdgeInput = z.string().min(1).nullable();
+
+/**
+ * A free part (D59): a board in one of the three planes, placed by formulas
+ * in cabinet coordinates (D2). The size across the board is the material
+ * thickness unless given. Formulas see every variable of the cabinet, the
+ * zone edges, and with `repeat` the counters `i` (1…n) and `n`.
+ */
+export const CustomPartSchema = z.object({
+  /** Part code, unique in the cabinet and stable (D6); with `repeat` the index is appended. */
+  id: z.string().regex(/^[A-Z][A-Z0-9]{0,5}$/, "1–6 capital letters or digits, starting with a letter"),
+  name: LocalizedText.optional(),
+  /** horizontal: lies flat (thickness along Y); vertical: stands front to back (thickness along X); frontal: stands across (thickness along Z). */
+  plane: z.enum(["horizontal", "vertical", "frontal"]),
+  x: VarInputSchema.default(0),
+  y: VarInputSchema.default(0),
+  z: VarInputSchema.default(0),
+  dx: VarInputSchema.optional(),
+  dy: VarInputSchema.optional(),
+  dz: VarInputSchema.optional(),
+  /** A material option key ("material.carcase") or a material id. */
+  material: z.string().min(1).default("material.carcase"),
+  /** Axis the part length (and grain) runs along; default X, or Y for vertical parts. */
+  grain: z.enum(["x", "y", "z"]).optional(),
+  /** Edgebands by where the edge faces in the cabinet: an edge option key ("edge.carcase"), an edgeband id or null. */
+  edges: z
+    .object({ front: EdgeInput.optional(), rear: EdgeInput.optional(), left: EdgeInput.optional(), right: EdgeInput.optional(), top: EdgeInput.optional(), bottom: EdgeInput.optional() })
+    .default({}),
+  /** A surface option key ("surface.front"), a surface id, or null for none; default: by the material option. */
+  surface: z.string().min(1).nullable().optional(),
+  /** Present only when this formula is not 0. */
+  when: VarInputSchema.optional(),
+  /** Number of copies; formulas then see `i` and `n`. */
+  repeat: VarInputSchema.optional(),
+  /** auto: joined (construction method) to every panel face one of its ends meets. */
+  joint: z.enum(["auto", "none"]).default("auto"),
+  note: z.string().optional(),
+});
+export type CustomPartInput = z.infer<typeof CustomPartSchema>;
+
+/** A free bore: on face `face` of part `part`, at (u, v) along its length and width. */
+const PartRef = z.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(40)]);
+const FaceRef = z.enum(["inner", "outer", "t0", "t1", "l1", "l2", "w1", "w2"]);
+
+export const CustomBoreSchema = z.object({
+  /** One part code or several: the same local position on each (left and right side: a mirrored pair). */
+  part: PartRef,
+  /**
+   * inner / outer: the wide face towards / away from the cabinet centre;
+   * t0 / t1: the wide face at the low / high end of the thickness axis;
+   * l1, l2, w1, w2: the edges (D13).
+   */
+  face: FaceRef.default("inner"),
+  u: VarInputSchema,
+  v: VarInputSchema,
+  d: VarInputSchema,
+  /** Depth; 0 or "through" drills through the part. */
+  depth: VarInputSchema,
+  when: VarInputSchema.optional(),
+  repeat: VarInputSchema.optional(),
+});
+export type CustomBoreInput = z.infer<typeof CustomBoreSchema>;
+
+/**
+ * A fitting placed on a part (D59): the drilling of a hardware item (its
+ * mount "part" operations: `a` along the part length, `b` along the width)
+ * around the point (u, v). Swapping the item swaps the holes. `mirror`
+ * measures v from the opposite edge and flips `b`: the mirrored copy for
+ * the other hand (second door, opposite side of a pair that is not symmetric).
+ */
+export const FittingPlacementSchema = z.object({
+  item: z.string().min(1),
+  part: PartRef,
+  face: z.enum(["inner", "outer", "t0", "t1"]).default("inner"),
+  u: VarInputSchema,
+  v: VarInputSchema,
+  mirror: z.boolean().default(false),
+  when: VarInputSchema.optional(),
+  repeat: VarInputSchema.optional(),
+});
+export type FittingPlacementInput = z.infer<typeof FittingPlacementSchema>;
+
 
 /**
  * Construction elements of a cabinet (D38), beyond what the variables
@@ -86,12 +199,25 @@ export const ConstructionSchema = z.object({
   panels: z
     .array(z.object({ y: VarInputSchema, setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
     .default([]),
-  /** Automatic fixed shelf under zone i ("1" = between zones 1 and 2): left out, or shortened. */
+  /**
+   * Fixed shelf under zone i ("1" = between zones 1 and 2): `panel: false` leaves the automatic one out,
+   * setbacks shorten it; an entry with `panel: true` between two drawers, where the rule puts none, adds one (D71).
+   */
   fixed: z
     .record(z.string(), z.object({ panel: z.boolean().default(true), setbackFront: VarInputSchema.default(0), setbackRear: VarInputSchema.default(0) }))
     .default({}),
   /** Zones (1 = top) that get no back; the back splits at the panels around them. */
   noBack: z.array(z.number().int().min(1)).default([]),
+  /** Free parts (D59): boards placed by formulas, beyond what the box rule builds. */
+  parts: z.array(CustomPartSchema).max(200).default([]),
+  /** Part codes of the box rule to leave out (e.g. "TO", "BK"), to replace them with free parts. */
+  omit: z.array(z.string().min(1)).default([]),
+  /** Free bores on any part, in part-local coordinates (D13). */
+  bores: z.array(CustomBoreSchema).max(500).default([]),
+  /** Fittings placed on parts: the item's drilling at a position, and the item in the lists. */
+  fittings: z.array(FittingPlacementSchema).max(200).default([]),
+  /** Extra hardware and consumables for the lists. */
+  hardware: z.array(z.object({ item: z.string().min(1), qty: VarInputSchema.default(1) })).max(100).default([]),
 });
 export type ConstructionInput = z.infer<typeof ConstructionSchema>;
 
@@ -136,6 +262,8 @@ export const CabinetSchema = z.object({
   sections: z.array(SectionSchema).min(1).max(20).optional(),
   /** System hole rows for every section without its own (D57). */
   holes: HolesSchema.optional(),
+  /** Parameters shown in the simple editor (D59). */
+  params: z.array(ParamSchema).max(60).default([]),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
   /** Template this cabinet was made from (the app saves construction changes back to it). */
@@ -160,26 +288,53 @@ export const CabinetTemplateSchema = z.object({
     construction: ConstructionSchema.optional(),
     sections: z.array(SectionSchema).min(1).max(20).optional(),
     holes: HolesSchema.optional(),
+    params: z.array(ParamSchema).max(60).default([]),
     parts: z.record(z.string(), PartOverride).default({}),
   }),
 });
 export type CabinetTemplateInput = z.infer<typeof CabinetTemplateSchema>;
 
+/**
+ * A library fragment: the shape of the library section. Community packs
+ * carry one as their content; installing a pack merges it into the shop
+ * library (D63).
+ */
+export const LibraryFragmentSchema = z.object({
+  materials: z.array(Material).default([]),
+  edgebands: z.array(Edgeband).default([]),
+  hardware: z.array(HardwareItem).default([]),
+  surfaces: z.array(Surface).default([]),
+  presets: z.array(Preset).default([]),
+  /** Drawing styles, usually `extends` a factory style plus taught rules. */
+  drawingStyles: z.array(DrawingStyleSchema).default([]),
+  /** DXF layer profiles: map machining to the CAM's layer names. */
+  dxfProfiles: z.array(DxfProfileSchema).default([]),
+  /** Cabinet templates for the add menu. */
+  templates: z.array(CabinetTemplateSchema).default([]),
+});
+export type LibraryFragment = z.infer<typeof LibraryFragmentSchema>;
+export const LIBRARY_KINDS = ["presets", "templates", "hardware", "materials", "edgebands", "surfaces", "drawingStyles", "dxfProfiles"] as const;
+export type LibraryKind = (typeof LIBRARY_KINDS)[number];
+
 /** Library section of a project or shop file; later layers replace items with the same id. */
-const LibraryFile = z
-  .object({
-    materials: z.array(Material).default([]),
-    edgebands: z.array(Edgeband).default([]),
-    hardware: z.array(HardwareItem).default([]),
-    presets: z.array(Preset).default([]),
-    /** Drawing styles, usually `extends` a factory style plus taught rules. */
-    drawingStyles: z.array(DrawingStyleSchema).default([]),
-    /** DXF layer profiles: map machining to the CAM's layer names. */
-    dxfProfiles: z.array(DxfProfileSchema).default([]),
-    /** Cabinet templates for the add menu. */
-    templates: z.array(CabinetTemplateSchema).default([]),
-  })
-  .default({ materials: [], edgebands: [], hardware: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
+const LibraryFile = LibraryFragmentSchema.default({ materials: [], edgebands: [], hardware: [], surfaces: [], presets: [], drawingStyles: [], dxfProfiles: [], templates: [] });
+
+/** A community pack installed into the shop library (D63): which version, and which items came with it. */
+export const InstalledPackSchema = z.object({
+  id: z.string().min(1),
+  version: z.string().min(1),
+  name: z.string().default(""),
+  trust: z.enum(["community", "tested", "verified"]).default("community"),
+  /** Ids of the installed items per library kind. */
+  items: z.record(z.string(), z.array(z.string())).default({}),
+  /** Fingerprint per installed item ("kind/id"), to tell what the user changed since. */
+  hashes: z.record(z.string(), z.string()).optional(),
+  /** Pack items installed under another id because the library had its own item of that id ("kind/id" → new id). */
+  renames: z.record(z.string(), z.string()).optional(),
+  /** The user confirmed a CNC export with this pack's untested hardware data. */
+  cncConfirmed: z.boolean().optional(),
+});
+export type InstalledPack = z.infer<typeof InstalledPackSchema>;
 
 export const ProjectSchema = z
   .object({
@@ -217,5 +372,7 @@ export const ShopSchema = z.object({
   library: LibraryFile,
   /** The shop default layer ("Set as default" points presets here). */
   defaults: Layer.default({ presets: [], vars: {}, options: {} }),
+  /** Community packs installed into this library (the app shows updates for them). */
+  installedPacks: z.array(InstalledPackSchema).optional(),
 });
 export type Shop = z.infer<typeof ShopSchema>;

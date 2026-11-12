@@ -92,6 +92,13 @@ export function evaluateDrilling(
       );
       return;
     }
+    // Sizes that cannot be machined (user item data): a diameter, a blind depth or a groove length of zero or less.
+    const through = op.through ?? false;
+    const bad = (["d", ...(through ? [] : ["depth"]), ...(op.op === "groove" ? ["len"] : [])] as const).find((f) => !((r.values.get(`__${f}`) ?? 0) > 0));
+    if (bad) {
+      diagnostics.push({ severity: "error", code: "hardware_drill_invalid", params: { item: item.id, index: i + 1, field: bad, detail: "not_positive" }, ...at });
+      return;
+    }
     drills.push({
       mount: op.mount,
       d: r.values.get("__d")!,

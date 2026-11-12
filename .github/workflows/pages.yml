@@ -1,0 +1,47 @@
+name: Web app
+
+# Builds the web app (PWA) and publishes it with GitHub Pages.
+# One-time setup: repository Settings → Pages → Source: "GitHub Actions".
+# The repository variable CLOUD_URL sets the default account/community
+# server (https://…); without it the app asks for one in the account dialog.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "claude/repo-setup-8rjo7z"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_CLOUD_URL: ${{ vars.CLOUD_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm app:build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/app/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,14 @@
+Section,Item,Name,Article no.,Count,Net,Qty,Unit,Unit price,Cost,Note
+Board,hdf-white-8,HDF white 8,,1,0.34,0.39,m²,,,
+Board,mel-white-19,Melamine white 19,,6,1.4,1.61,m²,,,
+Board,oak-veneer-19,Oak veneer 19,,1,0.36,0.41,m²,,,
+Edgeband,abs-white-1,ABS white 1 mm,,5,2.82,3.07,m,,,
+Edgeband,oak-veneer-05,Oak veneer 0.5 mm,,4,2.43,2.63,m,,,
+Hardware,dowel-8x35,Dowel Ø8 × 35,,,,16,pcs,,,
+Hardware,generic-hinge-110,Cup hinge 110° (generic),,,,2,pcs,,,
+Hardware,shelf-pin-5,Shelf support pin Ø5,,,,4,pcs,,,
+Hardware,generic-leg-100,Adjustable leg 100 (generic),,,,4,pcs,,,
+Total,,Board material,,,,,,,,3 without price
+Total,,Edgebands,,,,,,,,2 without price
+Total,,Hardware,,,,,,,,4 without price
+Total,,Total,,,,,,,,9 without price

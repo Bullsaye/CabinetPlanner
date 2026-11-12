@@ -10,7 +10,7 @@ import type { Diagnostic } from "./diagnostics.ts";
 import { evaluateGraph, type VarInput } from "./graph.ts";
 import type { Library } from "./library.ts";
 import { FACTORY_PRESETS } from "./presets.ts";
-import type { CabinetInput, Layer, Preset, Project, Shop } from "./schema.ts";
+import type { CabinetInput, Layer, ParamInput, Preset, Project, Shop } from "./schema.ts";
 
 /** Layers in resolution order; the last one that sets a value wins. */
 export const LAYERS = ["factory", "shop", "project", "cabinet"] as const;
@@ -20,6 +20,8 @@ export type LayerName = (typeof LAYERS)[number];
 export interface Source {
   layer: LayerName;
   preset?: string;
+  /** The default of a cabinet parameter (D59). */
+  param?: boolean;
 }
 
 export interface ResolvedVar {
@@ -46,6 +48,8 @@ export interface ResolvedCabinet {
   options: Map<string, ResolvedOption>;
   /** Evaluated numbers by variable name, including material constants. */
   values: Map<string, number>;
+  /** Parameters in effect (D59): from the presets of every layer, then the cabinet's own; later ones replace earlier ones by name. */
+  params: ParamInput[];
   diagnostics: Diagnostic[];
 }
 
@@ -116,6 +120,20 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     }
   };
 
+  // Parameters (D59): definitions by name; a default sits under the values of its layer.
+  const params = new Map<string, ParamInput>();
+  const applyParams = (list: readonly ParamInput[], source: Source): void => {
+    for (const p of list) {
+      if (Object.hasOwn(MATERIAL_CONSTANTS, p.name) || (ROOM_CONSTANTS as readonly string[]).includes(p.name)) {
+        diagnostics.push({ severity: "error", code: "var_shadows_constant", params: { name: p.name }, variable: p.name, ...at });
+        continue;
+      }
+      params.delete(p.name);
+      params.set(p.name, p);
+      if (p.default !== undefined) push(varStack, p.name, { value: p.default, source });
+    }
+  };
+
   const applyLayer = (layer: Layer | undefined, name: LayerName): void => {
     if (!layer) return;
     for (const id of layer.presets) {
@@ -124,6 +142,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
         diagnostics.push({ severity: "error", code: "preset_unknown", params: { id, layer: name }, ...at });
         continue;
       }
+      applyParams(preset.params ?? [], { layer: name, preset: id, param: true });
       applyValues(preset.vars, preset.options, { layer: name, preset: id });
     }
     applyValues(layer.vars, layer.options, { layer: name });
@@ -131,6 +150,8 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
 
   applyLayer(ctx.shop, "shop");
   applyLayer(project, "project");
+  // The cabinet's own parameters, then its presets and its own values.
+  applyParams(cabinet.params, { layer: "cabinet", param: true });
   applyLayer(cabinet, "cabinet");
 
   // Options: validate the winners.
@@ -196,6 +217,16 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
     }
   }
 
+  // Limits of the parameters (D59).
+  for (const p of params.values()) {
+    const value = graph.values.get(p.name);
+    if (value === undefined) continue;
+    const base = { variable: p.name, ...at };
+    if (p.integer && !Number.isInteger(value)) diagnostics.push({ severity: "error", code: "var_not_integer", params: { name: p.name, value }, ...base });
+    if (p.min !== undefined && value < p.min) diagnostics.push({ severity: "error", code: "var_below_min", params: { name: p.name, value, min: p.min }, ...base });
+    if (p.max !== undefined && value > p.max) diagnostics.push({ severity: "error", code: "var_above_max", params: { name: p.name, value, max: p.max }, ...base });
+  }
+
   // Thickness overridden away from the material: allowed, but worth a warning.
   const thicknessPairs: [string, keyof typeof MATERIAL_CONSTANTS][] = [
     ["t_carcase", "mat_carcase_t"],
@@ -218,7 +249,7 @@ export function resolveCabinet(project: Project, cabinet: CabinetInput, ctx: Res
   }
 
   const values = new Map<string, number>([...constants, ...graph.values]);
-  return { cabinet, vars, options, values, diagnostics };
+  return { cabinet, vars, options, values, params: [...params.values()], diagnostics };
 }
 
 function validateOption(
@@ -253,6 +284,9 @@ function validateOption(
     }
     case "edgeband":
       if (value !== null && (typeof value !== "string" || !library.edgebands.has(value))) bad("edgeband_unknown");
+      return;
+    case "surface":
+      if (value !== null && (typeof value !== "string" || !library.surfaces.has(value))) bad("surface_unknown");
       return;
   }
 }

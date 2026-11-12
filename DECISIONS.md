@@ -921,3 +921,382 @@ dimensioned parts fails:
   at the same place (they meet in a 19 mm panel and hold the Medius). Data
   from the P-System brochure's article list and P-10 profile; minimum
   middle panel thickness and access hole still to be checked (untested).
+
+### D59 · 2026-11-09 · Free construction: parameters, free parts, free bores
+
+The box rule covers the usual carcase; it cannot foresee every way of
+building. A cabinet (and so a template) can leave the rule behind step by
+step, with everything still a formula:
+
+- `params`: variables the author puts into the simple editor, each with
+  name, label, default, limits, step and unit. The default sits under the
+  cabinet's own values (source `cabinet` + `param`), limits are checked
+  like catalogue limits. The name may be a catalogue variable; then the
+  parameter only adds it to the simple editor. Formulas anywhere in the
+  cabinet may use parameters.
+- `construction.parts`: free parts, role `custom`. A board in one plane
+  (`horizontal`: thickness along Y, `vertical`: along X, `frontal`: along
+  Z), minimum corner `x`, `y`, `z` and sizes `dx`, `dy`, `dz` as formulas
+  in cabinet coordinates (D2); the size across the board defaults to the
+  material thickness (D8). `material` is a material option key or a
+  material id. Length (and grain) runs along X, for vertical parts along
+  Y, unless `grain` names another axis. Edges are named by the direction
+  they face in the cabinet (`front`, `rear`, `left`, `right`, `top`,
+  `bottom`) and hold an edge option key, an edgeband id or null. `when`
+  (formula, 0 = absent) and `repeat` (count; formulas see `i` = 1…n and
+  `n`) make parts conditional and repeated.
+- Part code = the part's `id` (1–6 capitals/digits), plus the index with
+  `repeat`; it must not be a code of the box rule and stays stable (D6).
+  Part overrides (`parts.<code>`) apply as for every part. A `name` is
+  shown in lists and drawings in place of the role name.
+- `joint: auto` (default): wherever an end of the free part lies on the
+  face of another panel (not fronts, loose shelves, backs, drawer parts)
+  with its whole thickness, the two are joined over the stretch they
+  share by the cabinet's construction method, like a fixed shelf (D16,
+  D36). The joint is named `<face part>-<free part>`.
+- `construction.omit`: codes of box-rule parts to leave out (with their
+  joints, grooves and fittings), to replace them with free parts. With
+  everything left out, a piece of furniture consists of free parts only
+  (factory template `bench`).
+- `construction.bores`: free bores in part-local coordinates (D13) on any
+  part: `face` (`t0`/`t1` wide faces at the low/high end of the thickness
+  axis; `l1`, `l2`, `w1`, `w2` edges, there `u` runs along the edge and
+  `v` across the thickness), `u`, `v`, `d`, `depth` as formulas (they see
+  `part_l`, `part_w`, `part_t`), `repeat`, `when`. Depth 0, `through` or
+  at least the thickness drills through (D23). Source kind `custom`.
+  They pass the same checks as every operation (D17).
+- `construction.hardware`: extra items for the hardware list, quantity as
+  a formula.
+- A parameter has a function name (`name`, used in formulas, never
+  translated), a display name (`label`) and a `description`; both texts
+  may be changed or translated by whoever installs a shared pack without
+  touching a formula. Presets carry `params` too: a preset can introduce
+  its own variable (default under the preset's values) and use it in its
+  values, e.g. `fixed_shelf_setback: board_inset`. `ResolvedCabinet.params`
+  lists the parameters in effect (presets of every layer, then the
+  cabinet's own; later ones replace earlier ones by name); the simple
+  editor shows them.
+- Formulas of free parts also see layout facts that follow the back and
+  joint rules: `back_front_z`, `carcase_z0`, `inner_x0`, `inner_x1`,
+  `inner_y0`, `inner_y1` (a variable of the same name wins).
+- Bores and fittings name one part or several (`["SL", "SR"]`: the same
+  local position on each, which on the two sides is a mirrored pair), and
+  the faces `inner` / `outer` (towards / away from the cabinet centre).
+- `construction.fittings`: a hardware item placed on a part at (u, v). Its
+  drilling with mount `part` is drilled around that point, `a` along the
+  part length and `b` along the width; `mirror` measures v from the
+  opposite edge and flips `b` (the copy for the other hand). The item
+  counts once per placement in the hardware list. Swapping the item swaps
+  the holes.
+- Not yet: free grooves/pockets and contours, system hole rows and
+  hinges on free parts, angled parts, rotated fitting patterns.
+
+### D60 · 2026-11-09 · DXF and part sheets: contour direction, through pockets
+
+- The outline polyline runs counter-clockwise in every DXF file, also for
+  a non-rectangular part (D43) seen from its t0 face, where the stored
+  contour would come out clockwise. CAMs take the tool side from the
+  direction; rectangle, contour and pockets (D32) now always agree.
+- A pocket through the whole thickness (hanger notch D39, worktop cutout
+  D31) is not machining of one face: it does not make a part two-sided
+  (D22) and does not decide which face is shown. It is drawn solid on
+  every sheet and written to the first side's DXF only, like edge bores.
+
+### D61 · 2026-11-09 · Bill of materials and costing
+
+- The BOM (`output/bom.ts`) is computed from the project result only:
+  board per material, edgeband per type, hardware and consumables per
+  library item, with section totals and the cost share per cabinet
+  (worktops and plinth panels under "ROOM").
+- Board: net area = finished length × width of every part (D4);
+  non-rectangular parts (D43) count with their bounding rectangle, which
+  is what is cut from the board. Gross area = net × (1 + `waste_pct` / 100).
+- Edgeband: finished length of every banded edge (l1, l2 = length; w1, w2
+  = width) plus `edge_allowance` per banded edge.
+- `waste_pct` (15) and `edge_allowance` (50 mm) are catalogue variables
+  (group costing). Each part uses the values of its cabinet, room parts
+  those of the project.
+- Hardware: `CabinetResult.hardware` summed per item and chosen variant
+  article (two variants of one item are two rows); the article column is
+  the variant's number, else all article numbers of the item. Rows are
+  ordered connectors and consumables first, then by item id (plain
+  code-unit order, like materials and edgebands).
+- Prices live on the library items: `pricePerM2`, `pricePerM`, `bom.price`
+  (per unit of the item), without a currency (the shop's). Quantities are
+  rounded to 0.01 (m², m) first; a row's cost is that quantity × unit
+  price, rounded to 0.01; section totals are the sums of the row costs.
+  Rows without a price are left out of the totals and counted
+  ("n without price"); a sum without any priced row stays empty. The cost
+  per cabinet comes from unrounded quantities and may differ from the
+  totals by rounding.
+- One table for CSV and text: section, item id, name, article no., count
+  (parts or edges), net, quantity to order, unit, unit price, cost, note
+  (cut lengths of rails). Numbers per D10.
+
+### D62 · 2026-11-09 · Shaped parts in the cutlist, CSV downloads, sheet export
+
+- Written cutlists (CSV, table) mark a non-rectangular part (D43) with a
+  remark in the note column, after the part's own note: the sizes are the
+  bounding rectangle, the contour is on the part sheet and in the DXF.
+  Grouping compares the contour itself, so two different shapes with the
+  same bounding rectangle stay two rows.
+- CSV files downloaded from the app start with a UTF-8 byte order mark so
+  spreadsheet programs read umlauts, ², Ø and × correctly. CLI output and
+  the clipboard copy have none (D10 stays as it is for those).
+- "All sheets" (`output/sheets.ts`): floor plan and wall elevations, then
+  per cabinet the assembly drawing and its part sheets (two-sided parts:
+  `-1`, `-2`), then worktops and plinth panels; file names
+  `room/…`, `<cabinet>/<part>.svg`. The app offers them as a ZIP of SVGs
+  and through the print dialog, one sheet per page, each page as large as
+  its sheet (true to scale) or fitted to A4 / A3.
+
+### D63 · 2026-11-09 · Accounts, community packs, library sync
+
+- The cloud is our own small server (`packages/server`): Node 22,
+  `node:http`, `node:sqlite`, scrypt, zod; no native modules, one SQLite
+  file, self-hostable. (PocketBase/Supabase from PLAN.md could not be run
+  and tested here.) The app never needs it: no server address, no account
+  and no connection are normal states, shown as a status.
+- Errors are `{ error: { code, message } }`; the app translates `code`
+  (`cloud.error.<code>`) and never shows `message`.
+- A community pack is metadata plus versions; a version's content is a
+  library fragment (`LibraryFragmentSchema`, the shape of the library
+  section), validated by the server with the engine's schema (unknown
+  fields dropped), at most 512 kB. Default licence CC-BY-4.0.
+- Trust: `community` → `tested` (author confirms a machined part) →
+  `verified` (admin; ends with the next version). On install, hardware gets
+  the pack's level as its `trust`, whatever the item said. The first DXF
+  export using untested pack hardware asks for a confirmation.
+- Installing copies the items into the shop library and records it in the
+  shop file (`installedPacks`: pack id, version, item ids, a fingerprint per
+  item, renames). Same id: an item unchanged since its install is replaced
+  silently; an own or changed item asks – keep both (the pack's item gets
+  `<id>-<suffix>` and references inside the pack follow), keep mine, or
+  replace mine. A fork is install + publish with `forkedFrom`.
+- Deleting an account deletes its packs; installed copies stay with their
+  users.
+- Sync: one document per user, kind and id with a server revision; a write
+  names its base revision and gets 409 plus the server copy when that is
+  stale. The app syncs the shop file (`shop/default`): pull at start, push
+  2.5 s after a change. When both sides changed, the later change wins and
+  the other copy is kept on the device (download / restore / discard). A
+  device that still has the untouched example shop takes the server copy.
+- No e-mail yet: no address verification, no reset by mail (admin command
+  `set-password`). Admins are the accounts named in `ADMIN_EMAILS`.
+
+### D64 · 2026-11-09 · Corrections from the rule audit
+
+Refinements of earlier decisions where the output was geometrically wrong;
+the earlier entries stay as written.
+
+- Rear rail at the bottom (D41): a flat rail carries the back's groove or
+  rebate like a bottom does. An upright rail stands in front of the back
+  (at the back's front face, like the upright rear rail at the top), so
+  the bottom must be shortened by the back's offset plus the rail
+  thickness.
+- Upright rails and the interior (D41): the clear interior ends at the
+  lower edge of an upright top rail (`H − rail_w`) and starts at the upper
+  edge of an upright bottom rail. Shelf zones, drawers and automatic or
+  extra fixed shelves keep to it (`fixed_shelf_outside`,
+  `construction_panel_outside` otherwise); a drawer whose floor lies below
+  an upright bottom rail ends in front of the rail. Middle panels keep
+  their size and get a through notch (pocket, source `joint:<rail>`) for
+  every upright rail they cross.
+- Dowel sequence (D35): no position moves in front of `dowel_offset_front`.
+  A blocked position that cannot move forward moves to the rear in pitch
+  steps (up to three, like forward); a rearmost position that cannot keep
+  `dowel_offset_rear` without that is dropped.
+- Connectors (D36): consecutive connectors of a joint keep at least their
+  own length along the joint (slot length or largest Ø) plus
+  `bore_min_wall` apart; positions closer than that are left out. A slot
+  is only placed where it stays a pocket of its part and clear of bores.
+- Item data that cannot be machined is `hardware_drill_invalid`: a
+  diameter, blind depth or slot length that is not positive
+  (`not_positive`), `through` on a connector's `edge` mount (`edge`).
+
+### D65 · 2026-11-10 · Hinges keep clear of fixed panels
+
+- A hinge whose mounting plate holes would fall on the end of a fixed
+  panel (fixed shelf, or a lying free part ending at the hinge side),
+  within the hole radius plus `bore_min_wall`, moves towards the middle of
+  its door in steps of `sys_pitch` (at most eight) until the plate is
+  clear. Cup and plate move together. If no clear position is found the
+  hinge stays, and the usual checks report what collides.
+- Fronts fixed to an appliance door (integrated fridge, dishwasher) carry
+  no hinges (D30); this concerns the doors above and below them.
+
+### D66 · 2026-11-10 · Door handles by grip height
+
+- Door handles (and handles on appliance fronts) no longer follow the
+  cabinet kind. `handle_grip_h` (since D72: `handle_height`) is the height above the floor where a
+  handle is gripped; the handle sits as near to it as the door allows
+  between `handle_end_offset` from its top and bottom ends. Base unit
+  doors keep the handle at the top, wall unit doors at the bottom (as
+  before); a door spanning the grip height gets it at that height (upper
+  and full-height doors of tall units, which had it at their top end).
+
+### D67 · 2026-11-10 · Surface finishes; cutlist columns
+
+- The library holds `surfaces` (finishes on top of the board): id, name,
+  kind (melamine, hpl, lacquer, veneer, oil, other), `ref` (RAL / NCS
+  tone, decor number) and a display `color`. Materials may carry a display
+  `color` too. Colours are for views only.
+- Options `surface.carcase`, `surface.front`, `surface.visible_side`
+  (surface id, or null: the board as it comes). Fronts (doors, drawer
+  fronts, blind panels, appliance fronts, flaps, ceiling fillers) take
+  the front surface; sides, bottom, top, rails, middle panels, fixed and
+  loose shelves the carcase surface; a side that is visible (`side.left` /
+  `side.right`, or seen from the room, D37) the visible-side surface when
+  one is set. Backs, drawer boxes, worktops and plinths have none.
+- A part override (`parts.<code>.surface`, null = none) wins; free parts
+  may name a surface option or id, else they follow their material option.
+- `Part.surface` holds the id. Parts that differ only in their surface
+  are separate cutlist rows.
+- Cutlist columns, in this order: part, cabinet, name, qty, L, W, T,
+  material, surface, cut L, cut W, grain, edges L1 L2 W1 W2, note. The
+  golden cutlists changed with this entry: column order and the new
+  (empty) surface column; no size, quantity or edge changed.
+- Not yet: surfaces per face (inside/outside), surface area and cost in
+  the BOM.
+
+### D68 · 2026-11-10 · Cabinet view, room optional in the app, wall visibility
+
+- The main view has two modes: **cabinet** (the selected cabinet alone) and
+  **room** (all cabinets, in the room when there is one). Without a stored
+  choice the cabinet view is the default up to 1100 px width, the room view
+  above. On narrow screens the cabinet view carries the cabinet's settings
+  below the drawing instead of the slide-in pane.
+- The cabinet view is a front elevation to scale, or the single cabinet in
+  3D. The elevation is drawn from `frontViewOf(CabinetResult)` (engine,
+  `output/frontview.ts`): the built parts as rectangles in cabinet X/Y (D2),
+  back to front, hinge positions from the cup bores of the hinge item,
+  handles from `CabinetResult.handles`, legs from the fittings. No front
+  geometry is computed in the app. Clicking a front selects its zone
+  (index into `layout.zones`) in the front builder.
+- Opening symbol on doors: preference `hingeSymbol`, `tip_at_hinge` (DIN,
+  default) or `tip_at_handle`. Both front drawings also show hinge marks on
+  the hinge edge and the handle, so the direction is clear either way.
+- A project may have no room in the app too: "work without a room" removes
+  `project.room` (cabinets keep their `place` for a later room), and a new
+  project can start without one. The 3D view then shows the simple run and
+  fits the camera again when the cabinets change.
+- Room 3D view: walls are shown `all`, `used` (default: walls named in
+  `RoomLayout.placements`) or `none`; openings and roof slopes follow their
+  wall. Floor, worktops and plinth panels stay.
+- UI preferences kept (D33): language, drawing style, machining, fronts,
+  view mode, cabinet 3D, walls, hinge symbol.
+
+### D69 · 2026-11-10 · Arranging by dragging
+
+- In the app's floor plan a cabinet without `place.x` is one of a run:
+  dragging it changes the project order (and `place.wall`), never writes
+  an x, so runs stay gap-free. A cabinet with `place.x` moves its x, with
+  snapping to wall ends, neighbours of its level and opening edges. A
+  drag does not turn one kind into the other; the table does.
+
+### D70 · 2026-11-10 · Value rows show what applies
+
+- A value row (variable or option, in every editor and layer) shows the
+  value that applies: the resolved number, or the applying choice. There is
+  no "inherited" entry and no placeholder. What a row writes is unchanged:
+  a number, a formula, or nothing (= inherit).
+- Own values of the layer are set in bold with "own" and a reset control;
+  values from elsewhere are slightly muted with a short origin label
+  (factory, shop, project, preset name, template/parameter). A tap on the
+  label explains the origin in a sentence; nothing depends on hover.
+- A formula shows its result in the field and `ƒ = formula` under it; with
+  focus the field holds the formula. Variable names are offered while
+  typing. Findings that carry `variable` are shown under their field.
+- The project and shop panes show the values of their own layer (resolved
+  without a cabinet), not those of the selected cabinet.
+- The construction editor follows the furniture: carcase, top and bottom,
+  back, panels and compartments, fronts, joints, fittings, free
+  construction. Settings about the room (visible sides, linking to
+  neighbours, ceiling filler, worktop cutout) sit in a collapsed "In the
+  room" section at its end.
+- While a row has focus, the parts it is about are highlighted in 3D
+  (`store.ui.highlight`, by part role).
+- `diagnosticText` (i18n) translates enumerated parameters of findings
+  (opening kind, cutout kind, layer).
+
+### D71 · 2026-11-10 · Fixed shelves between fronts, shelves per compartment, box height, blind panel fixing, leg fixing, through bores
+
+Corrections from the first shop test. The earlier entries stay as written.
+
+- Fixed shelves between fronts (supersedes the list of cases in D30): a
+  fixed shelf lies at every boundary between two front zones, in every
+  cabinet kind, except between two drawers. Position as in D30 (under /
+  over an appliance niche, else centred on the gap). `construction.fixed["i"]`
+  with `panel: false` leaves the shelf under zone i out; an entry with
+  `panel: true` (the default of an entry) between two drawers, where the
+  rule puts none, adds one. An entry for a boundary that does not exist
+  warns (`construction_fixed_unknown`). A drawer over a shelf stands on it
+  (slide `axisMin` above the shelf), so its box is lower than before.
+- Flaps count like doors. The fitting sees the flap's compartment as its
+  cabinet: `H` = from the underside of the panel below the flap to the top
+  face of the panel above it (carcase bottom / top at the ends), and `LF`,
+  `H_in`, `FAo`, `flap_top` follow; mount `side` measures `a` below that
+  top face; cup hinges of a flap (D42) go into the underside of the panel
+  above it (top, flat front rail or fixed shelf). A flap whose shelf above
+  was left out is an error (`flap_no_panel_above`, nothing drilled for the
+  fitting), one whose shelf below was left out a warning
+  (`flap_no_panel_below`).
+- Shelves per compartment: a door, open or flap zone may set `shelves`
+  (number or formula, whole number from 0); it wins for that zone. Without
+  it the rule of D30 applies (flap zones: none). Other zone types ignore
+  the value. Extra panels (`construction.panels`, D38) inside a zone split
+  it into compartments; the zone's shelves are shared out by compartment
+  height (largest remainders, the lower compartment first on a tie), so no
+  shelf lands on a panel. The simple editor adds such panels ("+ fixed
+  shelf": middle of the tallest compartment between lying carcase panels).
+- Drawer box height: `drawer_box_h` (0 = as high as fits, the factory
+  value), per drawer zone `boxH` (number or formula; wins). Wooden boxes
+  get exactly that side height when it fits under `drawer_clearance` and
+  the panel above (`drawer_box_too_high` otherwise, built as high as fits)
+  and is at least `drawer_box_min_h` (`drawer_box_too_small`). Metal sides:
+  the largest height of the system that fits and is not above the value.
+  An inner front too low for two rows of front screws (D26) gets one row
+  at mid-height.
+- Fixed blind panels (role `blind_panel`: blind corner, panel zones),
+  option `blind_panel.fixing` = `auto` (factory) or `none`. A carcase part
+  standing behind the panel with its face (upright front rail, free
+  frontal part) is screwed through from inside like a drawer's inner front
+  (D26): Ø `front_screw_d` through holes, `front_screw_side` /
+  `front_screw_edge` inside the area both share, one row or column where
+  that is too small. A part that meets the panel only with its front edge
+  (side, bottom, top or flat front rail, fixed shelf, middle panel, lying
+  or standing free part) is dowelled to it (item `hardware.connector`,
+  face depth into the panel, edge depth into the edge), on the part's
+  mid-thickness line where the panel covers it with Ø/2 + `bore_min_wall`:
+  first and last `blind_dowel_offset` from the ends of the shared stretch,
+  at most `blind_dowel_max_spacing` apart, on whole millimetres; a
+  position meeting other machining is left out. The dowels are in the
+  hardware list. A panel lying on nothing warns (`blind_panel_not_fixed`).
+  Screws from inside into a panel that only lies on edges are not possible
+  without an extra part; the box rule adds none (a post is a free part).
+- Leg fixing: the item's `bottom` drilling (D31) is a list, so one item
+  expresses a knock-in socket (one bore of the socket's Ø and depth per
+  leg, `generic-leg-knock-in`), a plate with pilot holes (several bores
+  around the leg centre, `generic-leg-screw-plate`) or nothing drilled
+  (`generic-leg-100-screwed`). The two new items carry placeholder sizes,
+  marked as such in `source`.
+- Through bores: a through bore (D23) is an opening in both faces. Part
+  sheets draw it solid on the sheet of the far face too (dimensioned only
+  on its own sheet); the scene lists its far opening as a second entry
+  (`exit`, same hole, opposite face and direction) and marks both
+  `through`, so the 3D view shows it from both sides.
+- Golden files changed: reference `base-600-dynapro-drawer-door` (fixed
+  shelf FS1 between drawer and door, 8 dowels more, rail axis one grid
+  line higher, drawer box 133 → 101 high) and the example kitchen's BOM
+  (10 dowels more: the blind corner panel of B05).
+
+### D72 · 2026-11-12 · One rule for door handle height
+
+- D51 (option `handle.door_y`, variable `handle_height`) and D66 (variable
+  `handle_grip_h`) described the same thing. Kept: `handle.door_y` and
+  `handle_height`; `handle_grip_h` is gone. The factory value of
+  `handle.door_y` is now `height`: a door handle sits as near to
+  `handle_height` above the floor as the door allows between
+  `handle_end_offset` from its ends. Base unit doors keep it at the top,
+  wall unit doors at the bottom (unchanged); doors spanning the height get
+  it there. `end` restores the old placement by cabinet kind.

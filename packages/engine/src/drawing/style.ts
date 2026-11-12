@@ -42,12 +42,13 @@ const Role = z.enum([
   "drawer_inner",
   "drawer_back",
   "drawer_bottom",
+  "custom",
 ]);
 
 /** Which features a rule applies to; every given field must match. */
 export const Selector = z.object({
   /** Source kinds: system, joint, hardware, back. */
-  source: z.array(z.enum(["system", "joint", "hardware", "back"])).optional(),
+  source: z.array(z.enum(["system", "joint", "hardware", "back", "custom"])).optional(),
   /** Source reference starts with this, e.g. "SL-" or "grass-". */
   ref: z.string().optional(),
   /** Where the feature sits relative to the view. */

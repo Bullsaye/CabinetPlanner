@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { diagnosticText } from "@cabinet-planner/i18n";
   import { store } from "../lib/store.svelte.ts";
 
   const t = $derived(store.tr.t);
@@ -25,7 +26,7 @@
             >
               <span class="sev">{t(`severity.${d.severity}`)}</span>
               {#if d.cabinet}<span class="mono">{d.part ?? d.cabinet}</span>{/if}
-              <span>{t(`diag.${d.code}`, d.params)}</span>
+              <span>{diagnosticText(store.tr, d.code, d.params)}</span>
             </button>
           </li>
         {/each}

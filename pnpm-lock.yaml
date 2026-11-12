@@ -97,6 +97,22 @@ importers:
 
   packages/i18n: {}
 
+  packages/server:
+    dependencies:
+      '@cabinet-planner/engine':
+        specifier: workspace:*
+        version: link:../engine
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
 packages:
 
   '@dimforge/rapier3d-compat@0.12.0':

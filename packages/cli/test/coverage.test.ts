@@ -44,7 +44,12 @@ describe("message catalogue coverage", () => {
     const all = sources(engineSrc).join("\n");
     const diagCodes = [...all.matchAll(/code: "([a-z_]+)"/g)].map((m) => m[1]!).filter((c) => c !== "custom"); // zod issue code
     const exprCodes = [...all.matchAll(/new ExprError\("([a-z_]+)"/g)].map((m) => `expr_${m[1]!}`);
-    const codes = new Set([...diagCodes, ...exprCodes]);
+    // Codes that are not a plain `code: "…"` literal: option checks via bad("…"), and either branch of `code: x ? "a" : "b"`.
+    const badCodes = [...all.matchAll(/\bbad\("([a-z_]+)"/g)].map((m) => m[1]!);
+    const eitherCodes = [...all.matchAll(/code: [^,\n]*\? "([a-z_]+)" : "([a-z_]+)"/g)].flatMap((m) => [m[1]!, m[2]!]);
+    expect(badCodes).toContain("option_invalid_value");
+    expect(eitherCodes).toContain("bore_too_deep");
+    const codes = new Set([...diagCodes, ...exprCodes, ...badCodes, ...eitherCodes, "expr_too_complex"]);
     expect(codes.size).toBeGreaterThan(20);
     for (const c of codes) expect(has(`diag.${c}`), c).toBe(true);
   });

@@ -1,4 +1,5 @@
 import type { HandlePlacement } from "../cabinet/machining.ts";
+import type { Library } from "../library.ts";
 import type { CabinetResult } from "../project.ts";
 import { faceAxes, toCabinet, type Face } from "../ops.ts";
 import { thicknessAxis, type Axis, type Box, type Part, type PartRole } from "../part.ts";
@@ -16,6 +17,10 @@ export interface SceneBore {
   d: number;
   depth: number;
   source: string;
+  /** Goes through the whole part (D23). */
+  through?: true;
+  /** The far opening of a through bore: the same hole seen from the opposite face (not a second bore). */
+  exit?: true;
 }
 
 export interface ScenePart {
@@ -23,6 +28,8 @@ export interface ScenePart {
   code: string;
   role: PartRole;
   material: string;
+  /** Display colour (#rrggbb) from the surface finish, else the board (D67). */
+  color?: string;
   box: Box;
   /** Non-rectangular parts: contour on the t0 face (cabinet coordinates) and the thickness axis. */
   outline?: { points: { x: number; y: number; z: number }[]; normal: Axis; thickness: number };
@@ -45,7 +52,9 @@ function cabinetAxisOf(part: Part, local: "u" | "v" | "w"): Axis {
 
 const atMax = (f: Face): boolean => f === "t1" || f === "l2" || f === "w2";
 
-export function sceneOf(c: CabinetResult): Scene {
+export function sceneOf(c: CabinetResult, library?: Library): Scene {
+  const colorOf = (p: Part): string | undefined =>
+    (p.surface ? library?.surfaces.get(p.surface)?.color : undefined) ?? library?.materials.get(p.material)?.color;
   const v = (n: string): number => c.resolved.values.get(n) ?? 0;
   return {
     cabinet: c.resolved.cabinet.id,
@@ -56,6 +65,7 @@ export function sceneOf(c: CabinetResult): Scene {
       code: p.code,
       role: p.role,
       material: p.material,
+      ...(colorOf(p) ? { color: colorOf(p)! } : {}),
       box: p.box,
       // Parts cut by a slope (D47): their cross-section extruded along Z.
       ...(p.profile
@@ -69,15 +79,22 @@ export function sceneOf(c: CabinetResult): Scene {
         // A part at an angle keeps its operations in its own frame; the scene shows none.
         if (o.kind !== "bore" || p.profile?.rotated) return [];
         const { normal } = faceAxes(o.face);
-        return [
-          {
-            at: toCabinet(p, o),
-            dir: { axis: cabinetAxisOf(p, normal), sign: atMax(o.face) ? -1 : 1 } as const,
-            d: o.d,
-            depth: o.depth,
-            source: o.sources.map((s) => `${s.kind}:${s.ref}`).join("+"),
-          },
-        ];
+        const axis = cabinetAxisOf(p, normal);
+        const sign = atMax(o.face) ? -1 : 1;
+        const entry: SceneBore = {
+          at: toCabinet(p, o),
+          dir: { axis, sign },
+          d: o.d,
+          depth: o.depth,
+          source: o.sources.map((s) => `${s.kind}:${s.ref}`).join("+"),
+          ...(o.through ? { through: true as const } : {}),
+        };
+        if (!o.through) return [entry];
+        // A through bore opens on both faces: its far opening is listed too,
+        // seen from that face, so a view that marks openings shows both.
+        const far = { ...entry.at };
+        far[axis] += sign * o.depth;
+        return [entry, { ...entry, at: far, dir: { axis, sign: sign === 1 ? -1 : 1 }, exit: true as const }];
       }),
       pockets: p.operations.flatMap((o) => {
         if (o.kind !== "pocket" || p.profile?.rotated) return [];

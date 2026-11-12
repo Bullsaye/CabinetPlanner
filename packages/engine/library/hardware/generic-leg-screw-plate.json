@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-leg-screw-plate",
+  "name": { "en": "Adjustable leg with screw-on plate, pilot holes (generic)", "de": "Stellfuß mit Anschraubplatte, vorgebohrt (generisch)" },
+  "category": "leg",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic leg with a base plate screwed to the underside of the bottom: four pilot holes on a square around the leg centre. The hole pattern (plate_cc), pilot Ø and depth, the adjusting range and the foot Ø are TYPICAL PLACEHOLDER VALUES, not taken from any manufacturer's data sheet: measure the plate of the leg you use and set them before machining. For a plate screwed on without pre-drilling use the item without drilling (generic-leg-100-screwed).",
+  "params": { "plate_cc": 40, "pilot_d": 3, "pilot_depth": 10, "min_h": 90, "max_h": 125, "d": 50 },
+  "drilling": [
+    { "mount": "bottom", "d": "pilot_d", "depth": "pilot_depth", "a": "-plate_cc / 2", "b": "-plate_cc / 2", "note": "plate screw" },
+    { "mount": "bottom", "d": "pilot_d", "depth": "pilot_depth", "a": "plate_cc / 2", "b": "-plate_cc / 2", "note": "plate screw" },
+    { "mount": "bottom", "d": "pilot_d", "depth": "pilot_depth", "a": "-plate_cc / 2", "b": "plate_cc / 2", "note": "plate screw" },
+    { "mount": "bottom", "d": "pilot_d", "depth": "pilot_depth", "a": "plate_cc / 2", "b": "plate_cc / 2", "note": "plate screw" }
+  ],
+  "limits": [{ "name": "plinth_h", "value": "plinth_h", "min": "min_h", "max": "max_h" }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

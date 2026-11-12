@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-leg-knock-in",
+  "name": { "en": "Adjustable leg with knock-in socket (generic)", "de": "Stellfuß zum Einschlagen (generisch)" },
+  "category": "leg",
+  "manufacturer": "Generic",
+  "articles": [],
+  "trust": "untested",
+  "source": "Generic knock-in leg socket: one blind bore per leg in the underside of the bottom, the socket is knocked in and the leg plugs into it. socket_d, socket_depth, the adjusting range and the foot Ø are TYPICAL PLACEHOLDER VALUES, not taken from any manufacturer's data sheet: measure the socket of the leg you use (e.g. the knock-in legs of your supplier) and set them before machining.",
+  "params": { "socket_d": 10, "socket_depth": 13, "min_h": 90, "max_h": 125, "d": 50 },
+  "drilling": [{ "mount": "bottom", "d": "socket_d", "depth": "socket_depth", "a": 0, "b": 0, "note": "knock-in socket" }],
+  "limits": [{ "name": "plinth_h", "value": "plinth_h", "min": "min_h", "max": "max_h" }],
+  "bom": { "perPlacement": 1, "unit": "pcs" }
+}

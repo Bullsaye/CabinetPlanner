@@ -1,5 +1,6 @@
 import type { OpSource } from "../ops.ts";
 import type { Part, PartEdges } from "../part.ts";
+import { localName } from "../text.ts";
 import { formatNumber } from "../output/format.ts";
 import { extractFeatures, groupFeatures, tagName, type DFeature, type FeatureGroup } from "./features.ts";
 import type { ResolvedStyle } from "./style.ts";
@@ -24,6 +25,8 @@ export interface DrawingText {
   materialName?: (id: string) => string | undefined;
   edgeCode?: (id: string) => string | undefined;
   roleName?: (role: string) => string;
+  /** Locale for names given by the user (free parts). */
+  locale?: string;
   styleName?: string;
 }
 
@@ -369,7 +372,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
   const header = headerLines(part, view, style, den, text, cabinet, input.side);
   const headerH = 6 + header.length * h * 1.7;
   const legend = style.show.legend ? legendRows(visible, view, text, num) : [];
-  const table = style.show.table ? tableRows(visible, num, (k) => t(k)) : [];
+  const table = style.show.table ? tableRows(visible, view, num, t) : [];
 
   const contentW = b.x1 - b.x0;
   const drawTop = MARGIN + headerH + 4;
@@ -406,6 +409,8 @@ export function drawPart(input: DrawingInput): PartDrawing {
   // Legend.
   if (legend.length) {
     out.push(`<text class="pd-head" x="${MARGIN}" y="${r3(legendTop)}" font-size="${r3(h)}">${esc(t("drawing.legend"))}</text>`);
+    // The description column starts right of the widest size text (at least at the usual place).
+    const descrX = Math.max(46, ...legend.map((row) => textW(row.spec, h) + 3));
     legend.forEach((row, i) => {
       const y = legendTop + (i + 1) * h * 1.75;
       if (row.tag) {
@@ -413,7 +418,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
         out.push(`<text class="pd-tagtext" x="${r3(MARGIN + h * 0.75)}" y="${r3(y)}" font-size="${r3(h * 0.9)}" text-anchor="middle">${esc(row.tag)}</text>`);
       }
       out.push(`<text class="pd-mono" x="${r3(MARGIN + h * 2.4)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.spec)}</text>`);
-      out.push(`<text class="pd-sub" x="${r3(MARGIN + h * 2.4 + 46)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.text)}</text>`);
+      out.push(`<text class="pd-sub" x="${r3(MARGIN + h * 2.4 + descrX)}" y="${r3(y)}" font-size="${r3(h)}">${esc(row.text)}</text>`);
     });
   }
 
@@ -506,7 +511,8 @@ function drawFeature(f: DFeature, s: number, centre: boolean, add: (p: Prim) => 
     if (f.side === "right") add({ t: "rect", x: x - dp, y: y - r, w: dp, h: 2 * r, cls: "pd-hidden" });
     return;
   }
-  add({ t: "circle", cx: x, cy: y, r: Math.max(r, 0.4), cls: f.where === "face" ? "pd-hole" : "pd-hole-far" });
+  // A through bore is an opening in the far face too: drawn solid from either side (D71).
+  add({ t: "circle", cx: x, cy: y, r: Math.max(r, 0.4), cls: f.where === "face" || f.through ? "pd-hole" : "pd-hole-far" });
   if (centre && f.where === "face") {
     const a = Math.max(r + 0.7, 1.2);
     add({ t: "line", x1: x - a, y1: y, x2: x + a, y2: y, cls: "pd-centre" });
@@ -709,7 +715,7 @@ function headerLines(
 ): string[] {
   const t = text.t;
   const f = (x: number): string => formatNumber(x);
-  const role = text.roleName?.(part.role) ?? t(`role.${part.role}`);
+  const role = part.label !== undefined ? localName(part.label, text.locale ?? "en") : (text.roleName?.(part.role) ?? t(`role.${part.role}`));
   const mat = text.materialName?.(part.material) ?? part.material;
   const inner = innerFace(part, cabinet) === view.face;
   return [
@@ -739,6 +745,7 @@ function describeSources(sources: OpSource[], text: DrawingText): string {
       if (s.kind === "hardware") return text.hardwareName?.(s.ref) ?? s.ref;
       if (s.kind === "system") return t("drawing.src.system");
       if (s.kind === "joint") return t("drawing.src.joint", { ref: s.ref });
+      if (s.kind === "custom") return t("drawing.src.custom");
       return t("drawing.src.back", { ref: s.ref });
     })
     .join(" + ");
@@ -775,7 +782,7 @@ function legendRows(groups: FeatureGroup[], view: PartView, text: DrawingText, n
     });
 }
 
-function tableRows(groups: FeatureGroup[], num: (x: number) => string, t: (k: string) => string): string[][] {
+function tableRows(groups: FeatureGroup[], view: PartView, num: (x: number) => string, t: DrawingText["t"]): string[][] {
   const rows: string[][] = [];
   for (const g of groups) {
     if (!g.rules.table || g.op !== "bore") continue;
@@ -783,7 +790,15 @@ function tableRows(groups: FeatureGroup[], num: (x: number) => string, t: (k: st
       .slice()
       .sort((a, b) => a.Y - b.Y || a.X - b.X)
       .forEach((f, i) =>
-        rows.push([`${g.tag || "·"}${i + 1}`, num(f.X), num(f.Y), num(f.d), num(f.depth), t(`drawing.where.${f.where}`)]),
+        rows.push([
+          `${g.tag || "·"}${i + 1}`,
+          num(f.X),
+          num(f.Y),
+          num(f.d),
+          num(f.depth),
+          // Same wording as the legend: an edge bore names the edge it enters.
+          f.where === "edge" && f.side ? t("drawing.where.edge", { edge: t(`drawing.dir.${view.sides[f.side]}`) }) : t(`drawing.where.${f.where}`),
+        ]),
       );
   }
   return rows;

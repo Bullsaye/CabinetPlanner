@@ -1,14 +1,13 @@
 <script lang="ts">
-  import { FACTORY_PRESETS } from "@cabinet-planner/engine";
   import { store } from "../lib/store.svelte.ts";
   import CabinetDesign from "./CabinetDesign.svelte";
   import ConstructionEditor from "./ConstructionEditor.svelte";
   import Inspector from "./Inspector.svelte";
+  import PresetChips from "./PresetChips.svelte";
 
   const t = $derived(store.tr.t);
   const editing = $derived(store.ui.construction !== null && store.ui.construction === store.ui.selected);
   const c = $derived(store.cabinetDoc);
-  const allPresets = $derived([...FACTORY_PRESETS, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
 </script>
 
 <section class="panel rp">
@@ -29,19 +28,16 @@
       {#if c}
         <details class="presets">
           <summary class="label">{t("ui.presets")}</summary>
-          <div class="chips">
-            {#each c.presets ?? [] as p, i}
-              <span class="chip">{store.presetName(p)}<button class="quiet x" aria-label={`${t("ui.remove")} ${store.presetName(p)}`} onclick={() => c.presets.splice(i, 1)}>×</button></span>
-            {/each}
-            <select id="add-preset" aria-label={t("ui.add_preset")} onchange={(e) => { const s = e.target as HTMLSelectElement; if (s.value) { c.presets = [...(c.presets ?? []), s.value]; s.value = ""; } }}>
-              <option value="">+ {t("ui.add_preset")}</option>
-              {#each allPresets.filter((p) => !(c.presets ?? []).includes(p.id)) as p}<option value={p.id}>{store.presetName(p.id)}</option>{/each}
-            </select>
-          </div>
+          <PresetChips layer="cabinet" />
         </details>
       {/if}
     {/if}
   {:else}
+    <div class="presets top">
+      <span class="label">{t("ui.presets")}</span>
+      <p class="muted small">{t("ui.layer_presets_hint")}</p>
+      <PresetChips layer={store.ui.pane} />
+    </div>
     <Inspector layer={store.ui.pane} />
   {/if}
 </section>
@@ -52,9 +48,7 @@
   .tabs button { flex: 1; }
   .presets { border-top: 1px solid var(--line); padding-top: 6px; }
   summary { cursor: pointer; padding: 4px 0; }
-  .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-  .chip { display: inline-flex; align-items: center; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 0 2px 0 8px; font-size: 12px; }
-  .chip .x { padding: 0 6px; min-height: 0; }
-  #add-preset { max-width: 12em; font-size: 12px; }
+  .presets.top { border-top: 0; padding-top: 0; }
+  .small { font-size: 12px; margin: 2px 0 0; }
   @media (max-width: 1100px) { .rp { max-height: none; } }
 </style>

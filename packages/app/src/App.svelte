@@ -3,21 +3,26 @@
   import CabinetList from "./components/CabinetList.svelte";
   import RightPane from "./components/RightPane.svelte";
   import Viewer3D from "./components/Viewer3D.svelte";
+  import CabinetView from "./components/CabinetView.svelte";
   import CutlistView from "./components/CutlistView.svelte";
   import DrawingsView from "./components/DrawingsView.svelte";
-  import HardwareView from "./components/HardwareView.svelte";
+  import BomView from "./components/BomView.svelte";
   import Diagnostics from "./components/Diagnostics.svelte";
   import FileMenu from "./components/FileMenu.svelte";
   import RoomView from "./components/RoomView.svelte";
   import ProjectsHome from "./components/ProjectsHome.svelte";
   import LibraryView from "./components/LibraryView.svelte";
+  import AccountMenu from "./components/AccountMenu.svelte";
+  import CommunityView from "./components/CommunityView.svelte";
+  import { account } from "./lib/account.svelte.ts";
   import { onMount } from "svelte";
 
   const t = $derived(store.tr.t);
-  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware", "library"];
+  const tabs: Tab[] = ["view", "room", "cutlist", "drawings", "hardware", "library", "community"];
 
   onMount(() => {
-    void store.boot();
+    // The account is optional: it starts after the local data is there.
+    void store.boot().then(() => account.boot());
   });
 
   // Save and record undo history shortly after every change (typing is grouped).
@@ -30,6 +35,10 @@
     store.ui.style;
     store.ui.ops;
     store.ui.fronts;
+    store.ui.viewMode;
+    store.ui.cabinet3d;
+    store.ui.walls;
+    store.ui.hingeSymbol;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => void store.persist(), 300);
   });
@@ -55,6 +64,12 @@
   }
   $effect(() => {
     document.documentElement.lang = store.ui.lang;
+  });
+
+  /** The cabinet view on a narrow screen carries the settings itself (D68). */
+  const inlinePane = $derived(store.narrow && store.ui.tab === "view" && store.viewMode === "cabinet");
+  $effect(() => {
+    if (inlinePane && store.ui.panel === "inspector") store.ui.panel = null;
   });
 
   const counts = $derived.by(() => {
@@ -100,18 +115,15 @@
     {/if}
     <div class="right">
       {#if store.screen === "project"}
-      <span class="panel-toggles">
+      <span class="panel-toggles" class:off={store.ui.tab === "community"}>
         <button class="only-narrow" aria-pressed={store.ui.panel === "list"} onclick={() => (store.ui.panel = store.ui.panel === "list" ? null : "list")}>{t("ui.cabinets")}</button>
-        <button class="only-tablet" aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
+        <button class="only-tablet" class:gone={inlinePane} aria-pressed={store.ui.panel === "inspector"} onclick={() => (store.ui.panel = store.ui.panel === "inspector" ? null : "inspector")}>{t("ui.properties")}</button>
       </span>
-      <span class="status" class:bad={counts.errors > 0}>
-        {#if counts.errors}{t("ui.errors", { n: counts.errors })}{:else if counts.warnings}{t("ui.warnings", { n: counts.warnings })}{:else}{t("ui.checks_ok")}{/if}
+      <span class="status" class:bad={counts.errors > 0} class:warn={!counts.errors && counts.warnings > 0} title={counts.errors || counts.warnings ? t("cli.summary", { errors: counts.errors, warnings: counts.warnings }) : t("ui.checks_ok")}>
+        {#if counts.errors}{t("ui.errors", { n: counts.errors })}{:else if counts.warnings}{t("ui.warnings", { n: counts.warnings })}{:else}{t("ui.checks_ok_short")}{/if}
       </span>
       {/if}
-      <select id="lang" class:hide-narrow={store.screen === "project"} aria-label={t("ui.language")} bind:value={store.ui.lang}>
-        <option value="en">English</option>
-        <option value="de">Deutsch</option>
-      </select>
+      <AccountMenu />
       <FileMenu />
     </div>
   </header>
@@ -120,6 +132,8 @@
     <p class="muted loading">{t("ui.loading")}</p>
   {:else if store.screen === "home"}
     <ProjectsHome />
+  {:else if store.ui.tab === "community"}
+    <CommunityView />
   {:else}
   {#if store.built.error}
     <div class="fatal" role="alert">
@@ -138,7 +152,9 @@
     <aside class="left" class:open={store.ui.panel === "list"}><CabinetList /></aside>
     <main>
       <div class="work">
-        {#if store.ui.tab === "view"}
+        {#if store.ui.tab === "view" && store.viewMode === "cabinet"}
+          <CabinetView />
+        {:else if store.ui.tab === "view"}
           <Viewer3D />
         {:else if store.ui.tab === "room"}
           <RoomView />
@@ -149,15 +165,18 @@
         {:else if store.ui.tab === "library"}
           <LibraryView />
         {:else}
-          <HardwareView />
+          <BomView />
         {/if}
       </div>
       <Diagnostics />
     </main>
+    <!-- Narrow screens: the cabinet view shows the settings below its drawing instead. -->
+    {#if !inlinePane}
     <aside class="right-pane" class:open={store.ui.panel === "inspector"}>
       <button class="quiet close only-tablet" aria-label={t("ui.close")} onclick={() => (store.ui.panel = null)}>×</button>
       <RightPane />
     </aside>
+    {/if}
   </div>
   {/if}
 </div>
@@ -176,14 +195,25 @@
   .loading { padding: 40px; text-align: center; }
   .name { font-weight: 600; font-size: 14px; white-space: nowrap; }
   .sep { color: var(--muted); }
-  .project-name { border-color: transparent; font-weight: 500; width: 14em; }
+  .project-name { border-color: transparent; font-weight: 500; width: 14em; flex: 0 1 14em; min-width: 5em; text-overflow: ellipsis; }
   .project-name:hover, .project-name:focus { border-color: var(--line); }
-  nav { display: flex; gap: 4px; flex-wrap: wrap; }
-  .tab { border-color: transparent; background: transparent; }
+  nav { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tab { border-color: transparent; background: transparent; white-space: nowrap; }
   .tab[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-fg); border-color: transparent; }
   .right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .status { font-size: 12px; color: var(--ok); }
+  .status { font-size: 12px; color: var(--ok); white-space: nowrap; }
+  .status.warn { color: var(--warn); }
   .status.bad { color: var(--err); }
+  /* Desktop: one row. The tabs keep their place; the project name gives way first. */
+  @media (min-width: 1101px) {
+    header { flex-wrap: nowrap; gap: 8px 10px; }
+    nav { flex-wrap: nowrap; }
+    .right { flex-wrap: nowrap; flex: none; }
+  }
+  @media (min-width: 1101px) and (max-width: 1340px) {
+    .tab { padding-left: 7px; padding-right: 7px; }
+    .name { display: none; }
+  }
   .fatal { margin: 12px 16px; padding: 12px; border: 1px solid var(--err); background: var(--err-soft); border-radius: 8px; }
   .fatal pre { white-space: pre-wrap; font-size: 12px; }
   .body {
@@ -196,6 +226,7 @@
   .work { flex: 1; min-height: 0; }
   aside { min-width: 0; }
   .panel-toggles { display: contents; }
+  .panel-toggles.off, .panel-toggles .gone { display: none; }
   .only-tablet, .only-narrow, .scrim { display: none; }
   /* Tablet: the inspector slides in from the right; phone: the cabinet list from the left too. */
   @media (max-width: 1100px) {
@@ -229,9 +260,9 @@
     .project-name { width: auto; flex: 1; min-width: 0; }
     nav { order: 10; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .tab { white-space: nowrap; }
-    .right { margin-left: 0; gap: 6px; }
+    .right { margin-left: 0; gap: 6px; flex-wrap: nowrap; flex: 1 1 100%; }
+    .right :global(button) { padding-left: 8px; padding-right: 8px; white-space: nowrap; }
     .status { display: none; }
-    .hide-narrow { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { .right-pane, .left { transition: none; } }
 </style>

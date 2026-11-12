@@ -1,0 +1,18 @@
+Bereich   Artikel                 Bezeichnung                                                                            Artikel-Nr.                     Anzahl  Netto  Menge  Einheit  Einzelpreis  Kosten  Bemerkung
+Platte    hdf-white-8             HDF weiß 8                                                                                                             11      6.31   7.26   m²       5.2          37.75
+Platte    mdf-lacquer-19          MDF lackiert 19                                                                                                        14      5.64   6.49   m²       38           246.62
+Platte    mel-white-16            Melamin weiß 16                                                                                                        15      1.52   1.75   m²       8.9          15.58
+Platte    mel-white-19            Melamin weiß 19                                                                                                        46      18.22  20.95  m²       9.5          199.03
+Platte    worktop-laminate-38     Arbeitsplatte Schichtstoff 38                                                                                          2       2.52   2.9    m²       45           130.5
+Kante     abs-white-1             ABS weiß 1 mm                                                                                                          114     78.5   84.2   m        0.45         37.89
+Beschlag  dowel-8x35              Dübel Ø8 × 35                                                                                                                         172    Stk.
+Beschlag  grass-tiomos-110-screw  Grass Tiomos 110°, aufliegend, zum Anschrauben, Kreuzmontageplatte H2 (Euroschrauben)  F028138519, F058139757                         26     Stk.
+Beschlag  grass-dynapro-40        Grass Dynapro Soft-close, Vollauszug, 40 kg (Holzschubkästen)                          F130107820, F130107829                         3      Sätze
+Beschlag  shelf-pin-5             Bodenträger Ø5                                                                                                                        52     Stk.
+Beschlag  generic-bar-160         Stangengriff 160 mm (generisch)                                                                                                       13     Stk.
+Beschlag  hettich-sah-130         Hettich Schrankaufhänger SAH 130, Montageschiene Typ B                                 79724, 79725, 9007651, 9208678                 1      Sätze
+Beschlag  generic-leg-100         Stellfuß 100 (generisch)                                                                                                              32     Stk.
+Summe                             Plattenmaterial                                                                                                                                                    629.48
+Summe                             Kanten                                                                                                                                                             37.89
+Summe                             Beschläge                                                                                                                                                                  7 ohne Preis
+Summe                             Gesamt                                                                                                                                                             667.37  7 ohne Preis

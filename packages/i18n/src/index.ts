@@ -62,6 +62,26 @@ export function createTranslator(locale: string): Translator {
   };
 }
 
+/** Parameters of a finding that are enumerated values with a translation: message key prefix by parameter. */
+const DIAGNOSTIC_PARAM_KEYS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  room_cabinet_in_opening: { kind: "ui.opening." },
+  worktop_cutout_outside: { kind: "option.worktop_cutout." },
+  option_unknown: { layer: "ui.layer." },
+  preset_unknown: { layer: "ui.layer." },
+};
+
+/** Text of a diagnostic (`diag.<code>`); parameters that are enumerated values are translated too. */
+export function diagnosticText(tr: Translator, code: string, params: Params): string {
+  const keys = DIAGNOSTIC_PARAM_KEYS[code];
+  if (!keys) return tr.t(`diag.${code}`, params);
+  const shown: Record<string, string | number> = { ...params };
+  for (const [name, prefix] of Object.entries(keys)) {
+    const key = `${prefix}${String(params[name])}`;
+    if (tr.has(key)) shown[name] = tr.t(key);
+  }
+  return tr.t(`diag.${code}`, shown);
+}
+
 /** Replaces `{name}` placeholders; unknown placeholders are left as they are. */
 export function interpolate(msg: string, params: Params): string {
   return msg.replace(/\{([A-Za-z0-9_]+)\}/g, (m, name: string) =>

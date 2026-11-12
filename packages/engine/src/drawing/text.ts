@@ -13,6 +13,7 @@ export interface TranslatorLike {
 export function drawingText(tr: TranslatorLike, library: Library, styleName?: string): DrawingText {
   return {
     t: (k, p) => tr.t(k, p),
+    locale: tr.locale,
     number: (x, d) => tr.number(x, d),
     hardwareName: (id) => {
       const h = library.hardware.get(id);
