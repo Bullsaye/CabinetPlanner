@@ -154,6 +154,18 @@ export interface Part {
   /** Free parts (D45): the name its author gave it, shown in place of the role name. */
   label?: LocalizedText;
   note?: string;
+  /** Remarks per edge for production (D60), e.g. "45°"; only edges that have one. */
+  edgeNotes?: Partial<Record<keyof PartEdges, string>>;
+}
+
+/** The edge remarks of a part override without empty ones; undefined when none is left. */
+export function cleanEdgeNotes(notes: Partial<Record<keyof PartEdges, string | undefined>> | undefined): Part["edgeNotes"] {
+  const out: NonNullable<Part["edgeNotes"]> = {};
+  for (const k of ["l1", "l2", "w1", "w2"] as const) {
+    const v = notes?.[k]?.trim();
+    if (v) out[k] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** Rounds to 0.01 mm to remove floating-point noise from derived sizes. */

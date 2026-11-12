@@ -63,6 +63,7 @@ export const Preset = z.object({
 export type Preset = z.infer<typeof Preset>;
 
 const EdgeRef = z.string().nullable();
+const EdgeNote = z.string().max(40);
 export const PartOverride = z.object({
   material: z.string().optional(),
   edges: z
@@ -71,6 +72,13 @@ export const PartOverride = z.object({
   /** Surface finish of this part (D53); null: the board as it comes. */
   surface: z.string().nullable().optional(),
   note: z.string().optional(),
+  /**
+   * A short remark per edge for production (D60), e.g. "45°" where a mitre
+   * is cut. Free text: it changes no geometry and no cut size.
+   */
+  edgeNotes: z
+    .object({ l1: EdgeNote.optional(), l2: EdgeNote.optional(), w1: EdgeNote.optional(), w2: EdgeNote.optional() })
+    .optional(),
 });
 export type PartOverride = z.infer<typeof PartOverride>;
 

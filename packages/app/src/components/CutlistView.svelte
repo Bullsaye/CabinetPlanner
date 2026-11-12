@@ -2,6 +2,8 @@
   import { cutlistCsv, cutlistRows, localName, type CutlistRow } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
   import { csvForDownload } from "../lib/export.ts";
+  import { bandColour, EDGE_KEYS, partCode, partEdgeOverride, setPartEdge, setPartEdgeNote, type EdgeKey } from "../lib/edges.ts";
+  import EdgeEditor from "./EdgeEditor.svelte";
 
   const t = $derived(store.tr.t);
   let group = $state(true);
@@ -54,6 +56,33 @@
     return ratio >= 1 ? { w: 36, h: Math.max(12, 36 / ratio) } : { w: Math.max(12, 36 * ratio), h: 36 };
   }
 
+  // Edges by name (D60): L1, L2, B1, B2 with the edgeband code and a remark; a click edits one edge.
+  const bands = $derived([...(lib?.edgebands.values() ?? [])].map((e) => ({ id: e.id, code: e.code ?? e.id, name: localName(e.name, store.tr.locale) })));
+  const bandCodes = $derived(bands.map((b) => b.code));
+  const edgeName = (k: EdgeKey): string => t(`ui.edge.${k}`);
+  const edgeText = (r: CutlistRow, i: number): string => [r.edges[i] || (r.edgeNotes[i] ? "" : "–"), r.edgeNotes[i]].filter(Boolean).join(" ");
+  const edgesLabel = (r: CutlistRow): string => `${t("ui.edges")}: ${EDGE_KEYS.map((k, i) => `${edgeName(k)} ${edgeText(r, i)}`).join(", ")}`;
+  /** The edge being edited: the parts of its row when it was opened, and where the popover sits. */
+  let editing = $state<{ ids: string[]; cabinet: string; edge: EdgeKey; x: number; y: number } | null>(null);
+  const editRow = $derived(editing ? rows.find((r) => r.parts.includes(editing!.ids[0]!)) : undefined);
+  const editDoc = $derived(editing ? (store.project.cabinets ?? []).find((c: Record<string, any>) => c.id === editing!.cabinet) : undefined);
+  function openEdge(e: MouseEvent, r: CutlistRow, edge: EdgeKey): void {
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const w = Math.min(300, window.innerWidth - 16);
+    const h = 190;
+    editing = {
+      ids: [...r.parts],
+      cabinet: r.cabinet,
+      edge,
+      x: Math.max(8, Math.min(box.left, window.innerWidth - w - 8)),
+      y: box.bottom + 4 + h > window.innerHeight ? Math.max(8, box.top - h - 4) : box.bottom + 4,
+    };
+  }
+  function applyEdge(change: (doc: Record<string, any>, code: string, edge: EdgeKey) => void): void {
+    if (!editing || !editDoc) return;
+    for (const id of editing.ids) change(editDoc, partCode(id), editing.edge);
+  }
+
   function csv(): string {
     return store.result ? cutlistCsv(cutlistRows(parts, store.result.library, { group }), store.result.library, text, { delimiter: ";" }) : "";
   }
@@ -97,18 +126,44 @@
             <td class="n">{fmt(r.thickness)}</td>
             <td>{materialName(r.material)}{#if r.grain}<span class="muted" title={t("col.grain")}> ↔</span>{/if}</td>
             <td>{#if sf}<span class="swatch" style={`background:${sf.color ?? "transparent"}`}></span> {localName(sf.name, store.tr.locale)}{/if}</td>
-            <td class="edges">
-              <svg width="30" height="30" viewBox="-4 -4 44 44" role="img" aria-label={`${t("ui.edges")}: ${r.edges.map((e, k) => `${["L1", "L2", "B1", "B2"][k]} ${e || "–"}`).join(", ")}`}>
-                <g transform={`translate(${(36 - eb.w) / 2} ${(36 - eb.h) / 2})`}>
-                  <rect class="eb-part" x="0" y="0" width={eb.w} height={eb.h} />
-                  <!-- Length runs left to right: L1 bottom, L2 top, W1 left, W2 right (D4). -->
-                  {#if r.edges[0]}<line class="eb-on" x1="0" y1={eb.h} x2={eb.w} y2={eb.h} />{/if}
-                  {#if r.edges[1]}<line class="eb-on" x1="0" y1="0" x2={eb.w} y2="0" />{/if}
-                  {#if r.edges[2]}<line class="eb-on" x1="0" y1="0" x2="0" y2={eb.h} />{/if}
-                  {#if r.edges[3]}<line class="eb-on" x1={eb.w} y1="0" x2={eb.w} y2={eb.h} />{/if}
-                </g>
-              </svg>
-              <span class="mono small">{[...new Set(r.edges.filter(Boolean))].join(" ")}</span>
+            <td>
+              <div class="edges">
+                <svg width="30" height="30" viewBox="-4 -4 44 44" role="img" aria-label={edgesLabel(r)}>
+                  <g transform={`translate(${(36 - eb.w) / 2} ${(36 - eb.h) / 2})`}>
+                    <rect class="eb-part" x="0" y="0" width={eb.w} height={eb.h} />
+                    <!-- Length runs left to right: L1 bottom, L2 top, W1 left, W2 right (D4). One colour per edgeband; a remark without a band is dotted. -->
+                    {#each [[0, eb.h, eb.w, eb.h], [0, 0, eb.w, 0], [0, 0, 0, eb.h], [eb.w, 0, eb.w, eb.h]] as [x1, y1, x2, y2], i}
+                      {#if r.edges[i]}
+                        <line class="eb-on" style={`stroke:${bandColour(r.edges[i]!, bandCodes)}`} {x1} {y1} {x2} {y2} />
+                      {:else if r.edgeNotes[i]}
+                        <line class="eb-note" {x1} {y1} {x2} {y2} />
+                      {/if}
+                    {/each}
+                  </g>
+                </svg>
+                <div class="eg">
+                  {#each EDGE_KEYS as k, i (k)}
+                    {#if cabinetDoc(r)}
+                      <button
+                        class="e"
+                        aria-haspopup="dialog"
+                        aria-label={`${t("ui.edge_edit", { edge: edgeName(k), part: partLabel(r) })}: ${edgeText(r, i)}`}
+                        onclick={(e) => openEdge(e, r, k)}
+                      >
+                        <span class="en">{edgeName(k)}</span>
+                        {#if r.edges[i]}<span class="ec" style={`color:${bandColour(r.edges[i]!, bandCodes)}`}>{r.edges[i]}</span>{:else if !r.edgeNotes[i]}<span class="ec none">–</span>{/if}
+                        {#if r.edgeNotes[i]}<span class="er">{r.edgeNotes[i]}</span>{/if}
+                      </button>
+                    {:else}
+                      <span class="e">
+                        <span class="en">{edgeName(k)}</span>
+                        {#if r.edges[i]}<span class="ec" style={`color:${bandColour(r.edges[i]!, bandCodes)}`}>{r.edges[i]}</span>{:else if !r.edgeNotes[i]}<span class="ec none">–</span>{/if}
+                        {#if r.edgeNotes[i]}<span class="er">{r.edgeNotes[i]}</span>{/if}
+                      </span>
+                    {/if}
+                  {/each}
+                </div>
+              </div>
             </td>
             <td class="n muted">{fmt(r.cutLength)} × {fmt(r.cutWidth)}</td>
             <td class="note-cell">
@@ -127,6 +182,29 @@
   </div>
 </section>
 
+<svelte:window onkeydown={(e) => e.key === "Escape" && (editing = null)} />
+{#if editing && editRow && editDoc}
+  {@const i = EDGE_KEYS.indexOf(editing.edge)}
+  {@const override = partEdgeOverride(editDoc, partCode(editing.ids[0]!), editing.edge)}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="pop-back" onclick={() => (editing = null)}></div>
+  <div class="pop" role="dialog" aria-label={t("ui.edge_edit", { edge: edgeName(editing.edge), part: partLabel(editRow) })} style={`left:${editing.x}px;top:${editing.y}px`}>
+    <header>
+      <strong>{t("ui.edge_edit", { edge: edgeName(editing.edge), part: partLabel(editRow) })}</strong>
+    </header>
+    <EdgeEditor
+      id="cl-edge"
+      band={override}
+      constructed={override === undefined ? editRow.edges[i] : undefined}
+      {bands}
+      note={editRow.edgeNotes[i] ?? ""}
+      onband={(band) => applyEdge((doc, code, edge) => setPartEdge(doc, code, edge, band))}
+      onnote={(text) => applyEdge((doc, code, edge) => setPartEdgeNote(doc, code, edge, text))}
+    />
+    <footer><button class="primary" onclick={() => (editing = null)}>{t("ui.done")}</button></footer>
+  </div>
+{/if}
+
 <style>
   .cl { display: flex; flex-direction: column; min-height: 460px; height: 100%; }
   .bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); align-items: center; }
@@ -139,6 +217,22 @@
   .edges svg { flex: none; }
   .eb-part { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
   .eb-on { stroke: var(--accent); stroke-width: 3.5; stroke-linecap: square; }
+  .eb-note { stroke: var(--warn); stroke-width: 2.5; stroke-dasharray: 2 3; }
+  .eg { display: grid; grid-template-columns: repeat(2, auto); gap: 1px 4px; justify-content: start; }
+  .e { display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); font-size: 11px; line-height: 1.5; white-space: nowrap; padding: 0 4px; min-height: 0; border-radius: 4px; }
+  button.e { border-color: transparent; background: transparent; cursor: pointer; }
+  button.e:hover, button.e:focus-visible { border-color: var(--line); background: var(--surface); }
+  .en { color: var(--muted); }
+  .ec { font-weight: 600; }
+  .ec.none { color: var(--muted); font-weight: 400; }
+  .er { color: var(--warn); font-weight: 600; }
+  .pop-back { position: fixed; inset: 0; z-index: 40; }
+  .pop { position: fixed; z-index: 41; width: min(300px, calc(100vw - 16px)); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 28px rgb(0 0 0 / 0.22); padding: 10px; display: grid; gap: 8px; }
+  .pop header { font-size: 12px; }
+  .pop footer { display: flex; justify-content: flex-end; }
+  @media (pointer: coarse) {
+    .e { font-size: 13px; padding: 5px 6px; }
+  }
   .swatch { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -2px; }
   .small { font-size: 11px; }
   .note-cell input { min-width: 12em; width: 100%; border-color: transparent; background: transparent; padding: 2px 4px; }

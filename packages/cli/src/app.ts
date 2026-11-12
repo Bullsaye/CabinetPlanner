@@ -5,6 +5,7 @@ import {
   buildBom,
   buildProject,
   projectSheets,
+  sheetsPdf,
   cutlistCsv,
   cutlistRows,
   cutlistTable,
@@ -30,6 +31,7 @@ import {
   type CutlistRow,
   type CutlistText,
   type Diagnostic,
+  type PdfFonts,
   type ProjectResult,
   type Shop,
   type Source,
@@ -47,6 +49,8 @@ export interface Io {
   stdout(text: string): void;
   stderr(text: string): void;
   env: Readonly<Record<string, string | undefined>>;
+  /** Font files for PDF output (sheets --pdf); read only when a PDF is written. */
+  fonts?(): PdfFonts;
 }
 
 const USAGE = `Usage: cabinet-planner <command> <project.json> [options]
@@ -63,8 +67,9 @@ Commands:
   room      Write the floor plan (or with --wall <id> that wall's elevation) as SVG
   dxf       Write CNC DXF files, one per machined part side (--out <dir> or --zip <file>;
             --cabinet / --part to limit; --profile <id> for the layer names)
-  sheets    Write every drawing sheet as SVG: room plan and elevations, assembly drawings,
-            part sheets (--out <dir> or --zip <file>; --cabinet to limit; --style)
+  sheets    Write every drawing sheet: room plan and elevations, assembly drawings, part
+            sheets. --pdf <file>: one PDF, a sheet per page (--paper sheet|a4|a3);
+            --out <dir> or --zip <file>: SVG files; --cabinet to limit; --style
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
@@ -102,6 +107,8 @@ export function run(argv: readonly string[], io: Io): number {
         style: { type: "string" },
         sheet: { type: "string" },
         zip: { type: "string" },
+        pdf: { type: "string" },
+        paper: { type: "string" },
         wall: { type: "string" },
         profile: { type: "string" },
         timestamp: { type: "string" },
@@ -398,8 +405,17 @@ export function run(argv: readonly string[], io: Io): number {
       return 0;
     }
     case "sheets": {
-      if (!opts.out && !opts.zip) {
-        io.stderr("sheets needs --out <dir> or --zip <file>\n");
+      if (!opts.out && !opts.zip && !opts.pdf) {
+        io.stderr("sheets needs --pdf <file>, --out <dir> or --zip <file>\n");
+        return 2;
+      }
+      const paper = opts.paper ?? "sheet";
+      if (paper !== "sheet" && paper !== "a4" && paper !== "a3") {
+        io.stderr("--paper must be sheet, a4 or a3\n");
+        return 2;
+      }
+      if (opts.pdf && !io.fonts) {
+        io.stderr("sheets --pdf needs the drawing fonts\n");
         return 2;
       }
       if (opts.cabinet && !result.cabinets.some((c) => c.resolved.cabinet.id === opts.cabinet)) {
@@ -420,12 +436,19 @@ export function run(argv: readonly string[], io: Io): number {
         style,
         styleName: localName(styleInput.name, tr.locale),
         ...(opts.cabinet ? { cabinet: opts.cabinet } : {}),
+        // Every sheet names its project, revision and (with --timestamp) when it was made.
+        meta: { project: result.project.name, revision: result.project.revision, ...(opts.timestamp ? { timestamp: opts.timestamp } : {}) },
       });
       const count = tr.t("cli.sheets", { n: sheets.length });
+      if (opts.pdf) {
+        const pdf = sheetsPdf(sheets, { fonts: io.fonts!(), paper, title: result.project.name, ...(opts.timestamp ? { timestamp: opts.timestamp } : {}) });
+        io.writeFile(opts.pdf, pdf);
+        io.stderr(tr.t("cli.written", { file: `${opts.pdf} (${count})` }) + "\n");
+      }
       if (opts.zip) {
         io.writeFile(opts.zip, zip(sheets.map((s) => ({ name: s.name, data: s.svg }))));
         io.stderr(tr.t("cli.written", { file: `${opts.zip} (${count})` }) + "\n");
-      } else {
+      } else if (opts.out) {
         for (const s of sheets) io.writeFile(`${opts.out}/${s.name}`, s.svg);
         io.stderr(tr.t("cli.written", { file: `${count} → ${opts.out}` }) + "\n");
       }

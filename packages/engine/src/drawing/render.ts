@@ -229,9 +229,12 @@ export function drawPart(input: DrawingInput): PartDrawing {
   else add({ t: "rect", x: 0, y: 0, w: W, h: H, cls: "pd-part" });
   const sideOf = (d: Dir): Side | undefined => (Object.keys(view.sides) as Side[]).find((k) => view.sides[k] === d);
   const bandBySide: Partial<Record<Side, string>> = {};
+  const noteBySide: Partial<Record<Side, string>> = {};
   for (const e of ["l1", "l2", "w1", "w2"] as (keyof PartEdges)[]) {
     const band = part.edges[e];
     const side = sideOf(faceDir(part, e));
+    // Production remark of the edge (D60), written after the edge name: "FRONT · W1 · 45°".
+    if (side && part.edgeNotes?.[e]) noteBySide[side] = part.edgeNotes[e]!;
     if (!side || !band) continue;
     bandBySide[side] = text.edgeCode?.(band) ?? band;
     const o = 0.7;
@@ -249,7 +252,7 @@ export function drawPart(input: DrawingInput): PartDrawing {
     const en = h * 0.8;
     const before = prims.length;
     for (const side of ["bottom", "top", "left", "right"] as Side[]) {
-      const name = t(`drawing.dir.${view.sides[side]}`) + (bandBySide[side] ? ` · ${bandBySide[side]}` : "");
+      const name = [t(`drawing.dir.${view.sides[side]}`), bandBySide[side], noteBySide[side]].filter(Boolean).join(" · ");
       if (side === "bottom") add({ t: "text", x: W / 2, y: 1.6, s: name, cls: "pd-edge", size: en, anchor: "middle" });
       if (side === "top") add({ t: "text", x: W / 2, y: H - 1.4 - en * 0.8, s: name, cls: "pd-edge", size: en, anchor: "middle" });
       if (side === "left") add({ t: "text", x: 1.4 + en * 0.8, y: H / 2, s: name, cls: "pd-edge", size: en, anchor: "middle", rot: -90 });
@@ -450,6 +453,12 @@ export function drawPart(input: DrawingInput): PartDrawing {
   return { svg: out.join(""), view, groups, scale: den, page: { w: r3(pageW), h: r3(pageH) } };
 }
 
+/** How many sheets drawPartSheets makes for a part: two when both faces are machined (and the style shows both). */
+export function partSheetCount(part: Part, style: ResolvedStyle): 1 | 2 {
+  const machined = machinedFaces(part);
+  return style.show.bothSides && machined.has("t0") && machined.has("t1") ? 2 : 1;
+}
+
 /**
  * All sheets of a part: one, or one per machined side when both thickness
  * faces have machining (style setting show.bothSides). Both sheets keep the
@@ -459,8 +468,7 @@ export function drawPartSheets(input: DrawingInput): PartDrawing[] {
   const { part, style, cabinet } = input;
   const spec = style.view.roles[part.role] ?? style.view.default;
   const first = partView(part, spec, cabinet).face;
-  const machined = machinedFaces(part);
-  if (!style.show.bothSides || !(machined.has("t0") && machined.has("t1"))) {
+  if (partSheetCount(part, style) === 1) {
     return [drawPart({ ...input, side: { face: first, index: 1, of: 1 } })];
   }
   return [first, otherFace(first)].map((face, i) => drawPart({ ...input, side: { face, index: i + 1, of: 2 } }));
