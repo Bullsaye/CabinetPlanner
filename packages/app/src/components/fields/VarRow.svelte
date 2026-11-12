@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatNumber, localName, VARIABLE_BY_NAME, type ParamInput } from "@cabinet-planner/engine";
   import { tick } from "svelte";
+  import ForAll from "./ForAll.svelte";
   import { parseInput, setVar, store, type Layer } from "../../lib/store.svelte.ts";
   import {
     afterClick,
@@ -28,6 +29,7 @@
     param,
     scope = "",
     custom = false,
+    detail = false,
   }: {
     name: string;
     layer?: Layer;
@@ -39,6 +41,8 @@
     scope?: string;
     /** A variable of the user's own: shown by its name, removed instead of reset. */
     custom?: boolean;
+    /** Parameter view (D73): the variable's name under the label; a formula comes with the values it reads. */
+    detail?: boolean;
   } = $props();
 
   const t = $derived(store.tr.t);
@@ -70,7 +74,8 @@
 
   let el = $state<HTMLInputElement>();
   let focused = $state(false);
-  let open = $state(false);
+  // svelte-ignore state_referenced_locally
+  let open = $state(detail && typeof (store.layerDoc(layer)?.vars?.[name] ?? layerView(layer)?.vars.get(name)?.input) === "string");
   let draft = $state("");
   let before = "";
   let textKeys = $state(false);
@@ -164,7 +169,7 @@
     if (layer === "cabinet" && !(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) highlightFor(null);
   }}
 >
-  <label class:mono={!named} for={id} title={hint ? (named ? `${hint} (${name})` : hint) : named ? name : undefined}>{text}</label>
+  <label class:mono={!named} for={id} title={hint ? (named ? `${hint} (${name})` : hint) : named ? name : undefined}>{text}{#if detail && named}<span class="vname mono">{name}</span>{/if}</label>
   <div class="vctl">
     <span class="vfield" class:typing={focused && /[A-Za-z_]/.test(draft)}>
       {#if stepped}
@@ -239,6 +244,9 @@
       <button class="vsrc" tabindex="-1" title={origin.text} aria-expanded={open} aria-controls={`${id}-x`} onclick={() => (open = !open)}>{origin.label}</button>
     {/if}
   </span>
+  {#if layer === "cabinet" && def && name !== "W"}
+    <ForAll kind="var" {name} value={ownRaw} shown={formula !== undefined && shown !== formula ? `${formula} (= ${shown})` : shown} label={text} {id} />
+  {/if}
   {#each diags as d}
     <p class="vmsg {d.severity}" role={d.severity === "error" ? "alert" : undefined}>{fieldDiagnosticText(d, name)}</p>
   {/each}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatNumber, frontViewOf, layoutFronts, localName } from "@cabinet-planner/engine";
   import { swingPoints } from "../lib/elevation.ts";
+  import { dropSlot, edgeHeight, moveItem, setBoundary } from "../lib/frontdrag.ts";
   import { parseInput, store } from "../lib/store.svelte.ts";
 
   type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number | string; boxH?: number | string; handle?: string | null };
@@ -216,6 +217,116 @@
     store.ui.zone = i;
   }
 
+  // --- Dragging (D73): a front up or down to reorder, the line between two fronts to set heights.
+  // Both act on the stack being edited: the cabinet's, or the selected section's.
+  /** Placed fronts of the stack being edited. */
+  const curCol = $derived(columns[sections ? cur : 0]);
+  const placed = $derived(curCol?.placed ?? []);
+  /** Moves zone `from` to position `to` of the list without it. */
+  function moveZone(from: number, to: number): void {
+    if (to === from) return;
+    edit((l) => moveItem(l, from, to));
+    store.ui.zone = to;
+  }
+
+  type Drag =
+    | { kind: "zone"; i: number; y0: number; dy: number; to: number; moved: boolean }
+    | { kind: "edge"; i: number; y0: number; a0: number; b0: number; a: number };
+  let drag = $state<Drag | null>(null);
+  let svgEl = $state<SVGSVGElement>();
+  /** Screen pixels per drawing unit (the drawing may be scaled by CSS). */
+  const pxScale = (): number => {
+    const r = svgEl?.getBoundingClientRect();
+    return r && r.height ? r.height / (H * s + 8) : 1;
+  };
+  /** Pointer position in the drawing, mm below the top of the carcase. */
+  const mmAt = (e: PointerEvent): number => ((e.clientY - (svgEl?.getBoundingClientRect().top ?? 0)) / pxScale() - 4) / s;
+
+  function zoneDown(e: PointerEvent, col: (typeof columns)[number], i: number): void {
+    if (e.button > 0) return;
+    if (sections && col.k !== cur) {
+      // A front of another section: pick that section first; dragging works on the stack being edited.
+      pick(col, i);
+      return;
+    }
+    svgEl?.setPointerCapture(e.pointerId);
+    drag = { kind: "zone", i, y0: e.clientY, dy: 0, to: i, moved: false };
+  }
+  function edgeDown(e: PointerEvent, i: number): void {
+    const a = placed[i];
+    const b = placed[i + 1];
+    if (e.button > 0 || !a || !b) return;
+    e.stopPropagation();
+    svgEl?.setPointerCapture(e.pointerId);
+    store.historyHold = true;
+    drag = { kind: "edge", i, y0: e.clientY, a0: a.y1 - a.y0, b0: b.y1 - b.y0, a: a.y1 - a.y0 };
+  }
+  function dragMove(e: PointerEvent): void {
+    const d = drag;
+    if (!d) return;
+    if (d.kind === "zone") {
+      d.dy = (e.clientY - d.y0) / pxScale();
+      if (Math.abs(e.clientY - d.y0) > 5) d.moved = true;
+      if (d.moved) d.to = dropSlot(d.i, mmAt(e), placed.map((p) => H - (p.y0 + p.y1) / 2));
+      return;
+    }
+    // Heights in whole millimetres; Shift, or a finger, keeps to the 5 mm grid.
+    const grid = e.shiftKey || e.pointerType !== "mouse" ? 5 : 1;
+    const a = edgeHeight(d.a0, d.b0, (e.clientY - d.y0) / pxScale() / s, grid);
+    if (a === d.a) return;
+    d.a = a;
+    edit((l) => setBoundary(l, d.i, a, d.a0 + d.b0 - a));
+  }
+  function dragEnd(e: PointerEvent): void {
+    const d = drag;
+    drag = null;
+    if (!d) return;
+    if (svgEl?.hasPointerCapture(e.pointerId)) svgEl.releasePointerCapture(e.pointerId);
+    if (d.kind === "edge") {
+      store.historyHold = false;
+      store.record();
+      store.ui.zone = d.i;
+    } else if (e.type === "pointercancel") return;
+    else if (d.moved) moveZone(d.i, d.to);
+    else if (curCol) pick(curCol, d.i);
+  }
+  /** Where the dragged zone would go: Y of the insertion line in the drawing. */
+  const dropY = $derived.by(() => {
+    if (drag?.kind !== "zone" || !drag.moved) return null;
+    const others = placed.filter((_, k) => k !== drag!.i);
+    if (!others.length) return null;
+    const p = drag.to < others.length ? others[drag.to]! : others[others.length - 1]!;
+    return (H - (drag.to < others.length ? p.y1 : p.y0)) * s;
+  });
+
+  // The same in the list: a row dragged by its grip.
+  let rowDrag = $state<{ i: number; to: number } | null>(null);
+  function rowDown(e: PointerEvent, i: number): void {
+    if (e.button > 0) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    rowDrag = { i, to: i };
+  }
+  function rowMove(e: PointerEvent): void {
+    if (!rowDrag || !rowsEl) return;
+    const mids = [...rowsEl.querySelectorAll<HTMLElement>("[data-zone]")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+    rowDrag.to = dropSlot(rowDrag.i, e.clientY, mids);
+  }
+  function rowEnd(e: PointerEvent): void {
+    const d = rowDrag;
+    rowDrag = null;
+    if (d && e.type !== "pointercancel") moveZone(d.i, d.to);
+  }
+  /** Row the insertion line is drawn at, and on which side. */
+  const rowDrop = $derived.by(() => {
+    if (!rowDrag || rowDrag.to === rowDrag.i) return null;
+    const others = zones.map((_, k) => k).filter((k) => k !== rowDrag!.i);
+    return rowDrag.to < others.length ? { row: others[rowDrag.to]!, side: "before" } : { row: others[others.length - 1]!, side: "after" };
+  });
+  const resolvedH = (i: number): string => (placed[i] ? formatNumber(placed[i]!.y1 - placed[i]!.y0) : "");
+
   // A zone picked in a drawing: bring its row into view.
   let rowsEl = $state<HTMLDivElement>();
   $effect(() => {
@@ -278,23 +389,60 @@
     </div>
     <div class="body">
       {#if W && H}
-        <svg class="preview" viewBox={`-4 -4 ${W * s + 8} ${H * s + 8}`} width={W * s + 8} height={H * s + 8} role="img" aria-label={t("ui.front_preview")}>
+        <svg
+          class="preview"
+          class:dragging={drag !== null}
+          bind:this={svgEl}
+          viewBox={`-4 -4 ${W * s + 8} ${H * s + 8}`}
+          width={W * s + 8}
+          height={H * s + 8}
+          role="img"
+          aria-label={t("ui.front_preview")}
+          onpointermove={dragMove}
+          onpointerup={dragEnd}
+          onpointercancel={dragEnd}
+        >
           <polygon class="carcase" points={outline} />
           {#each columns as col}
             {#each col.placed as p, i}
+              {@const lifted = drag?.kind === "zone" && col.k === (sections ? cur : 0) && drag.i === i && drag.moved}
               {#each rects(col, i) as r}
                 {@const y = (H - p.y1) * s}
                 {@const h = (p.y1 - p.y0) * s}
                 {#if col.zones[i]?.type === "open" || (col.zones[i]?.type === "appliance" && !col.zones[i]?.front)}
-                  <rect class="hole" class:dim={sections && col.k !== cur} x={r.x * s} {y} width={r.w * s} height={h} />
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <rect
+                    class="hole"
+                    class:dim={sections && col.k !== cur}
+                    data-front={i}
+                    x={r.x * s}
+                    {y}
+                    width={r.w * s}
+                    height={h}
+                    transform={lifted ? `translate(0 ${drag?.kind === "zone" ? drag.dy : 0})` : undefined}
+                    onpointerdown={(e) => zoneDown(e, col, i)}
+                  />
                 {:else}
-                  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-                  <rect class="front {col.zones[i]?.type}" class:dim={sections && col.k !== cur} class:on={col.k === cur && store.ui.zone === i} x={r.x * s} {y} width={r.w * s} height={h} onclick={() => pick(col, i)} />
-                  {#if r.hinge}
+                  <!-- A tap picks the zone; dragged up or down it changes places (D73). -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <rect
+                    class="front {col.zones[i]?.type}"
+                    class:dim={sections && col.k !== cur}
+                    class:on={col.k === cur && store.ui.zone === i}
+                    class:lifted
+                    data-front={i}
+                    x={r.x * s}
+                    {y}
+                    width={r.w * s}
+                    height={h}
+                    transform={lifted ? `translate(0 ${drag?.kind === "zone" ? drag.dy : 0})` : undefined}
+                    onpointerdown={(e) => zoneDown(e, col, i)}
+                  />
+                  {#if r.hinge && !lifted}
                     <!-- Opening symbol: tip at the hinge edge or at the handle edge (preference). -->
                     <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, r.hinge, store.ui.hingeSymbol)} />
                   {/if}
-                  {#if col.zones[i]?.type === "flap"}
+                  {#if col.zones[i]?.type === "flap" && !lifted}
                     <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, "top", store.ui.hingeSymbol)} />
                   {/if}
                 {/if}
@@ -304,7 +452,20 @@
               {/if}
             {/each}
           {/each}
-          {#if fv}
+          {#if dropY !== null}<line class="drop" x1={(curCol?.fx0 ?? 0) * s - 2} x2={(curCol?.fx1 ?? W) * s + 2} y1={dropY} y2={dropY} />{/if}
+          <!-- The line between two fronts: drag it to set their heights. -->
+          {#each placed as p, i}
+            {#if i < placed.length - 1}
+              {@const yb = (H - (p.y0 + placed[i + 1]!.y1) / 2) * s}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <g class="edge" class:on={drag?.kind === "edge" && drag.i === i} data-edge={i} onpointerdown={(e) => edgeDown(e, i)}>
+                <title>{t("ui.fb.drag_height")}</title>
+                <rect class="hit" x={(curCol?.fx0 ?? 0) * s} y={yb - 7} width={((curCol?.fx1 ?? W) - (curCol?.fx0 ?? 0)) * s} height="14" />
+                <line x1={((curCol?.fx0 ?? 0) + (curCol?.fx1 ?? W)) * s * 0.5 - 12} x2={((curCol?.fx0 ?? 0) + (curCol?.fx1 ?? W)) * s * 0.5 + 12} y1={yb} y2={yb} />
+              </g>
+            {/if}
+          {/each}
+          {#if fv && !drag}
             {#each fv.hinges as hg}
               {@const d = doorOf(hg.part)}
               {#if d && hg.edge === "top"}
@@ -326,10 +487,20 @@
       <div class="rows" bind:this={rowsEl}>
         {#each zones as z, i}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="row" class:on={store.ui.zone === i} data-zone={i} onfocusin={() => (store.ui.zone = i)}>
+          <div
+            class="row"
+            class:on={store.ui.zone === i}
+            class:lifted={rowDrag?.i === i}
+            class:drop-before={rowDrop?.row === i && rowDrop.side === "before"}
+            class:drop-after={rowDrop?.row === i && rowDrop.side === "after"}
+            data-zone={i}
+            onfocusin={() => (store.ui.zone = i)}
+          >
+            <button class="quiet rowgrip" tabindex="-1" title={t("ui.fb.drag_row")} aria-label={t("ui.fb.drag_row")} onpointerdown={(e) => rowDown(e, i)} onpointermove={rowMove} onpointerup={rowEnd} onpointercancel={rowEnd}>⠿</button>
             <select id={`fz-type-${i}`} aria-label={t("ui.front_type")} value={z.type} onchange={(e) => edit((l) => (l[i]!.type = (e.target as HTMLSelectElement).value))}>
               {#each TYPES as ty}<option value={ty}>{t(`ui.zone.${ty}`)}</option>{/each}
             </select>
+            <label class="hl" for={`fz-h-${i}`}>{t("ui.fb.height")}</label>
             <input
               id={`fz-h-${i}`}
               class="mono"
@@ -343,6 +514,7 @@
                 edit((l) => (val === undefined ? delete l[i]!.h : (l[i]!.h = val)));
               }}
             />
+            <span class="hres mono" title={t("ui.fb.height_now")}>{typeof z.h === "number" && formatNumber(z.h) === resolvedH(i) ? "mm" : `= ${resolvedH(i)}`}</span>
             {#if z.type === "door"}
               <div class="seg" role="group" aria-label={t("ui.opening")}>
                 {#each ["left", "pair", "right"] as m}
@@ -385,7 +557,7 @@
             {/if}
           </div>
         {/each}
-        {#if !zones.length}<p class="muted small">{t("ui.no_fronts")}</p>{/if}
+        {#if !zones.length}<p class="muted small">{t("ui.no_fronts")}</p>{:else}<p class="muted small">{t("ui.fb.height_hint")} {zones.length > 1 ? t("ui.fb.drag_hint") : ""}</p>{/if}
         <div class="add">
           <button onclick={() => edit((l) => l.push({ type: "drawer", h: 150 }))}>{t("ui.add_drawer")}</button>
           <button onclick={() => edit((l) => l.push({ type: "door", doors: 1 }))}>{t("ui.add_door_zone")}</button>
@@ -417,7 +589,15 @@
   .dim { opacity: .45; }
   .hole { fill: var(--view); stroke: var(--part-edge); stroke-width: .6; stroke-dasharray: 3 2; }
   .swing { fill: none; stroke: var(--muted); stroke-width: .8; stroke-dasharray: 4 2; }
-  .front { cursor: pointer; }
+  .preview { touch-action: none; user-select: none; -webkit-user-select: none; }
+  .front { cursor: grab; }
+  .preview.dragging .front { cursor: grabbing; }
+  .front.lifted { opacity: .75; stroke: var(--accent); stroke-width: 2; }
+  .drop { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; pointer-events: none; }
+  .edge { cursor: ns-resize; }
+  .edge .hit { fill: transparent; }
+  .edge line { stroke: var(--fg); stroke-width: 3; stroke-linecap: round; opacity: .55; pointer-events: none; }
+  .edge:hover line, .edge.on line { stroke: var(--accent); opacity: 1; stroke-width: 4; }
   .front.on { stroke: var(--accent); stroke-width: 2; }
   .mark { fill: var(--fg); pointer-events: none; }
   .grip { stroke: var(--fg); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
@@ -425,13 +605,20 @@
   .row.on { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 250px; }
   .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-  .row > select:first-child { flex: 1 1 84px; min-width: 0; }
+  .row > select:first-of-type { flex: 1 1 84px; min-width: 0; }
   .row > input.mono { flex: 0 0 58px; }
   .row select.handle { flex: 1 1 90px; min-width: 0; font-size: 12px; }
   .row > span:empty { display: none; }
   .row input { width: 58px; }
   /* The zone's own value sits on a line of its own under the row. */
   .extra { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; padding-left: 8px; font-size: 12px; color: var(--muted); }
+  .row .tools { margin-left: auto; }
+  .hl { font-size: 12px; color: var(--muted); }
+  .hres { font-size: 11px; color: var(--muted); min-width: 34px; }
+  .rowgrip { cursor: grab; touch-action: none; padding: 0 3px; color: var(--muted); font-size: 15px; line-height: 1; align-self: stretch; }
+  .row.lifted { opacity: .55; background: var(--accent-soft); }
+  .row.drop-before { box-shadow: 0 -3px 0 -1px var(--accent); }
+  .row.drop-after { box-shadow: 0 3px 0 -1px var(--accent); }
   .seg { display: flex; }
   .seg button { padding: 2px 7px; border-radius: 0; font-size: 12px; white-space: nowrap; }
   .seg button:first-child { border-radius: 6px 0 0 6px; }

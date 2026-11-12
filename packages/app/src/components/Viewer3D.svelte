@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { longPress } from "../lib/longpress.ts";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import { sceneOf, type CabinetResult, type HandlePlacement, type ScenePart } from "@cabinet-planner/engine";
@@ -365,11 +366,22 @@
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObjects(meshes)[0];
+    // A click picks the part and shows its settings (D73); a click beside the furniture picks nothing.
     if (hit) {
       store.ui.selected = hit.object.userData.cabinet;
-      store.ui.part = hit.object.userData.part;
-      store.ui.pane = "cabinet";
-    }
+      store.selectPart(hit.object.userData.part);
+    } else if (store.ui.partPanel) store.selectPart(null);
+  }
+
+  /** Double-click (touch: long press) on a part: its parameters in the construction editor (D73). */
+  function paramsAt(e: { clientX: number; clientY: number }): void {
+    const r = canvas.getBoundingClientRect();
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    // The first click of a double-click rebuilt the meshes (selection); they are placed with the next frame.
+    scene.updateMatrixWorld();
+    const part = ray.intersectObjects(meshes)[0]?.object.userData.part as string | undefined;
+    if (part) store.openPartParams(part);
   }
 
   $effect(() => {
@@ -446,7 +458,7 @@
   {#if failed}
     <p class="muted fail">{t("ui.no_webgl")}</p>
   {/if}
-  <canvas bind:this={canvas} onpointerdown={onDown} onpointerup={onUp}></canvas>
+  <canvas bind:this={canvas} onpointerdown={onDown} onpointerup={onUp} ondblclick={paramsAt} use:longPress={paramsAt}></canvas>
   <span class="hint">{t("ui.view_hint")}</span>
 </section>
 
