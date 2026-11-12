@@ -1340,3 +1340,62 @@ Both lines changed the same rules independently. Where they overlapped:
   in wardrobe-5-sections-clamex the backs between middle panels are 0.01 mm
   narrower (607.86) and the middle panels' back grooves 6.33 instead of 6.34
   deep (faces rounded where they lie).
+
+### D75 · 2026-11-13 · Sheet selection and PDF; sheet proportions; edge remarks
+
+- Sheet list (`output/sheets.ts`): `sheetIndex` lists every sheet of a
+  project (name, kind, cabinet, wall, part, side, machined) without
+  drawing it; `projectSheets` takes `only` (names; the project's order
+  stays) and `meta` (project, revision, timestamp): every exported sheet
+  then carries a footer line bottom right, "Project, Rev. n · YYYY-MM-DD
+  HH:MM · folder/name". The CLI always writes the footer (time only with
+  `--timestamp`); the app writes it with the local time of the export.
+  The preview has none.
+- The app chooses sheets in a list grouped by room and cabinet (all,
+  none, only machined parts, only the current cabinet; new sheets are
+  selected). The selection goes to one PDF, a ZIP of SVGs, the CNC DXF
+  ZIP of the chosen part sheets, or the print dialog. CLI: `sheets --pdf
+  <file>` (with `--zip` / `--out` in the same run), `--paper`, and `--only
+  <names>` (comma-separated, ".svg" optional, "B01/" for a whole folder;
+  an unknown name is an error).
+- PDF writer (`output/pdf.ts`), no library: converts our own sheet SVG
+  (rect, line, circle, polygon, polyline, path, text; class styles from
+  the embedded stylesheet) to vector PDF 1.7, one sheet per page, one
+  bookmark per sheet. Text stays text: TrueType fonts embedded as subsets
+  (CID, Identity-H, ToUnicode), Inter and JetBrains Mono 400/600 from
+  @fontsource (SIL OFL), latin with latin-ext as fallback; a character no
+  file has gets the missing glyph. The host passes the font files (CLI:
+  `packages/cli/src/fonts.ts`; app: bundled assets, loaded on the first
+  PDF). Streams are compressed by the engine's own zlib (`output/deflate.ts`,
+  fixed Huffman), so app and CLI write the same bytes. No clock, no random
+  ids: the creation date is the timestamp passed in, the file id comes from
+  the content.
+- Paper (`output/paper.ts`): `sheet` (default: every page is its sheet,
+  true to scale), `a4`, `a3`: the paper is turned to the sheet; a sheet that
+  fits is centred unscaled, a larger one is reduced to fit inside 5 mm.
+  Always one scale for both directions.
+- Proportions: a sheet's viewBox equals its size in mm (1 unit = 1 mm, both
+  directions; tested for every sheet), and nothing between the sheet and
+  the paper may scale x and y apart. The PDF writer maps the viewBox with
+  one scale. Printing from the app now lays every page out on one upright
+  paper (A4 or A3) inside a single SVG with explicit position, size and
+  viewBox per sheet, landscape sheets turned a quarter turn; it no longer
+  relies on named `@page` sizes per page and 100 % × 100 % sized SVGs,
+  which print engines handle differently. The app sizes only the outermost
+  SVG of a sheet (`.sheet svg:not(svg svg)`): the nested sheets of a part
+  machined on both faces keep their own x/y/width/height (SVG 2 resolves a
+  CSS `height: auto` on a nested `<svg>` to 100 %, which drew each side into
+  the whole stack's box).
+- Edge remarks: a part override may carry `edgeNotes` (`l1`, `l2`, `w1`,
+  `w2`; free text, at most 40 characters, trimmed, empty ones dropped), e.g.
+  "45°". Text only: no geometry, cut size or machining changes. Edges keep
+  their names L1 L2 W1 W2 (German B1 B2), as in the edge columns. The
+  remark is written on the part sheet after the edge name ("FRONT · W1 ·
+  45°"), and parts with different remarks are separate cutlist rows.
+- Cutlist columns: the D67 columns stay first and unchanged; when any row
+  of a list has a remark, four columns "Remark L1/L2/W1/W2" follow at the
+  end (`cutlistColumns`). Lists without remarks are byte-identical to
+  before: no golden file changed.
+- In the app the cutlist shows each edge by name with its edgeband code
+  and remark; a click opens an editor for the band (as constructed, none,
+  or a library edgeband) and the remark, written to every part of the row.

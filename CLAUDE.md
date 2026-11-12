@@ -32,6 +32,7 @@ pnpm check           # typecheck + tests (what CI runs)
 pnpm cp cutlist examples/kitchen-basic.project.json --shop examples/shop.json --format table --lang de
 pnpm cp bom examples/kitchen-basic.project.json --shop examples/shop.json --format table --per-cabinet   # board m², edgeband m, hardware, prices
 pnpm cp sheets examples/kitchen-basic.project.json --zip sheets.zip   # every drawing sheet as SVG
+pnpm cp sheets examples/kitchen-basic.project.json --pdf sheets.pdf --only B01/,room/floor-plan   # chosen sheets as one PDF (--paper a4|a3)
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + hardware per part
 pnpm app             # web app dev server (http://localhost:5173)
