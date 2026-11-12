@@ -1,0 +1,23 @@
+{
+  "id": "hardware-blum",
+  "name": {
+    "en": "Blum hardware",
+    "de": "Beschläge Blum"
+  },
+  "description": {
+    "en": "Clip top hinge. From the manufacturer catalogues, untested.",
+    "de": "Topfband Clip top. Aus den Herstellerkatalogen, ungeprüft."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "hardware",
+  "tags": [
+    "blum",
+    "hardware"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

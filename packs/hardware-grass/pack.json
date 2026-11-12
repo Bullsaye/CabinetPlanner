@@ -1,0 +1,23 @@
+{
+  "id": "hardware-grass",
+  "name": {
+    "en": "Grass hardware",
+    "de": "Beschläge Grass"
+  },
+  "description": {
+    "en": "Tiomos hinges, Dynapro slide, Nova Pro Scala drawer system. From the manufacturer catalogues, untested.",
+    "de": "Tiomos-Topfbänder, Führung Dynapro, Schubkastensystem Nova Pro Scala. Aus den Herstellerkatalogen, ungeprüft."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "hardware",
+  "tags": [
+    "grass",
+    "hardware"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

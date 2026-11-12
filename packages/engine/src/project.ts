@@ -2,7 +2,9 @@ import { z } from "zod";
 import { buildBox, type BoxLayout } from "./cabinet/box.ts";
 import { machineBox, type Fitting, type HandlePlacement, type HardwareUse } from "./cabinet/machining.ts";
 import { hasErrors, type Diagnostic } from "./diagnostics.ts";
-import { buildLibrary, FACTORY_LIBRARY, type Library } from "./library.ts";
+import { BUNDLED_PACKS } from "./bundled.ts";
+import { buildLibrary, type Library } from "./library.ts";
+import type { Pack } from "./packs.ts";
 import { ROLE_ORDER, type Part } from "./part.ts";
 import { presetRegistry, resolveCabinet, type ResolvedCabinet } from "./resolve.ts";
 import { layoutRoom, type RoomLayout } from "./room/room.ts";
@@ -92,13 +94,21 @@ export interface ProjectResult {
   values: ReadonlyMap<string, number>;
 }
 
+/** What a build stands on besides the project and the shop file. */
+export interface BuildEnv {
+  /** The packs below the shop library (D61), in order. Default: the bundled packs. */
+  packs?: readonly Pack[];
+}
+
 /**
  * The whole pipeline: presets → variables → rules → parts. A pure function
- * of its inputs; every output writer reads the result of this.
+ * of its inputs; every output writer reads the result of this. The library
+ * layers are packs → shop → project.
  */
-export function buildProject(project: Project, shop?: Shop): ProjectResult {
-  const library = buildLibrary(FACTORY_LIBRARY, shop?.library ?? {}, project.library);
-  const presets = presetRegistry(shop, project);
+export function buildProject(project: Project, shop?: Shop, env: BuildEnv = {}): ProjectResult {
+  const packs = env.packs ?? BUNDLED_PACKS;
+  const library = buildLibrary(...packs.map((p) => p.content), shop?.library ?? {}, project.library);
+  const presets = presetRegistry(shop, project, packs);
   // A shop file wins over an inline `shop` block in the project.
   const shopLayer = shop?.defaults ?? project.shop;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FACTORY_TEMPLATES, frontViewOf } from "../src/index.ts";
+import { BUNDLED, frontViewOf } from "../src/index.ts";
 import { buildOne } from "./helpers.ts";
 
 const view = (cabinet: Record<string, unknown>) => {
@@ -49,7 +49,7 @@ describe("front view of a cabinet (D54)", () => {
   });
 
   it("pantry with stacked doors: each door has its hinges and its handle inside its own height", () => {
-    const tpl = FACTORY_TEMPLATES.find((t) => t.id === "tall-pantry")!;
+    const tpl = BUNDLED.templates.find((t) => t.id === "tall-pantry")!;
     const f = view({ ...tpl.cabinet });
     const doors = f.parts.filter((p) => p.role === "door");
     expect(doors).toHaveLength(2);

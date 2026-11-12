@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { FACTORY_TEMPLATES } from "../src/index.ts";
+import { BUNDLED } from "../src/index.ts";
 import { anyCabinet, practicalCabinet } from "./arbitraries.ts";
 import { buildOne } from "./helpers.ts";
 import { violations } from "./invariants.ts";
@@ -150,7 +150,7 @@ describe("invariants over the option space", () => {
 
   it("the factory templates are sound at any width", () => {
     fc.assert(
-      fc.property(fc.constantFrom(...FACTORY_TEMPLATES), fc.integer({ min: 300, max: 1200 }), (tpl, W) => {
+      fc.property(fc.constantFrom(...BUNDLED.templates), fc.integer({ min: 300, max: 1200 }), (tpl, W) => {
         const r = buildOne({ ...tpl.cabinet, vars: { ...tpl.cabinet.vars, W } });
         if (r.ok) expect(violations(r), tpl.id).toEqual([]);
       }),

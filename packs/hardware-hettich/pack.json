@@ -1,0 +1,23 @@
+{
+  "id": "hardware-hettich",
+  "name": {
+    "en": "Hettich hardware",
+    "de": "Beschläge Hettich"
+  },
+  "description": {
+    "en": "Sensys hinges, Duplo shelf support, Rastex connector, SAH 130 cabinet hanger, Lift Advanced HK. From the manufacturer catalogues, untested.",
+    "de": "Sensys-Topfbänder, Bodenträger Duplo, Verbinder Rastex, Schrankaufhänger SAH 130, Lift Advanced HK. Aus den Herstellerkatalogen, ungeprüft."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "hardware",
+  "tags": [
+    "hettich",
+    "hardware"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

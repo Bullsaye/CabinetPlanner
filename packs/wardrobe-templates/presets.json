@@ -1,0 +1,20 @@
+[
+  {
+    "id": "wardrobe",
+    "name": {
+      "en": "Wardrobe",
+      "de": "Kleiderschrank"
+    },
+    "group": "kind",
+    "vars": {
+      "H": "wardrobe_h",
+      "D": "wardrobe_d",
+      "shelf_count": 0,
+      "door_count": 2
+    },
+    "options": {
+      "interior": "hanging"
+    },
+    "params": []
+  }
+]

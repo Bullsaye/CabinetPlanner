@@ -1,0 +1,23 @@
+{
+  "id": "kitchen-templates",
+  "name": {
+    "en": "Kitchen templates",
+    "de": "Küchenvorlagen"
+  },
+  "description": {
+    "en": "Base, wall and tall units for kitchens: doors, drawers, sink, corner, oven and fridge housings.",
+    "de": "Unter-, Hänge- und Hochschränke für Küchen: Türen, Schubkästen, Spüle, Ecke, Backofen- und Kühlschrankumbau."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "templates",
+  "tags": [
+    "kitchen",
+    "templates"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

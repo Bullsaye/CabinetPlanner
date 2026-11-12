@@ -1,0 +1,23 @@
+{
+  "id": "wardrobe-templates",
+  "name": {
+    "en": "Wardrobe templates",
+    "de": "Kleiderschrankvorlagen"
+  },
+  "description": {
+    "en": "Wardrobes with hanging rail, shelves and drawers, and the wardrobe preset.",
+    "de": "Kleiderschränke mit Stange, Fachböden und Schubkästen sowie die Vorgabe Kleiderschrank."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "templates",
+  "tags": [
+    "wardrobe",
+    "templates"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

@@ -1,0 +1,23 @@
+{
+  "id": "hardware-lamello",
+  "name": {
+    "en": "Lamello hardware",
+    "de": "Beschläge Lamello"
+  },
+  "description": {
+    "en": "Clamex P-14 connector. From the manufacturer catalogue, untested.",
+    "de": "Verbinder Clamex P-14. Aus dem Herstellerkatalog, ungeprüft."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "hardware",
+  "tags": [
+    "lamello",
+    "hardware"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

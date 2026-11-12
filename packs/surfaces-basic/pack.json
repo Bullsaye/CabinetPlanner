@@ -1,0 +1,22 @@
+{
+  "id": "surfaces-basic",
+  "name": {
+    "en": "Basic surfaces",
+    "de": "Oberflächen Grundauswahl"
+  },
+  "description": {
+    "en": "Common lacquer tones and laminates as examples to copy.",
+    "de": "Gängige Lackfarbtöne und Schichtstoffe als Beispiele zum Kopieren."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "surfaces",
+  "tags": [
+    "surfaces"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}
