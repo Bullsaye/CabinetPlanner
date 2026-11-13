@@ -4,7 +4,7 @@
   import { swingPoints } from "../lib/elevation.ts";
 
   const t = $derived(store.tr.t);
-  const SYMBOLS = ["tip_at_hinge", "tip_at_handle"] as const;
+  const SYMBOLS = ["tip_at_handle", "tip_at_hinge"] as const;
   let open = $state(false);
   let note = $state("");
 
@@ -69,6 +69,7 @@
           </button>
         {/each}
       </div>
+      <p class="sym-hint">{t("ui.hinge_symbol.hint")}</p>
       <label class="lang">
         <span>{t("ui.language")}</span>
         <select id="lang" bind:value={store.ui.lang}>
@@ -91,6 +92,7 @@
   .sym { display: flex; gap: 4px; padding: 2px 6px 4px; }
   .sym button { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 12px; text-align: left; padding: 4px 6px; }
   .sym svg { flex: none; }
+  .sym-hint { margin: 0 4px 6px; padding: 0 6px; max-width: 34ch; font-size: 11px; line-height: 1.35; color: var(--muted); }
   .lang { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 10px; }
   .note { margin: 6px 4px 2px; font-size: 12px; color: var(--muted); max-width: 30ch; }
 </style>
