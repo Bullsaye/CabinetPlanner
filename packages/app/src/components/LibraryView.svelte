@@ -84,6 +84,18 @@
   let cat = $state<string>("");
   let query = $state("");
   let selectedHw = $state<string | null>(null);
+  // A link from a part's hardware (part panel, D73) opens the item here.
+  $effect(() => {
+    const it = store.ui.libraryItem;
+    if (!it) return;
+    store.ui.libraryItem = null;
+    if (it.section !== "hardware") return;
+    section = "hardware";
+    cat = "";
+    query = "";
+    selectedHw = it.id;
+    json = "";
+  });
   let json = $state("");
   let jsonError = $state("");
   const hardware = $derived(

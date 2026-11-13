@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import { longPress } from "../lib/longpress.ts";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import { sceneOf, type CabinetPlacement, type CabinetResult, type HandlePlacement, type Scene, type ScenePart } from "@cabinet-planner/engine";
@@ -496,20 +497,36 @@
   }
 
   /**
-   * A click on a part selects it and its cabinet; a click beside the cabinets
-   * clears the selection (D74). The cabinet view keeps its cabinet: it shows
-   * nothing else.
+   * A click on a part selects it and its cabinet and shows the part's panel
+   * (D73); a second click on the selected part clears the part selection; a
+   * click beside the cabinets clears the selection (D74). The cabinet view
+   * keeps its cabinet: it shows nothing else.
    */
   function click(e: PointerEvent): void {
     const hit = pick(e.clientX, e.clientY);
     if (hit) {
+      const part = hit.object.userData.part as string;
       store.ui.selected = hit.object.userData.cabinet;
-      store.ui.part = hit.object.userData.part;
+      store.selectPart(store.ui.part === part ? null : part);
       store.ui.pane = "cabinet";
       return;
     }
-    store.ui.part = null;
+    store.selectPart(null);
     if (!single) store.ui.selected = null;
+  }
+
+  /** Double-click (touch: long press) on a part: its parameters in the construction editor (D73). */
+  function paramsAt(e: { clientX: number; clientY: number }): void {
+    // No click follows: the release of a long press must not select or clear.
+    down = null;
+    // The first click of a double-click rebuilt the meshes (selection); they are placed with the next frame.
+    scene.updateMatrixWorld();
+    const part = pick(e.clientX, e.clientY)?.object.userData.part as string | undefined;
+    if (part) store.openPartParams(part);
+  }
+  /** Long press: the parameters, unless the press armed a cabinet move (D74), which wins. */
+  function pressParams(e: PointerEvent): void {
+    if (!mv) paramsAt(e);
   }
 
   // --- Hiding parts (D74) ------------------------------------------------------
@@ -528,7 +545,7 @@
     const id = selectedPart?.id;
     if (!id) return;
     view3d.hidden = [...view3d.hidden, id];
-    store.ui.part = null;
+    store.selectPart(null);
   }
 
   // --- Moving cabinets (D69, D74) -----------------------------------------------
@@ -721,6 +738,12 @@
       m.cx = e.clientX;
       m.cy = e.clientY;
       const moved = m.drag.started;
+      // A finger held and released in place armed a move but did not move: a long press (D73).
+      if (moved && m.touch && Math.hypot(e.clientX - m.sx, e.clientY - m.sy) <= 10) {
+        endMove(true);
+        paramsAt(e);
+        return;
+      }
       if (moved) update(true);
       endMove(false);
       if (moved) {
@@ -885,7 +908,7 @@
     <p class="muted fail">{t("ui.no_webgl")}</p>
   {/if}
   <div class="stage">
-    <canvas bind:this={canvas}></canvas>
+    <canvas bind:this={canvas} ondblclick={paramsAt} use:longPress={pressParams}></canvas>
     <div class="tools">
       {#if view3d.section}
         <div class="tool cutter" role="group" aria-label={t("ui.section")}>
