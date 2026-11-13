@@ -1,7 +1,7 @@
 import { buildProject, drawingText, floorPlanFrame, floorPlanSvg, loadProject, loadShop } from "@cabinet-planner/engine";
 import { createTranslator } from "@cabinet-planner/i18n";
 import { describe, expect, it } from "vitest";
-import { applyMove, insertion, itemsOf, nearestWall, onWall, simulate, snapX, stepAnchor, type ArrItem, type ArrWall } from "../src/lib/arrange.ts";
+import { applyMove, insertion, itemsOf, nearestWall, onWall, rayToPlan, simulate, snapX, stepAnchor, type ArrItem, type ArrWall } from "../src/lib/arrange.ts";
 import example from "../../../examples/kitchen-basic.project.json" with { type: "json" };
 import shop from "../../../examples/shop.json" with { type: "json" };
 
@@ -247,5 +247,83 @@ describe("floorPlanFrame", () => {
     const [x, y] = f.toPlan(...f.toPaper(1234, -567));
     expect(x).toBeCloseTo(1234, 6);
     expect(y).toBeCloseTo(-567, 6);
+  });
+});
+
+describe("rayToPlan: the pointer of the 3D view as a plan point", () => {
+  it("meets the plane at the given height; scene −Z is plan north", () => {
+    // Straight down onto the floor.
+    expect(rayToPlan([1200, 3000, -400], [0, -1, 0], 0)).toEqual([1200, 400]);
+    // At 45° towards +X and towards the viewer (+Z = south), onto a plane 870 above the floor.
+    const p = rayToPlan([0, 1870, 0], [1, -1, 1], 870)!;
+    expect(p[0]).toBeCloseTo(1000, 6);
+    expect(p[1]).toBeCloseTo(-1000, 6);
+  });
+
+  it("gives nothing for a level ray, a ray away from the plane or one near the horizon", () => {
+    expect(rayToPlan([0, 1000, 0], [1, 0, 0], 0)).toBeNull();
+    expect(rayToPlan([0, 1000, 0], [0, 1, 0], 0)).toBeNull();
+    expect(rayToPlan([0, 1000, 0], [1, -0.001, 0], 0)).toBeNull();
+    // From below the plane upwards (looking at a wall unit's underside) works.
+    expect(rayToPlan([500, 0, 0], [0, 1, 0], 1400)).toEqual([500, -0]);
+  });
+
+  it("a ray onto a cabinet of the example gives its place along the wall, as the floor plan does", () => {
+    const room = build(example).room!;
+    const q = room.placements.find((x) => x.cabinet === "B03")!;
+    const w = room.walls.find((x) => x.id === q.wall)!;
+    // The middle of the cabinet's top, seen from somewhere in the room.
+    const top = q.baseY + q.H;
+    const mid: [number, number] = [q.origin[0] + q.d[0] * (q.W / 2) + q.n[0] * (q.depth / 2), q.origin[1] + q.d[1] * (q.W / 2) + q.n[1] * (q.depth / 2)];
+    const eye: [number, number, number] = [mid[0] + 900, 2600, -mid[1] + 2100];
+    const p = rayToPlan(eye, [mid[0] - eye[0], top - eye[1], -mid[1] - eye[2]], top)!;
+    expect(onWall(w, p).u).toBeCloseTo(q.x + q.W / 2, 6);
+    expect(nearestWall(room.walls, p, "C")).toBe(q.wall);
+  });
+});
+
+describe("nearestWall for a cabinet held at its front (3D view)", () => {
+  it("a cabinet at the end of wall A, held 580 in front of it, stays on A although wall B is nearer to the pointer", () => {
+    // 300 from wall B (x = 3600), 580 in front of wall A (y = 0, room to the south).
+    const p: [number, number] = [3300, -580];
+    expect(nearestWall(walls, p, "A")).toBe("B");
+    expect(nearestWall(walls, p, "A", 150, 1500, 580)).toBe("A");
+  });
+
+  it("held in front of a place on the other wall, it goes there", () => {
+    // 580 in front of wall B, 900 along it; 320 behind that point as seen from wall A.
+    const p: [number, number] = [3600 - 580, -900];
+    expect(nearestWall(walls, p, "A", 150, 1500, 580)).toBe("B");
+    // And it stays there on the way back until wall A is clearly nearer.
+    expect(nearestWall(walls, [3600 - 580, -700], "B", 150, 1500, 580)).toBe("B");
+    expect(nearestWall(walls, [2000, -600], "B", 150, 1500, 580)).toBe("A");
+  });
+
+  it("the engine's wall normals are the default normals", () => {
+    for (const w of build(example).room!.walls) {
+      expect(w.n[0]).toBeCloseTo(w.d[1], 9);
+      expect(w.n[1]).toBeCloseTo(-w.d[0], 9);
+    }
+  });
+});
+
+describe("grabbing a cabinet's front in the 3D view (D74)", () => {
+  it("every cabinet of the example, held at the middle of its front, stays on its wall at its own place", () => {
+    const room = build(example).room!;
+    for (const q of room.placements) {
+      const w = room.walls.find((x) => x.id === q.wall)!;
+      // The middle of the front at half height, seen from 2.5 m into the room and a bit to the side.
+      const along = q.x + q.W / 2;
+      const front: [number, number] = [w.start[0] + w.d[0] * along + w.n[0] * q.depth, w.start[1] + w.d[1] * along + w.n[1] * q.depth];
+      const y = q.baseY + q.H / 2;
+      const eyePlan: [number, number] = [front[0] + w.n[0] * 2500 + w.d[0] * 400, front[1] + w.n[1] * 2500 + w.d[1] * 400];
+      const eye: [number, number, number] = [eyePlan[0], 1700, -eyePlan[1]];
+      const p = rayToPlan(eye, [front[0] - eye[0], y - eye[1], -front[1] - eye[2]], y)!;
+      expect(p[0]).toBeCloseTo(front[0], 6);
+      expect(p[1]).toBeCloseTo(front[1], 6);
+      expect(onWall(w, p).u).toBeCloseTo(along, 6);
+      // Held its depth in front of the wall: the wall it stands on, even in a corner.
+      expect(nearestWall(room.walls, p, q.wall, 150, 1500, q.depth)).toBe(q.wall);
+    }
   });
 });

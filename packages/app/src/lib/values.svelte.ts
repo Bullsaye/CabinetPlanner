@@ -11,6 +11,7 @@ import {
   type Source,
 } from "@cabinet-planner/engine";
 import { diagnosticText } from "@cabinet-planner/i18n";
+import { settingDrives } from "./partmap.ts";
 import { store, type Layer } from "./store.svelte.ts";
 
 /**
@@ -113,85 +114,24 @@ export function originOf(source: Source): Origin {
   return { label: t(`layer.${source.layer}`), text: t(`ui.origin.text.${source.layer}`) };
 }
 
-/** 3D parts a setting is about, by role (highlighted while its row has focus). */
+/**
+ * Settings that switch machining off leave no operation to find their parts by:
+ * these name the roles they are about.
+ */
 const SIDES = ["side_left", "side_right"];
-const FRONTS = ["door", "drawer_front", "flap", "blind_panel", "appliance_front"];
-const DRAWER = ["drawer_side_left", "drawer_side_right", "drawer_inner", "drawer_back", "drawer_bottom"];
-const CARCASE = [...SIDES, "bottom", "top", "rail_front", "rail_rear", "rail_bottom", "partition", "fixed_shelf"];
-const ROLES: Record<string, readonly string[]> = {
-  t_carcase: CARCASE,
-  "material.carcase": CARCASE,
-  "edge.carcase": CARCASE,
-  carcase_joint: [...SIDES, "bottom", "top"],
-  "side.left": ["side_left"],
-  "side.right": ["side_right"],
-  top: ["top", "rail_front", "rail_rear"],
-  "top.base_unit": ["top", "rail_front", "rail_rear"],
-  "rail.front": ["rail_front"],
-  "rail.rear": ["rail_rear"],
-  rail_w: ["rail_front", "rail_rear"],
-  "rail.bottom": ["rail_bottom"],
-  rail_bottom_w: ["rail_bottom"],
-  bottom_setback_rear: ["bottom"],
-  bottom_setback_front: ["bottom"],
-  back_mount: ["back"],
-  back_extent: ["back"],
-  "material.back": ["back"],
-  t_back: ["back"],
-  back_groove_offset: ["back"],
-  back_groove_depth: ["back"],
-  back_rebate_depth: ["back"],
-  back_play: ["back"],
-  shelf_count: ["shelf"],
-  shelf_gap: ["shelf"],
-  shelf_front_setback: ["shelf"],
-  shelf_back_gap: ["shelf"],
-  t_shelf: ["shelf"],
-  "material.shelf": ["shelf"],
-  "edge.shelf": ["shelf"],
-  "hardware.shelf_support": ["shelf"],
-  fixed_shelf_setback: ["fixed_shelf"],
-  partition_count: ["partition"],
-  partition_setback: ["partition"],
-  t_front: FRONTS,
-  "material.front": FRONTS,
-  "edge.front": FRONTS,
-  front_gap: FRONTS,
-  front_gap_v: FRONTS,
-  front_gap_top: FRONTS,
-  front_gap_bottom: FRONTS,
-  front_gap_left: FRONTS,
-  front_gap_right: FRONTS,
-  front_gap_middle: FRONTS,
-  front_gap_side: FRONTS,
-  "hardware.handle": FRONTS,
-  "handle.door": ["door"],
-  "handle.drawer": ["drawer_front"],
-  handle_height: ["door"],
-  handle_edge_offset: ["door"],
-  handle_end_offset: ["door"],
-  handle_drawer_top: ["drawer_front"],
-  "hardware.hinge": ["door"],
-  door_hinge_side: ["door"],
-  hinge_end_offset: ["door"],
-  hinge_count: ["door"],
-  "hardware.flap": ["flap"],
-  "hardware.slide": [...DRAWER, "drawer_front"],
-  "drawer_front.fixing": ["drawer_front"],
-  "material.drawer": DRAWER,
-  "material.drawer_bottom": ["drawer_bottom"],
-  "edge.drawer": DRAWER,
-  ceiling_filler: ["ceiling_filler"],
-  ceiling_filler_gap: ["ceiling_filler"],
+const FALLBACK_ROLES: Record<string, readonly string[]> = {
+  system_holes: SIDES,
   joint_method: [...SIDES, "bottom", "top"],
   dowel_pattern: [...SIDES, "bottom", "top"],
-  system_holes: SIDES,
 };
 
-/** Highlights the parts a setting is about in the 3D view (cabinet rows only). */
+/** Highlights the parts a setting is about in the 3D view (cabinet rows only); the mapping is the part panel's (D73). */
 export function highlightFor(key: string | null): void {
-  const roles = key === null ? undefined : ROLES[key];
-  const ids = roles ? (store.cabinet?.parts ?? []).filter((p) => roles.includes(p.role)).map((p) => p.id) : [];
+  const cab = store.cabinet;
+  const ids =
+    key === null || !cab
+      ? []
+      : cab.parts.filter((p) => settingDrives(key, p, cab.resolved) || FALLBACK_ROLES[key]?.includes(p.role)).map((p) => p.id);
   if (ids.length || store.ui.highlight.length) store.ui.highlight = ids;
 }
 

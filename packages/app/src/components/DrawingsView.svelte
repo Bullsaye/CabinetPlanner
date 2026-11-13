@@ -11,16 +11,17 @@
     FACTORY_STYLES,
     localName,
     partDxf,
-    projectSheets,
     resolveStyle,
+    sheetFooter,
+    sheetPage,
     stackSheets,
     zip,
     type CabinetResult,
     type DxfFile,
-    type Sheet,
   } from "@cabinet-planner/engine";
   import { copy, download, downloadNote, store } from "../lib/store.svelte.ts";
-  import { printSheets, type Paper } from "../lib/export.ts";
+  import { localTimestamp } from "../lib/export.ts";
+  import SheetChooser from "./SheetChooser.svelte";
 
   const t = $derived(store.tr.t);
   let kind = $state<"part" | "assembly" | "plan" | "elevation" | "room_part">("part");
@@ -41,13 +42,33 @@
     if (!store.result?.room && (kind === "plan" || kind === "elevation" || kind === "room_part")) kind = "part";
   });
 
-  function make(css: boolean): string {
+  // The style of the part sheets: the preview and every export use the same one.
+  const styleIn = $derived([...styles].reverse().find((s) => s.id === store.ui.style) ?? FACTORY_STYLES[0]!);
+  const sheetStyle = $derived.by(() => {
+    try {
+      return resolveStyle(styleIn.id, styles);
+    } catch {
+      return resolveStyle(FACTORY_STYLES[0]!.id, []);
+    }
+  });
+
+  /**
+   * The sheet on show. `file`: for saving, with the stylesheet embedded and
+   * the footer line (project, revision, time) every exported sheet carries.
+   */
+  function make(file: boolean): string {
+    const css = file;
     const r = store.result;
+    const foot = <T extends { svg: string; page: { w: number; h: number } }>(d: T): T =>
+      file && r ? { ...d, svg: sheetFooter(d.svg, d.page, { project: r.project.name, revision: r.project.revision, timestamp: localTimestamp() }, fileName, store.tr) } : d;
+    const whole = (svg: string): string => foot({ svg, page: sheetPage(svg) }).svg;
     if (r?.room && (kind === "plan" || kind === "elevation")) {
       const text = drawingText(store.tr, r.library);
-      return kind === "plan"
-        ? floorPlanSvg(r.room, r.project.name, text, css)
-        : elevationSvg(r.room, r.room.walls.some((w) => w.id === wallId) ? wallId : r.room.walls[0]!.id, r.cabinets, r.project.name, text, css);
+      return whole(
+        kind === "plan"
+          ? floorPlanSvg(r.room, r.project.name, text, css)
+          : elevationSvg(r.room, r.room.walls.some((w) => w.id === wallId) ? wallId : r.room.walls[0]!.id, r.cabinets, r.project.name, text, css),
+      );
     }
     if (r && kind === "room_part") {
       if (!roomPart) return "";
@@ -60,7 +81,7 @@
           style: resolveStyle(styleIn.id, styles),
           text: drawingText(store.tr, r.library, localName(styleIn.name, store.tr.locale)),
           css,
-        }),
+        }).map(foot),
       );
     }
     if (!r || !cab || !cab.parts.length) return "";
@@ -69,22 +90,24 @@
     try {
       if (kind === "assembly") {
         const c = cab.resolved.cabinet;
-        return drawAssembly({
-          cabinet: { id: c.id, ...(c.name ? { name: c.name } : {}), ...size },
-          parts: cab.parts,
-          hardware: cab.hardware,
-          library: r.library,
-          text: drawingText(store.tr, r.library),
-          project: { name: r.project.name, revision: r.project.revision },
-          css,
-        }).svg;
+        return whole(
+          drawAssembly({
+            cabinet: { id: c.id, ...(c.name ? { name: c.name } : {}), ...size },
+            parts: cab.parts,
+            hardware: cab.hardware,
+            library: r.library,
+            text: drawingText(store.tr, r.library),
+            project: { name: r.project.name, revision: r.project.revision },
+            css,
+          }).svg,
+        );
       }
       const part = cab.parts.find((p) => p.id === partId);
       if (!part) return "";
       const styleIn = [...styles].reverse().find((s) => s.id === store.ui.style) ?? FACTORY_STYLES[0]!;
       const style = resolveStyle(styleIn.id, styles);
       return stackSheets(
-        drawPartSheets({ part, cabinet: size, style, text: drawingText(store.tr, r.library, localName(styleIn.name, store.tr.locale)), css }),
+        drawPartSheets({ part, cabinet: size, style, text: drawingText(store.tr, r.library, localName(styleIn.name, store.tr.locale)), css }).map(foot),
       );
     } catch (e) {
       return `<p>${String((e as Error).message)}</p>`;
@@ -104,8 +127,10 @@
       return c.parts.filter((p) => !partFilter || p.id === partFilter).flatMap((p) => partDxf(p, { W: v("W"), H: v("H"), D: v("D") }, profile, meta));
     });
   }
-  let cncAsk = $state<{ scope: "part" | "cabinet" | "project"; items: { id: string; pack: string }[] } | null>(null);
-  async function exportDxf(scope: "part" | "cabinet" | "project"): Promise<void> {
+  type DxfScope = "part" | "cabinet" | "project" | "selection";
+  let cncAsk = $state<{ scope: DxfScope; ids?: string[]; items: { id: string; pack: string }[] } | null>(null);
+  /** `ids`: the parts of scope "selection" (the part sheets ticked in the sheet chooser). */
+  async function exportDxf(scope: DxfScope, ids?: string[]): Promise<void> {
     const r = store.result;
     if (!r || !r.ok) {
       note = t("ui.fix_errors_first");
@@ -115,22 +140,24 @@
     const meta = { project: r.project.name, revision: r.project.revision, timestamp: new Date().toISOString().slice(0, 19) };
     const roomDxf = (list: typeof roomParts) => list.flatMap((p) => partDxf(p, { W: p.box.dx, H: p.box.dy, D: p.box.dz }, profile, meta));
     const roomScope = kind === "room_part";
-    const cabs = scope === "project" ? r.cabinets : cab && !roomScope ? [cab] : [];
+    const picked = scope === "selection" ? new Set(ids ?? []) : undefined;
+    const cabs = picked ? r.cabinets.filter((c) => c.parts.some((p) => picked.has(p.id))) : scope === "project" ? r.cabinets : cab && !roomScope ? [cab] : [];
     // Hardware from an untested community pack: the first CNC export asks (PLAN.md, trust levels).
     const usedHardware = cabs.flatMap((c) => c.hardware.map((h) => h.item));
     const untested = untestedPackHardware(store.shop, usedHardware);
     if (untested.length && cncAsk?.scope !== scope) {
-      cncAsk = { scope, items: untested };
+      cncAsk = { scope, ...(ids ? { ids } : {}), items: untested };
       return;
     }
     if (cncAsk) confirmCnc(store.shop, usedHardware);
     cncAsk = null;
-    const files =
-      roomScope && scope === "part"
+    const files = picked
+      ? [...dxfOf(cabs).filter((f) => picked.has(f.part)), ...roomDxf(roomParts.filter((p) => picked.has(p.id)))]
+      : roomScope && scope === "part"
         ? roomDxf(roomPart ? [roomPart] : [])
         : [...dxfOf(cabs, scope === "part" ? partId : undefined), ...(scope === "project" ? roomDxf(roomParts) : [])];
     const base =
-      scope === "project"
+      scope === "project" || scope === "selection"
         ? (r.project.name || "project").replace(/[^\w.-]+/g, "-")
         : roomScope && scope === "part"
           ? roomPart?.id
@@ -141,39 +168,6 @@
     note = downloadNote(await download(name, zip(files.map((f) => ({ name: f.name, data: f.content }))), "application/zip"), `${name} (${files.length} DXF)`, t);
   }
 
-  // All sheets at once: a zip of SVGs, or one sheet per page through the print dialog (PDF).
-  let sheetScope = $state<"project" | "cabinet">("project");
-  let paper = $state<Paper>("sheet");
-  function allSheets(): Sheet[] {
-    const r = store.result!;
-    const styleIn = [...styles].reverse().find((s) => s.id === store.ui.style) ?? FACTORY_STYLES[0]!;
-    return projectSheets(r, {
-      tr: store.tr,
-      style: resolveStyle(styleIn.id, styles),
-      styleName: localName(styleIn.name, store.tr.locale),
-      ...(sheetScope === "cabinet" && cab ? { cabinet: cab.resolved.cabinet.id } : {}),
-    });
-  }
-  async function exportSheets(how: "zip" | "print"): Promise<void> {
-    if (!store.result) return;
-    try {
-      const sheets = allSheets();
-      if (!sheets.length) {
-        note = t("ui.fix_errors_first");
-        return;
-      }
-      if (how === "print") {
-        printSheets(sheets, paper);
-        note = t("ui.sheets_printed", { n: sheets.length });
-        return;
-      }
-      const base = sheetScope === "cabinet" && cab ? cab.resolved.cabinet.id : (store.result.project.name || "project").replace(/[^\w.-]+/g, "-");
-      const name = `${base}-sheets.zip`;
-      note = downloadNote(await download(name, zip(sheets.map((s) => ({ name: s.name, data: s.svg }))), "application/zip"), `${name} (${sheets.length} SVG)`, t);
-    } catch (e) {
-      note = t("ui.sheets_failed", { error: String((e as Error).message) });
-    }
-  }
   const fileName = $derived(
     kind === "room_part" ? `${roomPart?.id}.svg` : kind === "assembly" ? `${cab?.resolved.cabinet.id}-assembly.svg` : kind === "plan" ? "floor-plan.svg" : kind === "elevation" ? `elevation-${wallId}.svg` : `${partId}.svg`,
   );
@@ -208,7 +202,7 @@
       </select>
     {/if}
     {#if kind === "part"}
-      <select id="draw-part" aria-label={t("ui.part")} value={partId} onchange={(e) => (store.ui.part = (e.target as HTMLSelectElement).value)}>
+      <select id="draw-part" aria-label={t("ui.part")} value={partId} onchange={(e) => store.selectPart((e.target as HTMLSelectElement).value)}>
         {#each parts as p}<option value={p.id}>{p.id} · {t(`role.${p.role}`)}</option>{/each}
       </select>
     {/if}
@@ -225,26 +219,13 @@
     <button onclick={() => exportDxf("cabinet")} disabled={!cab || kind === "room_part"}>{t("ui.dxf_cabinet")}</button>
     <button onclick={() => exportDxf("project")}>{t("ui.dxf_project")}</button>
   </div>
-  <div class="bar cnc">
-    <span class="label">{t("ui.sheets_export")}</span>
-    <select id="sheet-scope" aria-label={t("ui.sheets_scope")} bind:value={sheetScope}>
-      <option value="project">{t("ui.whole_project")}</option>
-      {#if cab}<option value="cabinet">{cab.resolved.cabinet.id}</option>{/if}
-    </select>
-    <button onclick={() => exportSheets("zip")}>{t("ui.sheets_zip")}</button>
-    <select id="sheet-paper" aria-label={t("ui.paper")} bind:value={paper}>
-      <option value="sheet">{t("ui.paper.sheet")}</option>
-      <option value="a4">A4</option>
-      <option value="a3">A3</option>
-    </select>
-    <button onclick={() => exportSheets("print")}>{t("ui.sheets_print")}</button>
-  </div>
+  <SheetChooser style={sheetStyle} styleName={localName(styleIn.name, store.tr.locale)} dxf={(ids) => exportDxf("selection", ids)} say={(text) => (note = text)} />
   {#if cncAsk}
     <div class="c-notice warn" role="alertdialog" aria-label={t("cloud.cnc.title")} style="margin: 8px">
       <strong>{t("cloud.cnc.title")}</strong>
       <p>{t("cloud.cnc.text", { items: cncAsk.items.map((x) => `${x.id} (${x.pack})`).join(", ") })}</p>
       <div class="c-row">
-        <button onclick={() => exportDxf(cncAsk!.scope)}>{t("cloud.cnc.export")}</button>
+        <button onclick={() => exportDxf(cncAsk!.scope, cncAsk!.ids)}>{t("cloud.cnc.export")}</button>
         <button class="quiet" onclick={() => (cncAsk = null)}>{t("ui.cancel")}</button>
       </div>
     </div>

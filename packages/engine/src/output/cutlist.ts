@@ -29,6 +29,8 @@ export interface CutlistRow {
   grain: boolean;
   /** Edgeband codes per edge, "" for none: [l1, l2, w1, w2]. */
   edges: [string, string, string, string];
+  /** Remark per edge for production, "" for none: [l1, l2, w1, w2] (D75). */
+  edgeNotes: [string, string, string, string];
   note: string;
   /** Not a rectangle: cut from the bounding size to the part's outline (D43). */
   outline: boolean;
@@ -59,6 +61,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
     qty: 1,
     grain: p.grain,
     edges: [code(p.edges.l1), code(p.edges.l2), code(p.edges.w1), code(p.edges.w2)],
+    edgeNotes: [p.edgeNotes?.l1 ?? "", p.edgeNotes?.l2 ?? "", p.edgeNotes?.w1 ?? "", p.edgeNotes?.w2 ?? ""],
     note: p.note ?? "",
     outline: !!p.outline,
     bevels: p.bevels ?? {},
@@ -82,6 +85,7 @@ export function cutlistRows(parts: readonly Part[], library: Library, opts: Cutl
       r.cutWidth,
       r.grain,
       r.edges,
+      r.edgeNotes,
       r.note,
       shape.get(r.part),
       r.bevels,
@@ -120,7 +124,11 @@ export type CutlistColumn =
   | "edge_l2"
   | "edge_w1"
   | "edge_w2"
-  | "note";
+  | "note"
+  | "edge_note_l1"
+  | "edge_note_l2"
+  | "edge_note_w1"
+  | "edge_note_w2";
 
 /** Order as on a shop list (D67): what, how many, size, board, finish, cut size, edges, remark. */
 export const DEFAULT_COLUMNS: readonly CutlistColumn[] = [
@@ -143,6 +151,18 @@ export const DEFAULT_COLUMNS: readonly CutlistColumn[] = [
   "note",
 ];
 
+/** The edge remark columns (D75), written after the standard ones when a list has remarks. */
+export const EDGE_NOTE_COLUMNS: readonly CutlistColumn[] = ["edge_note_l1", "edge_note_l2", "edge_note_w1", "edge_note_w2"];
+
+/**
+ * Columns for a list: the standard ones, plus the four edge remark columns
+ * at the end when any row has a remark. The first columns never move, so a
+ * saw import mapped by position keeps working; lists without remarks are
+ * exactly as before.
+ */
+export const cutlistColumns = (rows: readonly CutlistRow[]): readonly CutlistColumn[] =>
+  rows.some((r) => r.edgeNotes.some((n) => n !== "")) ? [...DEFAULT_COLUMNS, ...EDGE_NOTE_COLUMNS] : DEFAULT_COLUMNS;
+
 export interface CutlistText {
   /** Column header text. */
   header: (col: CutlistColumn) => string;
@@ -164,7 +184,7 @@ export function cutlistTable(
   rows: readonly CutlistRow[],
   library: Library,
   text: CutlistText,
-  columns: readonly CutlistColumn[] = DEFAULT_COLUMNS,
+  columns: readonly CutlistColumn[] = cutlistColumns(rows),
 ): string[][] {
   const cell = (r: CutlistRow, c: CutlistColumn): string => {
     switch (c) {
@@ -212,6 +232,14 @@ export function cutlistTable(
           .join(" ");
         return [r.note, r.outline ? (text.shaped ?? "") : "", bevel].filter((x) => x !== "").join("; ");
       }
+      case "edge_note_l1":
+        return r.edgeNotes[0];
+      case "edge_note_l2":
+        return r.edgeNotes[1];
+      case "edge_note_w1":
+        return r.edgeNotes[2];
+      case "edge_note_w2":
+        return r.edgeNotes[3];
     }
   };
   return [columns.map(text.header), ...rows.map((r) => columns.map((c) => cell(r, c)))];

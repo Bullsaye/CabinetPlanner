@@ -98,6 +98,7 @@ input[type="text"]::placeholder { color: var(--muted); opacity: .8; }
 .vrow .vmsg.warning { color: var(--warn); }
 .vrow .vexplain { color: var(--muted); background: var(--surface-2); border-left: 2px solid var(--accent); border-radius: 0 4px 4px 0; padding: 4px 6px; margin-bottom: 2px; }
 .vrow .vref { display: block; }
+.vrow .vname { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .vrow .vin { position: relative; display: flex; flex: 1; min-width: 0; }
 .vrow .vkeys { display: none; position: absolute; right: 3px; top: 3px; bottom: 3px; min-height: 0; padding: 0 10px; color: var(--accent-fg); background: var(--accent-soft); font-style: italic; }
 .vrow .vsrc.mine { color: var(--accent-fg); text-decoration: none; font-weight: 600; }
@@ -143,7 +144,10 @@ body { overscroll-behavior: none; }
 }
 
 /* Part drawings and assembly drawings: theme the engine's classes. */
-.sheet svg { display: block; width: 100%; height: auto; max-width: 1100px; margin: 0 auto; }
+/* Only the outermost SVG is sized (D75): a part machined on both faces is one SVG with a nested
+   <svg> per side, placed by its own x/y/width/height in mm. Sizing those too (width 100%, height
+   auto, which SVG 2 resolves to 100% for a nested <svg>) drew every side into the whole stack's box. */
+.sheet svg:not(svg svg) { display: block; width: 100%; height: auto; max-width: 1100px; margin: 0 auto; }
 .pd-sheet, .asm-sheet { fill: var(--surface); }
 .pd { font-family: var(--font-ui); }
 .pd-part { fill: var(--surface-2); stroke: var(--fg); stroke-width: .35; }
