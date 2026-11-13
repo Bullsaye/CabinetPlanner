@@ -6,6 +6,7 @@ import type { Part } from "../part.ts";
 import type { ProjectResult } from "../project.ts";
 import { elevationSvg, floorPlanSvg } from "../room/room-svg.ts";
 import { largerFormat, type PaperFormat, type PdfPaper } from "./paper.ts";
+import type { OpeningSymbol } from "../drawing/opening.ts";
 
 /**
  * Every drawing sheet of a project (or of one cabinet) as separate SVGs, in
@@ -57,6 +58,8 @@ export interface SheetOptions {
   cabinet?: string;
   /** Embed the default stylesheet (default true: the files stand alone). */
   css?: boolean;
+  /** Opening symbol on hinged fronts in wall elevations (D78; default tip at the handle). */
+  openingSymbol?: OpeningSymbol | "none";
   /** Only the sheets with these names (the user's selection); the order stays the project's. */
   only?: ReadonlySet<string>;
   /** Footer line on every sheet: project, revision, timestamp, sheet name. */
@@ -138,7 +141,7 @@ function entries(result: ProjectResult, opts: SheetOptions): Entry[] {
         name: `room/elevation-${w.id}.svg`,
         kind: "elevation",
         wall: w.id,
-        draw: () => whole(elevationSvg(room, w.id, result.cabinets, result.project.name, text, css, format)),
+        draw: () => whole(elevationSvg(room, w.id, result.cabinets, result.project.name, text, css, format, opts.openingSymbol ? { openingSymbol: opts.openingSymbol } : {})),
       });
     }
   }

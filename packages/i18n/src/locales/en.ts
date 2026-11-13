@@ -1219,6 +1219,7 @@ export const en = {
   "ui.hinge_symbol": "Opening symbol on doors",
   "ui.hinge_symbol.tip_at_hinge": "Tip at the hinges",
   "ui.hinge_symbol.tip_at_handle": "Tip at the handle",
+  "ui.hinge_symbol.hint": "Tip at the handle: as on European window elevations and kitchen plans. Tip at the hinges: as in US drawings. Hinge marks and handles are drawn either way; the wall elevation sheets use the same symbol.",
   "ui.fit_cabinet": "Fit cabinet",
   "ui.fix_errors_first": "This cabinet has errors. Fix them to see drawings.",
   "ui.fronts": "Fronts",

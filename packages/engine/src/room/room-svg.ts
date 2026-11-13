@@ -2,6 +2,8 @@ import type { CabinetResult } from "../project.ts";
 import { formatNumber } from "../output/format.ts";
 import { largerFormat, PAPER_MM, type PaperFormat } from "../output/paper.ts";
 import type { DrawingText } from "../drawing/render.ts";
+import { openingSymbolPoints, type OpeningSymbol } from "../drawing/opening.ts";
+import { hingeEdges } from "../output/frontview.ts";
 import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout, type WorktopLayout, carcaseTopAt, carcaseTopKinks } from "./room.ts";
 
 /**
@@ -11,8 +13,9 @@ import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type Wall
  *   floor units solid, wall units dashed, ids; per wall the inner length and
  *   a chain of cabinet positions; opening positions;
  * - wall elevation (seen from inside the room): wall outline, openings,
- *   cabinets with their fronts and handles; chain of widths below (floor
- *   units) and above (wall units), heights on the left.
+ *   cabinets with their fronts, opening symbols (D78) and handles; chain
+ *   of widths below (floor units) and above (wall units), heights on the
+ *   left.
  */
 /** Room sheets are A3 unless a larger paper is asked for (D77). */
 const pageOf = (paper: PaperFormat = "a3"): { W: number; H: number } => {
@@ -29,6 +32,7 @@ export const ROOM_CSS = `
 .rm-wall{fill:#c9ced5;stroke:#1b1f24;stroke-width:.35}.rm-floor{fill:#f5f6f8}
 .rm-open{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-glass{stroke:#1f5fd1;stroke-width:.3}
 .rm-swing{fill:none;stroke:#5b6470;stroke-width:.2;stroke-dasharray:1 .8}
+.rm-opening{fill:none;stroke:#5b6470;stroke-width:.18;stroke-dasharray:1.2 .8}
 .rm-cab{fill:#e4e7eb;stroke:#1b1f24;stroke-width:.3}.rm-cab-wall{fill:none;stroke:#1b1f24;stroke-width:.25;stroke-dasharray:1.6 .9}
 .rm-front{fill:#eef3fb;stroke:#1b1f24;stroke-width:.2}.rm-top{fill:#d8cbb4;stroke:#1b1f24;stroke-width:.3}.rm-cut{fill:#fff;stroke:#1b1f24;stroke-width:.25}.rm-ceil{stroke:#a32020;stroke-width:.35}.rm-plinth{fill:#3a4048}.rm-handle{stroke:#1b1f24;stroke-width:.5}
 .rm-id{fill:#1b1f24;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600}
@@ -300,7 +304,10 @@ export function elevationSvg(
   text_: DrawingText,
   css = true,
   paper?: PaperFormat,
+  opts: { openingSymbol?: OpeningSymbol | "none" } = {},
 ): string {
+  const sym = opts.openingSymbol ?? "tip_at_handle";
+  const symbol = sym === "none" ? undefined : sym;
   const num = (x: number): string => (text_.number ? text_.number(x, 1) : formatNumber(x, 1));
   const t = text_.t;
   const w = room.walls.find((x) => x.id === wallId);
@@ -333,6 +340,7 @@ export function elevationSvg(
       o.push(poly(sh, "rm-plinth", [[X(0), 0], [X(q.W), 0], [X(q.W), q.baseY], [X(0), q.baseY]]));
     }
     const fronts = ["door", "drawer_front", "blind_panel", "appliance_front", "flap", "ceiling_filler"];
+    const hinges = hingeEdges(c);
     for (const f of c.parts.filter((p) => fronts.includes(p.role))) {
       const b = f.box;
       // Fillers cut to a slope carry their outline (u along X, v up).
@@ -340,6 +348,14 @@ export function elevationSvg(
         ? f.outline.map(([u, v]) => [X(b.x + u), q.baseY + b.y + v])
         : [[X(b.x), q.baseY + b.y], [X(b.x + b.dx), q.baseY + b.y], [X(b.x + b.dx), q.baseY + b.y + b.dy], [X(b.x), q.baseY + b.y + b.dy]];
       o.push(poly(sh, "rm-front", pts));
+      // Opening symbol on hinged fronts (doors, appliance fronts, lift-up flaps), as in the app's front views.
+      const edge = f.outline ? undefined : hinges.get(f.code);
+      if (edge && symbol) {
+        const [ax, ay] = sh.P(X(b.x), q.baseY + b.y + b.dy);
+        const [bx, by] = sh.P(X(b.x + b.dx), q.baseY + b.y);
+        const tri = openingSymbolPoints({ x: ax, y: ay, w: bx - ax, h: by - ay }, edge, symbol);
+        o.push(`<polyline class="rm-opening" points="${tri.map(([x, y]) => `${r3(x)},${r3(y)}`).join(" ")}"/>`);
+      }
     }
     for (const h of c.handles) {
       const pts = h.points.map((p) => [X(p.x), q.baseY + p.y] as [number, number]);

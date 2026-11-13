@@ -86,6 +86,7 @@
       tr: store.tr,
       style,
       styleName,
+      openingSymbol: store.ui.hingeSymbol,
       only: new Set(chosen.map((s) => s.name)),
       // A plotter format draws the sheets on it at a larger standard scale (D77).
       paper,
