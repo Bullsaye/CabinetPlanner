@@ -5,6 +5,8 @@ import { drawingText, type TranslatorLike } from "../drawing/text.ts";
 import type { Part } from "../part.ts";
 import type { ProjectResult } from "../project.ts";
 import { elevationSvg, floorPlanSvg } from "../room/room-svg.ts";
+import { largerFormat, type PaperFormat, type PdfPaper } from "./paper.ts";
+import type { OpeningSymbol } from "../drawing/opening.ts";
 
 /**
  * Every drawing sheet of a project (or of one cabinet) as separate SVGs, in
@@ -56,10 +58,20 @@ export interface SheetOptions {
   cabinet?: string;
   /** Embed the default stylesheet (default true: the files stand alone). */
   css?: boolean;
+  /** Opening symbol on hinged fronts in wall elevations (D78; default tip at the handle). */
+  openingSymbol?: OpeningSymbol | "none";
   /** Only the sheets with these names (the user's selection); the order stays the project's. */
   only?: ReadonlySet<string>;
   /** Footer line on every sheet: project, revision, timestamp, sheet name. */
   meta?: SheetMeta;
+  /**
+   * The paper the sheets are for (D77). A format larger than a sheet's own
+   * (A3 for room and assembly drawings, the style's size for part sheets)
+   * draws the sheet on that format, at the largest standard scale that fits
+   * there, so its scale label stays true. Smaller formats and "sheet" change
+   * nothing here: the PDF and print reduce such sheets and say so.
+   */
+  paper?: PdfPaper;
 }
 
 /** Sheet size in mm, read from a sheet's root element. */
@@ -92,6 +104,12 @@ interface Entry extends SheetInfo {
 
 function entries(result: ProjectResult, opts: SheetOptions): Entry[] {
   const css = opts.css ?? true;
+  const format = opts.paper === "sheet" ? undefined : opts.paper;
+  const own = opts.style.paper.size.toLowerCase() as PaperFormat;
+  const style =
+    format && largerFormat(format, own) !== own
+      ? { ...opts.style, paper: { ...opts.style.paper, size: format.toUpperCase() as ResolvedStyle["paper"]["size"] } }
+      : opts.style;
   const text = drawingText(opts.tr, result.library);
   const partText = drawingText(opts.tr, result.library, opts.styleName);
   const out: Entry[] = [];
@@ -108,7 +126,7 @@ function entries(result: ProjectResult, opts: SheetOptions): Entry[] {
         ...(n > 1 ? { side: { index: i + 1, of: n } } : {}),
         machined: part.operations.length > 0 || !!part.outline,
         draw: () => {
-          drawn ??= drawPartSheets({ part, cabinet, style: opts.style, text: partText, css });
+          drawn ??= drawPartSheets({ part, cabinet, style, text: partText, css });
           return { svg: drawn[i]!.svg, page: drawn[i]!.page };
         },
       });
@@ -117,13 +135,13 @@ function entries(result: ProjectResult, opts: SheetOptions): Entry[] {
 
   const room = opts.cabinet === undefined ? result.room : undefined;
   if (room) {
-    out.push({ name: "room/floor-plan.svg", kind: "plan", draw: () => whole(floorPlanSvg(room, result.project.name, text, css)) });
+    out.push({ name: "room/floor-plan.svg", kind: "plan", draw: () => whole(floorPlanSvg(room, result.project.name, text, css, format)) });
     for (const w of room.walls) {
       out.push({
         name: `room/elevation-${w.id}.svg`,
         kind: "elevation",
         wall: w.id,
-        draw: () => whole(elevationSvg(room, w.id, result.cabinets, result.project.name, text, css)),
+        draw: () => whole(elevationSvg(room, w.id, result.cabinets, result.project.name, text, css, format, opts.openingSymbol ? { openingSymbol: opts.openingSymbol } : {})),
       });
     }
   }
@@ -146,6 +164,7 @@ function entries(result: ProjectResult, opts: SheetOptions): Entry[] {
             text,
             project: { name: result.project.name, revision: result.project.revision },
             css,
+            ...(format ? { paper: format } : {}),
           }).svg,
         ),
     });

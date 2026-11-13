@@ -410,6 +410,9 @@ export const en = {
   "col.edge_note_w2": "Remark W2",
   "ui.paper": "Paper",
   "ui.paper.sheet": "Sheet size 1:1",
+  "ui.paper.plotter": "Plotter",
+  "ui.paper.hint": "Paper for PDF, print and SVG files. A format larger than a sheet’s own draws the sheet on it at a larger standard scale, so the stated scale stays true; a smaller one reduces the sheet and says so on the page.",
+  "drawing.reduced": "Reduced to {n} % to fit the paper – the stated scales do not apply",
   "ui.sheets_failed": "The sheets could not be made: {error}",
 
   // Value sources
@@ -1216,6 +1219,7 @@ export const en = {
   "ui.hinge_symbol": "Opening symbol on doors",
   "ui.hinge_symbol.tip_at_hinge": "Tip at the hinges",
   "ui.hinge_symbol.tip_at_handle": "Tip at the handle",
+  "ui.hinge_symbol.hint": "Tip at the handle: as on European window elevations and kitchen plans. Tip at the hinges: as in US drawings. Hinge marks and handles are drawn either way; the wall elevation sheets use the same symbol.",
   "ui.fit_cabinet": "Fit cabinet",
   "ui.fix_errors_first": "This cabinet has errors. Fix them to see drawings.",
   "ui.fronts": "Fronts",

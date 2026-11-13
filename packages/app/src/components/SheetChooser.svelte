@@ -4,7 +4,7 @@
    * as a list with checkboxes, grouped by room and cabinet. The selection
    * drives the PDF, the SVG zip, the CNC DXF zip and printing.
    */
-  import { localName, projectSheets, sheetIndex, zip, type Part, type ResolvedStyle, type Sheet, type SheetInfo } from "@cabinet-planner/engine";
+  import { localName, projectSheets, sheetIndex, zip, type PaperFormat, type Part, type ResolvedStyle, type Sheet, type SheetInfo } from "@cabinet-planner/engine";
   import { SvelteSet } from "svelte/reactivity";
   import { localTimestamp, printSheets, type Paper } from "../lib/export.ts";
   import { download, downloadNote, store } from "../lib/store.svelte.ts";
@@ -27,6 +27,9 @@
   const t = $derived(store.tr.t);
   let open = $state(false);
   let paper = $state<Paper>("sheet");
+  /** Printing needs a paper: "sheet" prints on A4. */
+  const printPaper = $derived<PaperFormat>(paper === "sheet" ? "a4" : paper);
+  const reducedNote = (n: number): string => t("drawing.reduced", { n });
   let busy = $state(false);
   // What is NOT wanted: sheets that appear later (a new cabinet) are selected like the rest.
   const excluded = new SvelteSet<string>();
@@ -83,7 +86,10 @@
       tr: store.tr,
       style,
       styleName,
+      openingSymbol: store.ui.hingeSymbol,
       only: new Set(chosen.map((s) => s.name)),
+      // A plotter format draws the sheets on it at a larger standard scale (D77).
+      paper,
       meta: { project: r.project.name, revision: r.project.revision, timestamp },
     });
   }
@@ -116,7 +122,7 @@
         const list = sheets(stamp);
         const { sheetsToPdf } = await import("../lib/pdf.ts");
         const r = store.result;
-        const pdf = await sheetsToPdf(list, { paper, title: r.project.name, timestamp: stamp });
+        const pdf = await sheetsToPdf(list, { paper, reducedNote, title: r.project.name, timestamp: stamp });
         const name = `${base()}-sheets.pdf`;
         say(downloadNote(await download(name, pdf, "application/pdf"), `${name} (${t("cli.sheets", { n: list.length })})`, t));
       } else if (how === "zip") {
@@ -125,9 +131,8 @@
         say(downloadNote(await download(name, zip(list.map((s) => ({ name: s.name, data: s.svg }))), "application/zip"), `${name} (${list.length} SVG)`, t));
       } else {
         const list = sheets(stamp);
-        const on = paper === "a3" ? "a3" : "a4";
-        printSheets(list, on);
-        say(t("ui.sheets_printed_fit", { n: list.length, paper: on.toUpperCase() }));
+        printSheets(list, printPaper, reducedNote);
+        say(t("ui.sheets_printed_fit", { n: list.length, paper: printPaper.toUpperCase() }));
       }
     } catch (e) {
       say(t("ui.sheets_failed", { error: String((e as Error).message) }));
@@ -145,15 +150,20 @@
     </button>
     <span class="count mono" role="status">{t("ui.sheets_count", { n: chosen.length, total: index.length })}</span>
     <span class="sp"></span>
-    <select id="sheet-paper" aria-label={t("ui.paper")} bind:value={paper}>
+    <select id="sheet-paper" aria-label={t("ui.paper")} title={t("ui.paper.hint")} bind:value={paper}>
       <option value="sheet">{t("ui.paper.sheet")}</option>
       <option value="a4">A4</option>
       <option value="a3">A3</option>
+      <optgroup label={t("ui.paper.plotter")}>
+        <option value="a2">A2</option>
+        <option value="a1">A1</option>
+        <option value="a0">A0</option>
+      </optgroup>
     </select>
     <button class="primary" id="sheets-pdf" onclick={() => run("pdf")} disabled={busy}>{t("ui.sheets_pdf")}</button>
     <button id="sheets-zip" onclick={() => run("zip")} disabled={busy}>{t("ui.sheets_zip")}</button>
     <button id="sheets-dxf" onclick={() => run("dxf")} disabled={busy}>{t("ui.sheets_dxf")}</button>
-    <button id="sheets-print" onclick={() => run("print")} disabled={busy}>{t("ui.sheets_print_on", { paper: paper === "a3" ? "A3" : "A4" })}</button>
+    <button id="sheets-print" onclick={() => run("print")} disabled={busy}>{t("ui.sheets_print_on", { paper: printPaper.toUpperCase() })}</button>
   </div>
   {#if open}
     <div class="list" id="sheet-list">

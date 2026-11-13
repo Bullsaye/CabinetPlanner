@@ -289,10 +289,94 @@ describe("cli sheets --pdf", () => {
   });
 
   it("rejects an unknown paper and reports missing fonts", () => {
-    expect(run([...args, "--pdf", "x.pdf", "--paper", "letter"], fakeIo())).toBe(2);
+    const letter = fakeIo();
+    expect(run([...args, "--pdf", "x.pdf", "--paper", "letter"], letter)).toBe(2);
+    expect(letter.err).toContain("a4, a3, a2, a1, a0");
     const io = fakeIo(false);
     expect(run([...args, "--pdf", "x.pdf"], io)).toBe(2);
     expect(io.err).toContain("fonts");
+  });
+
+  it("draws on plotter paper with --paper a2|a1|a0: PDF pages and SVG files alike", () => {
+    const io = fakeIo();
+    expect(run([...args, "--pdf", "a0.pdf", "--out", "a0", "--paper", "a0", "--cabinet", "T01"], io)).toBe(0);
+    const p = pages(io.written["a0.pdf"] as Uint8Array);
+    expect(p.length).toBeGreaterThan(3);
+    for (const page of p) expect([Math.round(page.w / MM), Math.round(page.h / MM)].sort((a, b) => a - b)).toEqual([841, 1189]);
+    const svgs = Object.entries(io.written).filter(([k]) => k.startsWith("a0/"));
+    expect(svgs.length).toBe(p.length);
+    for (const [name, svg] of svgs) {
+      const m = /^<svg [^>]*width="([\d.]+)mm" height="([\d.]+)mm"/.exec(svg as string)!;
+      expect([Number(m[1]), Number(m[2])].sort((a, b) => a - b), name).toEqual([841, 1189]);
+    }
+    // Every page on A0 is the sheet itself, unscaled: the page matrix is 1 mm = 1 mm.
+    for (const page of p) expect(Number(/^q\n([\d.-]+) 0 0 /.exec(page.content)![1])).toBeCloseTo(MM, 4);
+  });
+
+  it("notes on the page when a sheet had to be reduced (A3 sheets on A4)", () => {
+    const io = fakeIo();
+    expect(run([...args, "--pdf", "a4.pdf", "--paper", "a4", "--only", "room/floor-plan,T01/T01-SL"], io)).toBe(0);
+    const [plan, side] = pages(io.written["a4.pdf"] as Uint8Array);
+    const red = "0.6392 0.1255 0.1255 rg";
+    expect(plan!.content).toContain(red);
+    expect(side!.content).not.toContain(red);
+
+    const sheets = projectSheets(attic, { tr, style, meta, only: new Set(["room/floor-plan.svg", "T01/T01-SL.svg"]) });
+    const plain = pages(sheetsPdf(sheets, { fonts: pdfFonts(), paper: "a4" }));
+    const noted = pages(sheetsPdf(sheets, { fonts: pdfFonts(), paper: "a4", reducedNote: (n) => tr.t("drawing.reduced", { n }) }));
+    // The reduced floor plan carries one more text run (the red note); the A4 part sheet is unchanged.
+    const runs = (c: string): number => c.split("BT\n").length;
+    expect(runs(noted[0]!.content)).toBe(runs(plain[0]!.content) + 1);
+    const fontless = (c: string): string => c.replace(/\/F\d+ /g, "/F ");
+    expect(fontless(noted[1]!.content)).toBe(fontless(plain[1]!.content));
+    expect(tr.t("drawing.reduced", { n: 67 })).toContain("67 %");
+  });
+});
+
+describe("plotter paper: sheets drawn on the larger format (D77)", () => {
+  const den = (svg: string): number => Number(/ 1:(\d+)\b/.exec(svg)![1]);
+  const a3 = projectSheets(kitchen, { tr, style, meta });
+  const a1 = projectSheets(kitchen, { tr, style, meta, paper: "a1" });
+  const parts = new Map([...kitchen.parts, ...(kitchen.room?.parts ?? [])].map((p) => [p.id, p]));
+
+  it("draws every sheet on A1 at the same or a larger standard scale, never a smaller one", () => {
+    expect(a1.map((s) => s.name)).toEqual(a3.map((s) => s.name));
+    let larger = 0;
+    a1.forEach((s, i) => {
+      expect([s.page.w, s.page.h].sort((a, b) => a - b), s.name).toEqual([594, 841]);
+      expect(den(s.svg), s.name).toBeLessThanOrEqual(den(a3[i]!.svg));
+      if (den(s.svg) < den(a3[i]!.svg)) larger++;
+    });
+    expect(larger).toBeGreaterThan(a1.length / 2);
+    // The kitchen's wall A (3.6 × 2.5 m with its dimensions): 1:20 on A3 and A2, 1:10 on A1.
+    const wall = (list: typeof a1): string => list.find((s) => s.name === "room/elevation-A.svg")!.svg;
+    expect(den(wall(a3))).toBe(20);
+    expect(den(wall(projectSheets(kitchen, { tr, style, paper: "a2", only: new Set(["room/elevation-A.svg"]) })))).toBe(20);
+    expect(den(wall(a1))).toBe(10);
+    // A4 / A3 / "sheet" leave room and assembly sheets on A3; A3 lifts A4 part sheets to A3.
+    for (const paper of ["sheet", "a4"] as const) {
+      expect(projectSheets(kitchen, { tr, style, meta, paper }).map((s) => s.svg)).toEqual(a3.map((s) => s.svg));
+    }
+    const onA3 = projectSheets(kitchen, { tr, style, meta, paper: "a3" });
+    for (const s of onA3) expect([s.page.w, s.page.h].sort((a, b) => a - b), s.name).toEqual([297, 420]);
+  });
+
+  it("keeps the scale label true: the part outline measures the part at the stated scale", () => {
+    let checked = 0;
+    for (const list of [a3, a1]) {
+      for (const s of list) {
+        if (!s.part) continue;
+        const part = parts.get(s.part)!;
+        const rect = /<rect class="pd-part" x="[\d.-]+" y="[\d.-]+" width="([\d.]+)" height="([\d.]+)"/.exec(s.svg);
+        if (!rect) continue; // shaped parts are drawn as a polygon
+        const drawn = [Number(rect[1]) * den(s.svg), Number(rect[2]) * den(s.svg)].sort((a, b) => a - b);
+        const real = [part.length, part.width].sort((a, b) => a - b);
+        expect(drawn[0], s.name).toBeCloseTo(real[0]!, 1);
+        expect(drawn[1], s.name).toBeCloseTo(real[1]!, 1);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(100);
   });
 });
 

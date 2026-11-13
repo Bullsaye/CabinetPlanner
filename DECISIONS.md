@@ -1489,7 +1489,8 @@ Both lines changed the same rules independently. Where they overlapped:
 - Paper (`output/paper.ts`): `sheet` (default: every page is its sheet,
   true to scale), `a4`, `a3`: the paper is turned to the sheet; a sheet that
   fits is centred unscaled, a larger one is reduced to fit inside 5 mm.
-  Always one scale for both directions.
+  Always one scale for both directions. (A2–A0 and drawing on larger
+  paper: D77.)
 - Proportions: a sheet's viewBox equals its size in mm (1 unit = 1 mm, both
   directions; tested for every sheet), and nothing between the sheet and
   the paper may scale x and y apart. The PDF writer maps the viewBox with
@@ -1573,3 +1574,66 @@ Both lines changed the same rules independently. Where they overlapped:
   LEGRABOX's side underside below the profile screw axis (24.5, derived
   from the space requirements) and its EXPANDO hole depth (11) are
   placeholders; the item's `source` says so. Both `untested`.
+
+### D77 · 2026-11-13 · Plotter paper; scale labels stay true; dimension values in room drawings
+
+- Paper (`output/paper.ts`) has the ISO 216 formats A4, A3, A2, A1 and A0
+  (`PAPER_FORMATS`) besides `sheet`. PDF, print and the CLI (`sheets
+  --paper sheet|a4|a3|a2|a1|a0`) offer all of them; the app lists A2–A0
+  under "Plotter".
+- A drawing's scale label stays true on every output, so a sheet is never
+  enlarged onto paper. A format larger than the sheet's own (A3 for floor
+  plan, elevations and assembly drawings; the style's size for part sheets)
+  draws the sheet on that format (`SheetOptions.paper`): the layout uses the
+  larger page and the drawing takes the largest of its standard scales that
+  fits there (part sheets 1:1 … 1:50, assembly 1:2 … 1:50, room 1:5 …
+  1:100; 1:5 is new for room drawings and only fits on A0). Kitchen
+  example: wall A 1:20 on A3 and A2, 1:10 on A1, 1:5 on A0; B01's left side
+  1:5 on A4/A3, 1:2 on A2/A1, 1:1 on A0; B01's assembly 1:10 → 1:5 → 1:2.
+  The same rule lifts A4 part sheets onto A3 when A3 is chosen (before, they
+  were centred on it). SVG files (ZIP, `--out`) are drawn the same way, so
+  SVG, PDF and print agree.
+- A format smaller than a sheet (A3 sheets on A4, or a part sheet that grew
+  past its paper) still reduces the sheet uniformly to fit inside 5 mm, and
+  the page says so in red at the bottom left: "Reduced to 67 % to fit the
+  paper – the stated scales do not apply" (`paperNote`; the text comes from
+  the host's translator: PDF option `reducedNote`, `printJob(…, reducedNote)`).
+- Placement uses the paper as well as possible: `fitToPaper` computes the
+  scale for both orientations of the paper and takes the larger; when the
+  sheet fits either way unscaled, the paper follows the sheet's orientation.
+  (For a rectangle in a rectangle, matching the longer sides always wins, so
+  the result equals D75's rule; it is now explicit and tested for random
+  sheet sizes on every format.) Print keeps upright paper and turns the
+  sheet a quarter turn when the paper lies landscape.
+- Paper `sheet` (every page at its sheet's size), `a4` and the app preview
+  draw the sheets as before.
+- Room drawings: dimension values are read from the bottom or from the
+  right (ISO 129-1): a vertical value reads upwards (turned −90°, before
+  +90°), and every value sits 0.7 mm above its dimension line in its reading
+  direction. Before, vertical values lay across their line (struck through)
+  and values below a line touched it. No golden file holds room drawings.
+
+### D78 · 2026-11-13 · Opening symbols in wall elevations; what "DIN" means here
+
+- Research note: `docs/drawing-conventions.md`. German and European
+  practice found (window elevations, the European setting of a kitchen
+  planning program) puts the tip of the opening triangle at the handle,
+  the base on the hinge side; US practice puts it at the hinge side. The
+  text of DIN 919-1 could not be checked. D68 called `tip_at_hinge` the
+  DIN form: that attribution is withdrawn, the option texts name no
+  standard. The default stays `tip_at_handle` (D73).
+- One geometry for the symbol: `openingSymbolPoints(rect, hinge, symbol)`
+  (engine, `drawing/opening.ts`, paper coordinates, Y down). Doors and
+  appliance fronts turn on their left or right edge, lift-up flaps on the
+  top edge (`hingeEdges(CabinetResult)`, `output/frontview.ts`); with the
+  tip at the handle a flap's triangle points down. Drawers, blind panels,
+  fillers and open zones get no symbol (no standard symbol found; a
+  diagonal cross means "flat surface" in DIN 919 drawings).
+- Wall elevations (`elevationSvg`, sheets) now draw the symbol on every
+  hinged front, dashed (class `rm-opening`). `elevationSvg(…, css, {
+  openingSymbol })` and `SheetOptions.openingSymbol` take `tip_at_handle`
+  (default), `tip_at_hinge` or `none`; the app passes its `hingeSymbol`
+  preference to the elevation preview and to exported sheets, so app views
+  and sheets agree. The CLI uses the default. No golden file changed.
+- The app's preference menu lists the default first and explains both
+  forms in one line (en, de).

@@ -67,7 +67,7 @@
       return whole(
         kind === "plan"
           ? floorPlanSvg(r.room, r.project.name, text, css)
-          : elevationSvg(r.room, r.room.walls.some((w) => w.id === wallId) ? wallId : r.room.walls[0]!.id, r.cabinets, r.project.name, text, css),
+          : elevationSvg(r.room, r.room.walls.some((w) => w.id === wallId) ? wallId : r.room.walls[0]!.id, r.cabinets, r.project.name, text, css, undefined, { openingSymbol: store.ui.hingeSymbol }),
       );
     }
     if (r && kind === "room_part") {

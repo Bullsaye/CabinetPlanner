@@ -200,6 +200,7 @@ body { overscroll-behavior: none; }
 .rm-open { fill: var(--surface); stroke: var(--fg); stroke-width: .25; }
 .rm-glass { stroke: var(--accent); stroke-width: .3; }
 .rm-swing { fill: none; stroke: var(--muted); stroke-width: .2; stroke-dasharray: 1 .8; }
+.rm-opening { fill: none; stroke: var(--muted); stroke-width: .18; stroke-dasharray: 1.2 .8; }
 .rm-cab { fill: var(--part); stroke: var(--fg); stroke-width: .3; }
 .rm-cab-wall { fill: none; stroke: var(--fg); stroke-width: .25; stroke-dasharray: 1.6 .9; }
 .rm-front { fill: color-mix(in srgb, var(--surface) 80%, var(--accent)); stroke: var(--fg); stroke-width: .2; }
