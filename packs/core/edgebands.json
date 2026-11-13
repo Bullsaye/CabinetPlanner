@@ -1,0 +1,32 @@
+[
+  {
+    "id": "abs-white-1",
+    "name": {
+      "en": "ABS white 1 mm",
+      "de": "ABS weiß 1 mm"
+    },
+    "thickness": 1,
+    "width": 23,
+    "code": "W1"
+  },
+  {
+    "id": "abs-white-2",
+    "name": {
+      "en": "ABS white 2 mm",
+      "de": "ABS weiß 2 mm"
+    },
+    "thickness": 2,
+    "width": 23,
+    "code": "W2"
+  },
+  {
+    "id": "oak-veneer-05",
+    "name": {
+      "en": "Oak veneer 0.5 mm",
+      "de": "Eiche Furnier 0,5 mm"
+    },
+    "thickness": 0.5,
+    "width": 24,
+    "code": "O05"
+  }
+]

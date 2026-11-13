@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FACTORY_TEMPLATES, localName } from "@cabinet-planner/engine";
+  import { BUNDLED, localName } from "@cabinet-planner/engine";
   import { openConstruction, parseInput, setKind, store } from "../lib/store.svelte.ts";
   import FrontBuilder from "./FrontBuilder.svelte";
   import OptRow from "./fields/OptRow.svelte";
@@ -50,7 +50,7 @@
   const template = $derived.by(() => {
     const id = c?.template;
     if (!id) return undefined;
-    const tpl = (store.built.shop?.library.templates ?? []).find((x) => x.id === id) ?? FACTORY_TEMPLATES.find((x) => x.id === id);
+    const tpl = (store.built.shop?.library.templates ?? []).find((x) => x.id === id) ?? BUNDLED.templates.find((x) => x.id === id);
     return tpl ? localName(tpl.name, store.ui.lang) : id;
   });
 </script>

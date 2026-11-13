@@ -1,0 +1,248 @@
+[
+  {
+    "id": "tall-bookcase",
+    "group": "storage",
+    "name": {
+      "en": "Bookcase (open)",
+      "de": "Bücherregal (offen)"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 800,
+        "D": 350,
+        "door_count": 0,
+        "shelf_count": 5
+      }
+    }
+  },
+  {
+    "id": "tall-open-over-doors",
+    "group": "storage",
+    "name": {
+      "en": "Open shelves over doors",
+      "de": "Offenes Regal über Türen"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 800,
+        "D": 400,
+        "door_count": 2,
+        "shelf_count": 3
+      },
+      "fronts": [
+        {
+          "type": "open"
+        },
+        {
+          "type": "door",
+          "h": "base_h - front_gap_top"
+        }
+      ]
+    }
+  },
+  {
+    "id": "sideboard",
+    "group": "storage",
+    "name": {
+      "en": "Sideboard, two doors",
+      "de": "Sideboard, zwei Türen"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 1200,
+        "D": 450,
+        "door_count": 2
+      }
+    }
+  },
+  {
+    "id": "bench",
+    "group": "storage",
+    "name": {
+      "en": "Bench (free construction)",
+      "de": "Sitzbank (freie Konstruktion)"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [],
+      "vars": {
+        "W": 1200,
+        "H": 450,
+        "D": 380,
+        "shelf_count": 0,
+        "door_count": 0,
+        "plinth_h": 0
+      },
+      "options": {
+        "top": "full",
+        "back_mount": "none",
+        "system_holes": "none",
+        "hardware.leg": null
+      },
+      "params": [
+        {
+          "name": "stretcher_h",
+          "label": {
+            "en": "Stretcher height",
+            "de": "Zargenhöhe"
+          },
+          "default": 120,
+          "min": 40,
+          "max": 400,
+          "step": 10
+        },
+        {
+          "name": "stretcher_y",
+          "label": {
+            "en": "Stretcher above floor",
+            "de": "Zarge über Boden"
+          },
+          "default": 100,
+          "min": 0,
+          "max": 600,
+          "step": 10
+        }
+      ],
+      "construction": {
+        "omit": [
+          "SL",
+          "SR",
+          "BO",
+          "TO"
+        ],
+        "parts": [
+          {
+            "id": "WL",
+            "name": {
+              "en": "Cheek left",
+              "de": "Wange links"
+            },
+            "plane": "vertical",
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "dy": "H",
+            "dz": "D",
+            "edges": {
+              "front": "edge.carcase",
+              "rear": "edge.carcase",
+              "top": "edge.carcase"
+            }
+          },
+          {
+            "id": "WR",
+            "name": {
+              "en": "Cheek right",
+              "de": "Wange rechts"
+            },
+            "plane": "vertical",
+            "x": "W - t_carcase",
+            "y": 0,
+            "z": 0,
+            "dy": "H",
+            "dz": "D",
+            "edges": {
+              "front": "edge.carcase",
+              "rear": "edge.carcase",
+              "top": "edge.carcase"
+            }
+          },
+          {
+            "id": "SI",
+            "name": {
+              "en": "Seat",
+              "de": "Sitzfläche"
+            },
+            "plane": "horizontal",
+            "x": "t_carcase",
+            "y": "H - t_carcase",
+            "z": 0,
+            "dx": "W - 2 * t_carcase",
+            "dz": "D",
+            "edges": {
+              "front": "edge.carcase",
+              "rear": "edge.carcase"
+            }
+          },
+          {
+            "id": "ST",
+            "name": {
+              "en": "Stretcher",
+              "de": "Zarge"
+            },
+            "plane": "frontal",
+            "x": "t_carcase",
+            "y": "stretcher_y",
+            "z": "D / 2 - t_carcase / 2",
+            "dx": "W - 2 * t_carcase",
+            "dy": "stretcher_h",
+            "edges": {
+              "top": "edge.carcase",
+              "bottom": "edge.carcase"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "vanity",
+    "group": "bath",
+    "name": {
+      "en": "Vanity, wall-hung, two drawers",
+      "de": "Waschtischunterschrank, hängend, zwei Schubkästen"
+    },
+    "cabinet": {
+      "kind": "wall",
+      "presets": [
+        "wall-unit"
+      ],
+      "vars": {
+        "W": 800,
+        "H": 500,
+        "D": 460,
+        "wall_bottom": 350
+      },
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": 200
+        },
+        {
+          "type": "drawer"
+        }
+      ]
+    }
+  },
+  {
+    "id": "bath-tall",
+    "group": "bath",
+    "name": {
+      "en": "Bathroom tall unit",
+      "de": "Bad-Hochschrank"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 400,
+        "D": 350,
+        "shelf_count": 4
+      }
+    }
+  }
+]

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Operation, Part } from "../src/index.ts";
-import { FACTORY_HARDWARE } from "../src/index.ts";
+import { BUNDLED } from "../src/index.ts";
 import { buildOne, partsByCode, size } from "./helpers.ts";
 
 const refs = (p: Part, ref: string): Operation[] => p.operations.filter((o) => o.sources.some((s) => s.ref === ref));
@@ -239,7 +239,7 @@ describe("many sections with connectors, sheet sizes (D55)", () => {
   });
 
   it("staggers groove connectors without a middle-panel set, each joint holding an end (D55)", () => {
-    const clamex = FACTORY_HARDWARE.find((h) => h.id === "lamello-clamex-p14")!;
+    const clamex = BUNDLED.hardware.find((h) => h.id === "lamello-clamex-p14")!;
     const plain = { ...JSON.parse(JSON.stringify(clamex)), id: "clamex-no-middle" };
     delete plain.middle;
     const r = buildOne(

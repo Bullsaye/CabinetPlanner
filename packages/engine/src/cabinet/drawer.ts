@@ -64,7 +64,9 @@ export function buildDrawer(
   // lower edge.
   const ff = slide.frontFixing;
   if (ff) {
-    const lowest = front.y0 + ff.d / 2 + num("bore_min_wall") - ff.fromBox + slide.axisToBox;
+    // The lowest hole of any side height (heights may have their own bracket, D76).
+    const fromBox = Math.min(ff.fromBox, ...slide.heights.map((h) => h.front?.fromBox ?? ff.fromBox));
+    const lowest = front.y0 + ff.d / 2 + num("bore_min_wall") - fromBox + slide.axisToBox;
     if (axis < lowest - 1e-9) {
       if (rc.options.get("system_holes")!.value !== "none") {
         const y0 = num("sys_grid_y0");
@@ -97,6 +99,7 @@ export function buildDrawer(
   const want = front.boxH ?? num("drawer_box_h");
   const minH = num("drawer_box_min_h");
   let boxTop: number;
+  let sideH: number | undefined;
   if (slide.box === "wood") {
     const innerW = p("inner_w");
     const length = p("length");
@@ -146,11 +149,16 @@ export function buildDrawer(
       diagnostics.push({ severity: "error", code: "hardware_param_missing", params: { item: item.id, params: "bottom_w, bottom_l" }, ...at });
       return undefined;
     }
-    // Metal sides come in the slide's heights: the largest that fits, and is not above the wanted height (D71).
-    const fitting = [...slide.heights].sort((a, b) => b.h - a.h).filter((h) => h.h <= room + 1e-9);
-    const wanted = want > 0 ? fitting.find((h) => h.h <= want + 1e-9) : fitting[0];
+    // Metal sides come in the slide's heights: the largest that fits, and is not above the wanted height (D71);
+    // only heights made in this nominal length; a side reaching below the box underside counts from there (D76).
+    const below = slide.sideBelow ?? 0;
+    const fitting = [...slide.heights]
+      .filter((h) => !h.lengths || h.lengths.includes(nl))
+      .sort((a, b) => b.h - a.h)
+      .filter((h) => h.h - below <= room + 1e-9);
+    const wanted = want > 0 ? fitting.find((h) => h.h - below <= want + 1e-9) : fitting[0];
     if (fitting.length && !wanted) {
-      diagnostics.push({ severity: "error", code: "drawer_box_too_small", params: { index, want, min: fitting[fitting.length - 1]!.h }, ...at });
+      diagnostics.push({ severity: "error", code: "drawer_box_too_small", params: { index, want, min: roundMm(fitting[fitting.length - 1]!.h - below) }, ...at });
     }
     const fit = wanted ?? fitting[fitting.length - 1];
     if (!fit) {
@@ -169,11 +177,12 @@ export function buildDrawer(
       "material.drawer",
       top,
     );
-    boxTop = yb + fit.h;
+    boxTop = yb + fit.h - below;
+    sideH = fit.h;
   }
 
   if (boxTop > c.ceil + 1e-6) {
     diagnostics.push({ severity: "error", code: "drawer_too_high", params: { index, over: roundMm(boxTop - c.ceil) }, ...at });
   }
-  return { index, slide: item.id, nl, axisY: axis, box: slide.box, x0: c.x0, x1: c.x1 };
+  return { index, slide: item.id, nl, axisY: axis, box: slide.box, x0: c.x0, x1: c.x1, ...(sideH !== undefined && { sideH }) };
 }

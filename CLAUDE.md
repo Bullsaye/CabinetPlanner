@@ -8,7 +8,7 @@ product, `DECISIONS.md` for conventions that outputs depend on.
 - `packages/engine` – pure TypeScript engine. No DOM, no Node APIs, no UI
   text. Pipeline: presets → variables (expression graph) → cabinet rules →
   parts → machining (back pockets, joints, system holes, hardware) → checks
-  → output writers (`src/output`: cutlist, BOM D61, DXF, sheets). Hardware seed items are JSON in `packages/engine/library/hardware/`.
+  → output writers (`src/output`: cutlist, BOM D61, DXF, sheets). Factory content (materials, surfaces, presets, templates, hardware items) lives in bundled packs: `packs/<id>/` with `pack.json`, compiled in through the generated `packs/index.ts` (`pnpm packs` after adding a file; D76).
 - `packages/i18n` – message catalogues (`en` base, `de` complete) and the
   translator.
 - `packages/cli` – `cabinet-planner` command; the first client of the engine.
@@ -34,6 +34,8 @@ pnpm cp bom examples/kitchen-basic.project.json --shop examples/shop.json --form
 pnpm cp sheets examples/kitchen-basic.project.json --zip sheets.zip   # every drawing sheet as SVG
 pnpm cp resolve examples/kitchen-basic.project.json --cabinet W01
 pnpm cp ops examples/kitchen-basic.project.json --cabinet B01   # machining + hardware per part
+pnpm cp packs --shop examples/shop.json   # bundled packs, on/off for a shop file (D76)
+pnpm packs           # regenerate packs/index.ts after adding/removing a pack file
 pnpm app             # web app dev server (http://localhost:5173)
 pnpm desktop         # desktop window (Tauri) around the dev server
 pnpm desktop:build   # desktop installers

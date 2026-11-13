@@ -1,0 +1,24 @@
+{
+  "id": "storage-bath-templates",
+  "name": {
+    "en": "Storage and bathroom templates",
+    "de": "Vorlagen Stauraum und Bad"
+  },
+  "description": {
+    "en": "Bookcase, sideboard, bench, vanity and bathroom tall unit.",
+    "de": "Bücherregal, Sideboard, Sitzbank, Waschtischunterschrank und Bad-Hochschrank."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "templates",
+  "tags": [
+    "storage",
+    "bath",
+    "templates"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

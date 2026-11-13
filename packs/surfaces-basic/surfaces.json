@@ -1,0 +1,50 @@
+[
+  {
+    "id": "lacquer-ral-9016",
+    "name": {
+      "en": "Lacquer RAL 9016 traffic white",
+      "de": "Lack RAL 9016 Verkehrsweiß"
+    },
+    "kind": "lacquer",
+    "ref": "RAL 9016",
+    "color": "#f1f0ea"
+  },
+  {
+    "id": "lacquer-ral-7016",
+    "name": {
+      "en": "Lacquer RAL 7016 anthracite grey",
+      "de": "Lack RAL 7016 Anthrazitgrau"
+    },
+    "kind": "lacquer",
+    "ref": "RAL 7016",
+    "color": "#383e42"
+  },
+  {
+    "id": "lacquer-ral-6021",
+    "name": {
+      "en": "Lacquer RAL 6021 pale green",
+      "de": "Lack RAL 6021 Blassgrün"
+    },
+    "kind": "lacquer",
+    "ref": "RAL 6021",
+    "color": "#86a47c"
+  },
+  {
+    "id": "hpl-white",
+    "name": {
+      "en": "HPL white",
+      "de": "HPL weiß"
+    },
+    "kind": "hpl",
+    "color": "#f4f4f1"
+  },
+  {
+    "id": "hpl-oak",
+    "name": {
+      "en": "HPL oak decor",
+      "de": "HPL Eiche Dekor"
+    },
+    "kind": "hpl",
+    "color": "#c9a26d"
+  }
+]

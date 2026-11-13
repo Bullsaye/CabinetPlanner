@@ -26,7 +26,7 @@ function probe(shopOnly: boolean): ResolvedCabinet | undefined {
     const project = shopOnly ? { ...r.project, presets: [], vars: {}, options: {} } : r.project;
     return resolveCabinet(project, CabinetSchema.parse({ id: "ROOM", type: "box" }), {
       library: r.library,
-      presets: presetRegistry(store.built.shop, r.project),
+      presets: presetRegistry(store.built.shop, r.project, r.packs),
       shop: store.built.shop?.defaults ?? r.project.shop,
       constants: new Map([["ceiling_h", r.values.get("room_height") ?? 2500]]),
     });

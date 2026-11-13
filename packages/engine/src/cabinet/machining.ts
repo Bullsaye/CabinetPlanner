@@ -637,8 +637,12 @@ export function machineBox(
       const ff = sd.frontFixing;
       const yb = d.axisY - sd.axisToBox;
       const src: OpSource = { kind: "hardware", ref: `${item.id}:front` };
+      // A side height may have its own bracket (D76).
+      const own = d.sideH === undefined ? undefined : sd.heights.find((h) => h.h === d.sideH)?.front;
+      const fromBox = own?.fromBox ?? ff.fromBox;
+      const rows = own?.rows ?? ff.rows;
       for (const x of [d.x0 + ff.fromSide, d.x1 - ff.fromSide]) {
-        for (const r of ff.rows) addBore(df, { x, y: yb + ff.fromBox + r, z: df.box.z }, "+z", ff.d, ff.depth, src);
+        for (const r of rows) addBore(df, { x, y: yb + fromBox + r, z: df.box.z }, "+z", ff.d, ff.depth, src);
       }
     } else if (d.box === "wood" && opt<string>("drawer_front.fixing") === "screws") {
       const inner = byCode.get(`DI${d.index}`);

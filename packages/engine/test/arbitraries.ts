@@ -32,7 +32,7 @@ const options = fc.record({
   "handle.door": fc.constantFrom("vertical", "horizontal"),
   "handle.drawer": fc.constantFrom("center", "top"),
   "hardware.hanger": fc.constantFrom(null, "hettich-sah-130"),
-  "hardware.slide": fc.constantFrom("generic-undermount", "grass-dynapro-40", "grass-nova-pro-scala-40"),
+  "hardware.slide": fc.constantFrom("generic-undermount", "grass-dynapro-40", "grass-nova-pro-scala-40", "grass-vionaro-v8-40", "blum-legrabox-40"),
   "hardware.hinge": fc.constantFrom("generic-hinge-110", "blum-cliptop-110-inserta", "hettich-sensys-8645i-flash"),
   "hardware.flap": fc.constantFrom("blum-aventos-hk-top", "hettich-lift-advanced-hk"),
   "hardware.leg": fc.constantFrom("generic-leg-100", "generic-leg-100-screwed", null),

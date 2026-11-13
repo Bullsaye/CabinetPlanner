@@ -36,7 +36,7 @@ pnpm cp dxf examples/kitchen-basic.project.json --zip kitchen.zip  # CNC DXF per
 ## Repository
 
 - `packages/engine` — TypeScript engine: expression language, variable graph, preset layers, box cabinet rule, machining (32 mm system, dowels, hardware), checks, writers for cutlist, bill of materials, drawings and DXF.
-- `packages/engine/library/hardware` — factory hardware items as JSON (generic, untested).
+- `packs/` — the bundled packs: factory materials, edgebands, surfaces, presets, templates and hardware items as JSON, one folder per pack with a `pack.json` (D76; brand items untested).
 - `packages/i18n` — English and German texts for UI and CLI.
 - `packages/cli` — `cabinet-planner` command.
 - `packages/app` — web app (Svelte, three.js), also the UI of the desktop and Android apps.

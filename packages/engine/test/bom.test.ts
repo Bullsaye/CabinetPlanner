@@ -5,7 +5,7 @@ import {
   bomTable,
   buildBom,
   buildProject,
-  FACTORY_HARDWARE,
+  BUNDLED,
   formatLengths,
   loadProject,
   partArea,
@@ -22,7 +22,7 @@ const text: BomText = {
   unpriced: (n) => `${n} unpriced`,
 };
 
-const factory = (id: string) => FACTORY_HARDWARE.find((h) => h.id === id)!;
+const factory = (id: string) => BUNDLED.hardware.find((h) => h.id === id)!;
 const priced = {
   materials: [
     { id: "mel-white-19", name: "Melamine", thickness: 19, pricePerM2: 10 },

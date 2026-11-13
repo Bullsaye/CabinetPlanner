@@ -18,6 +18,7 @@
     "check": "pnpm typecheck && pnpm test",
     "cp": "tsx packages/cli/src/main.ts",
     "preview": "tsx tools/preview/gen.ts",
+    "packs": "tsx tools/packs/gen.ts",
     "app": "pnpm --filter @cabinet-planner/app dev",
     "app:build": "pnpm --filter @cabinet-planner/app build",
     "desktop": "pnpm --filter @cabinet-planner/desktop dev",

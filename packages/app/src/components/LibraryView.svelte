@@ -1,10 +1,10 @@
 <script lang="ts">
   import {
-    FACTORY_EDGEBANDS,
-    FACTORY_HARDWARE,
-    FACTORY_MATERIALS,
-    FACTORY_PRESETS,
+    BUNDLED,
+    BUNDLED_PACKS,
+    CORE_PACK_ID,
     HardwareItem,
+    LIBRARY_KINDS,
     localName,
     OPTIONS,
     VARIABLES,
@@ -15,7 +15,7 @@
   import { parseInput, store, templateBody } from "../lib/store.svelte.ts";
   import { optionChoices, optionDef } from "../lib/fields.ts";
 
-  type Section = "materials" | "edgebands" | "surfaces" | "hardware" | "presets";
+  type Section = "materials" | "edgebands" | "surfaces" | "hardware" | "presets" | "packs";
   type Doc = Record<string, any>;
 
   const t = $derived(store.tr.t);
@@ -61,8 +61,8 @@
   }
 
   // --- Materials and edgebands -------------------------------------------------
-  const materials = $derived([...(store.result?.library.materials.values() ?? FACTORY_MATERIALS)]);
-  const edgebands = $derived([...(store.result?.library.edgebands.values() ?? FACTORY_EDGEBANDS)]);
+  const materials = $derived([...(store.result?.library.materials.values() ?? BUNDLED.materials)]);
+  const edgebands = $derived([...(store.result?.library.edgebands.values() ?? BUNDLED.edgebands)]);
   const usedMaterials = $derived(new Set(store.result?.parts.map((p) => p.material) ?? []));
 
   function addMaterial(): void {
@@ -87,7 +87,7 @@
   let json = $state("");
   let jsonError = $state("");
   const hardware = $derived(
-    [...(store.result?.library.hardware.values() ?? FACTORY_HARDWARE)].filter(
+    [...(store.result?.library.hardware.values() ?? BUNDLED.hardware)].filter(
       (h) =>
         (!cat || h.category === cat) &&
         (!query || `${h.id} ${name(h.name)} ${h.manufacturer ?? ""} ${h.articles.map((a) => a.code).join(" ")}`.toLowerCase().includes(query.toLowerCase())),
@@ -167,7 +167,7 @@
   }
 
   // --- Presets and templates -----------------------------------------------------
-  const presets = $derived([...FACTORY_PRESETS, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
+  const presets = $derived([...store.built.factory.presets, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
   const templates = $derived(store.built.shop?.library.templates ?? []);
   let newName = $state("");
 
@@ -231,6 +231,21 @@
   }
   const text = (x: unknown): string => (x === undefined ? "" : localName(x as never, store.tr.locale));
 
+  // --- Packs (D76) -----------------------------------------------------------------
+  /** Bundled packs switched off in the shop file; the core pack cannot be. */
+  const offPacks = $derived(new Set(store.built.packs.off));
+  const askedOff = $derived(new Set((store.shop.disabledPacks ?? []) as string[]));
+  const packItems = (id: string): number => {
+    const p = BUNDLED_PACKS.find((x) => x.id === id);
+    return p ? LIBRARY_KINDS.reduce((n, k) => n + p.content[k].length, 0) : 0;
+  };
+  function setPack(id: string, on: boolean): void {
+    const list = ((store.shop.disabledPacks ?? []) as string[]).filter((x) => x !== id);
+    if (!on) list.push(id);
+    if (list.length) store.shop.disabledPacks = list;
+    else delete store.shop.disabledPacks;
+  }
+
   /** The selected cabinet's own values as a preset (no size), or the whole cabinet as a template. */
   function saveFromCabinet(kind: "preset" | "template"): void {
     const c = store.cabinetDoc;
@@ -252,7 +267,7 @@
 <section class="panel lv">
   <div class="bar">
     <div role="group" aria-label={t("ui.library")}>
-      {#each ["materials", "edgebands", "surfaces", "hardware", "presets"] as s}
+      {#each ["materials", "edgebands", "surfaces", "hardware", "presets", "packs"] as s}
         <button aria-pressed={section === s} onclick={() => (section = s as Section)}>{t(`ui.lib.${s}`)}</button>
       {/each}
     </div>
@@ -494,6 +509,38 @@
         {/if}
       </div>
     </div>
+  {:else if section === "packs"}
+    <p class="pad muted small">{t("ui.packs_hint")}</p>
+    <div class="scroll-x">
+      <table class="grid packs">
+        <thead><tr><th>{t("ui.pack_on")}</th><th>{t("ui.id")}</th><th>{t("ui.name")}</th><th>{t("ui.pack_items")}</th><th></th></tr></thead>
+        <tbody>
+          {#each BUNDLED_PACKS as p (p.id)}
+            {@const kept = store.built.packs.kept.filter((k) => k.pack === p.id)}
+            {@const needed = store.built.packs.needed[p.id]}
+            <tr data-pack={p.id}>
+              <td>
+                <input
+                  type="checkbox"
+                  aria-label={t("ui.pack_switch", { name: name(p.name) })}
+                  checked={p.id === CORE_PACK_ID || !askedOff.has(p.id)}
+                  disabled={p.id === CORE_PACK_ID}
+                  onchange={(e) => setPack(p.id, (e.target as HTMLInputElement).checked)}
+                />
+              </td>
+              <td class="mono">{p.id}</td>
+              <td>{name(p.name)}<div class="muted small">{name(p.description)}</div></td>
+              <td class="n">{packItems(p.id)}</td>
+              <td>
+                {#if p.id === CORE_PACK_ID}<span class="pill factory">{t("ui.pack_core")}</span>{/if}
+                {#if needed && askedOff.has(p.id)}<span class="pill shop">{t("ui.pack_needed", { by: needed.join(", ") })}</span>{/if}
+                {#if offPacks.has(p.id) && kept.length}<span class="pill project" title={kept.map((k) => k.id).join(", ")}>{t("ui.pack_kept", { n: kept.length })}</span>{/if}
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {:else}
     <div class="presets">
       <div class="save panel">
@@ -629,6 +676,8 @@
   .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px 16px; }
   .drill input[type="text"] { width: 100%; min-width: 4.5em; }
   .presets { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  table.packs td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+  table.packs td.mono { white-space: nowrap; }
   .plain li.preset { flex-direction: column; flex-wrap: nowrap; gap: 4px; align-items: stretch; }
   .phead { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .pname { font-weight: 500; min-width: 10em; }

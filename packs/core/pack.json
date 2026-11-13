@@ -1,0 +1,20 @@
+{
+  "id": "core",
+  "name": {
+    "en": "Basics",
+    "de": "Grundausstattung"
+  },
+  "description": {
+    "en": "What a cabinet needs to build with the factory settings: generic boards and edgebands, generic fittings, the fittings the factory options name, and the unit kinds base, wall and tall.",
+    "de": "Was ein Schrank mit den Werkseinstellungen braucht: neutrale Platten und Kanten, neutrale Beschläge, die in den Werksoptionen genannten Beschläge und die Schrankarten Unter-, Hänge- und Hochschrank."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "core",
+  "tags": [
+    "basics"
+  ],
+  "requires": [],
+  "meta": {}
+}

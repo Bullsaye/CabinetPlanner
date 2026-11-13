@@ -1,0 +1,335 @@
+[
+  {
+    "id": "base-door",
+    "group": "kitchen",
+    "name": {
+      "en": "Base, one door",
+      "de": "Unterschrank, eine Tür"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600
+      }
+    }
+  },
+  {
+    "id": "base-2doors",
+    "group": "kitchen",
+    "name": {
+      "en": "Base, two doors",
+      "de": "Unterschrank, zwei Türen"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 800,
+        "door_count": 2
+      }
+    }
+  },
+  {
+    "id": "base-drawers-3",
+    "group": "kitchen",
+    "name": {
+      "en": "Base, three drawers",
+      "de": "Unterschrank, drei Schubkästen"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600
+      },
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "drawer"
+        }
+      ]
+    }
+  },
+  {
+    "id": "base-drawer-door",
+    "group": "kitchen",
+    "name": {
+      "en": "Base, drawer over door",
+      "de": "Unterschrank, Schubkasten über Tür"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600
+      },
+      "fronts": [
+        {
+          "type": "drawer",
+          "h": 150
+        },
+        {
+          "type": "door"
+        }
+      ]
+    }
+  },
+  {
+    "id": "base-sink",
+    "group": "kitchen",
+    "name": {
+      "en": "Sink base",
+      "de": "Spülenunterschrank"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 800,
+        "door_count": 2,
+        "shelf_count": 0
+      }
+    }
+  },
+  {
+    "id": "base-blind-corner",
+    "group": "kitchen",
+    "name": {
+      "en": "Blind corner base",
+      "de": "Eckunterschrank mit Blende"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 1000,
+        "door_count": 1
+      },
+      "options": {
+        "corner": "blind_right"
+      }
+    }
+  },
+  {
+    "id": "base-oven",
+    "group": "kitchen",
+    "name": {
+      "en": "Oven base (under worktop)",
+      "de": "Backofen-Unterschrank"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "shelf_count": 0
+      },
+      "fronts": [
+        {
+          "type": "appliance",
+          "h": "oven_h"
+        },
+        {
+          "type": "panel"
+        }
+      ]
+    }
+  },
+  {
+    "id": "base-open",
+    "group": "kitchen",
+    "name": {
+      "en": "Open base",
+      "de": "Offener Unterschrank"
+    },
+    "cabinet": {
+      "kind": "base",
+      "presets": [
+        "base-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "door_count": 0,
+        "shelf_count": 1
+      }
+    }
+  },
+  {
+    "id": "wall-door",
+    "group": "kitchen",
+    "name": {
+      "en": "Wall unit, one door",
+      "de": "Hängeschrank, eine Tür"
+    },
+    "cabinet": {
+      "kind": "wall",
+      "presets": [
+        "wall-unit"
+      ],
+      "vars": {
+        "W": 600
+      }
+    }
+  },
+  {
+    "id": "wall-2doors",
+    "group": "kitchen",
+    "name": {
+      "en": "Wall unit, two doors",
+      "de": "Hängeschrank, zwei Türen"
+    },
+    "cabinet": {
+      "kind": "wall",
+      "presets": [
+        "wall-unit"
+      ],
+      "vars": {
+        "W": 800,
+        "door_count": 2
+      }
+    }
+  },
+  {
+    "id": "wall-open",
+    "group": "kitchen",
+    "name": {
+      "en": "Open wall shelf",
+      "de": "Offenes Hängeregal"
+    },
+    "cabinet": {
+      "kind": "wall",
+      "presets": [
+        "wall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "door_count": 0
+      }
+    }
+  },
+  {
+    "id": "tall-pantry",
+    "group": "kitchen",
+    "name": {
+      "en": "Pantry, two doors stacked",
+      "de": "Vorratsschrank, zwei Türen übereinander"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600
+      },
+      "fronts": [
+        {
+          "type": "door"
+        },
+        {
+          "type": "door",
+          "h": "base_h - front_gap_top"
+        }
+      ]
+    }
+  },
+  {
+    "id": "tall-oven",
+    "group": "kitchen",
+    "name": {
+      "en": "Tall oven housing",
+      "de": "Backofen-Hochschrank"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "shelf_count": 1
+      },
+      "fronts": [
+        {
+          "type": "door"
+        },
+        {
+          "type": "appliance",
+          "h": "oven_h"
+        },
+        {
+          "type": "drawer",
+          "h": 250
+        },
+        {
+          "type": "drawer"
+        }
+      ]
+    }
+  },
+  {
+    "id": "tall-fridge",
+    "group": "kitchen",
+    "name": {
+      "en": "Tall fridge housing (integrated)",
+      "de": "Kühlschrank-Hochschrank (integriert)"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit"
+      ],
+      "vars": {
+        "W": 600,
+        "shelf_count": 0
+      },
+      "fronts": [
+        {
+          "type": "door"
+        },
+        {
+          "type": "appliance",
+          "h": "fridge_h",
+          "front": true
+        }
+      ],
+      "construction": {
+        "fixed": {
+          "1": {
+            "setbackRear": "fridge_vent_rear"
+          }
+        },
+        "panels": [
+          {
+            "y": "zone2_y1 + front_gap + t_carcase + fridge_vent"
+          }
+        ],
+        "noBack": [
+          2
+        ]
+      }
+    }
+  }
+]
