@@ -50,7 +50,8 @@ export interface BoxLayout {
   /** Doors with the side their hinges are on and the panel (side or middle panel) the hinges go into. */
   doors: { code: string; hinge: "left" | "right"; panel: string }[];
   /** Drawers: slide item, nominal length, rail screw axis height and the clear width (x0…x1) they run in. */
-  drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal"; x0: number; x1: number }[];
+  /** sideH: the metal side height chosen (D76). */
+  drawers: { index: number; slide: string; nl: number; axisY: number; box: "wood" | "metal"; x0: number; x1: number; sideH?: number }[];
   /** Panels fixed to an appliance door: they get a handle like a door. */
   applianceFronts: { code: string; hinge: "left" | "right" }[];
   /**

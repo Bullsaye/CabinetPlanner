@@ -6,7 +6,7 @@ lists its values, drilling, rules, the source URLs and a confidence level.
 Values with `null` were not found in a readable source.
 
 These files are research notes, not library items. Library items are built
-from them in `packages/engine/library/hardware/`, with the sources named in
+from them in the hardware packs (`packs/*/hardware/`), with the sources named in
 each item's `source` field and `trust: "untested"` until a part has been
 machined and checked.
 

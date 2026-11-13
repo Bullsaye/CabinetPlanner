@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FACTORY_TEMPLATES, buildProject, dowelPositions, loadProject, neighbours } from "../src/index.ts";
+import { BUNDLED, buildProject, dowelPositions, loadProject, neighbours } from "../src/index.ts";
 import { buildOne, partsByCode } from "./helpers.ts";
 
 import type { Operation, Part } from "../src/index.ts";
@@ -186,7 +186,7 @@ describe("neighbours and cabinet screws (D37)", () => {
 });
 
 describe("construction elements (D38)", () => {
-  const fridge = FACTORY_TEMPLATES.find((t) => t.id === "tall-fridge")!.cabinet;
+  const fridge = BUNDLED.templates.find((t) => t.id === "tall-fridge")!.cabinet;
 
   it("builds the fridge housing: set-back board, gap, full board, back only above", () => {
     const r = buildOne(fridge as never);

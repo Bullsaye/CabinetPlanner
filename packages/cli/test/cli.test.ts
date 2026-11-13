@@ -142,8 +142,8 @@ describe("cli bom", () => {
     ];
     for (const k of keys) expect(Object.hasOwn(en, k), k).toBe(true);
     // Units used by the factory hardware items.
-    const { FACTORY_HARDWARE } = await import("@cabinet-planner/engine");
-    for (const h of FACTORY_HARDWARE) expect(Object.hasOwn(en, `unit.${h.bom.unit}`), `${h.id}: unit.${h.bom.unit}`).toBe(true);
+    const { BUNDLED } = await import("@cabinet-planner/engine");
+    for (const h of BUNDLED.hardware) expect(Object.hasOwn(en, `unit.${h.bom.unit}`), `${h.id}: unit.${h.bom.unit}`).toBe(true);
   });
 });
 

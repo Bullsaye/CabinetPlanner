@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "blum-legrabox-40",
+  "name": {
+    "en": "Blum LEGRABOX pure, drawer, 40 kg (cabinet profile 750, BLUMOTION S)",
+    "de": "Blum LEGRABOX pure, Schubkasten, 40 kg (Korpusschiene 750, BLUMOTION S)"
+  },
+  "category": "slide",
+  "manufacturer": "Blum",
+  "series": "LEGRABOX pure, cabinet profile 750 (40 kg), heights N/M/C/F",
+  "articles": [
+    { "code": "750.5001S", "note": "cabinet profiles L+R, 40 kg, BLUMOTION S, NL 500 (750.xxx1S for NL 270–600)" },
+    { "code": "770M5002S", "note": "drawer side set height M (90.5), NL 500, Orion grey matt (770N… N, 770C… C, 770F… F)" },
+    { "code": "ZB7M000S", "note": "chipboard back fixings L/R, height M (ZB7N…/ZB7C…/ZB7F… for N/C/F)" },
+    { "code": "ZF7M70E2", "note": "front fixing bracket EXPANDO, height M (ZF7N70E2 for N)" }
+  ],
+  "trust": "untested",
+  "source": "Blum LEGRABOX Ordering and planning information (CA edition, PDF created 2023-06-12), d2.blum.com/services/BEC003/me77914225_ep_dok_bau_$sen-ca_$aof_$v1.pdf. Verified there: side heights N 66.5 / M 90.5 / C 177 / F 241 and chipboard back heights 39 / 63 / 148 / 212 (pp. 6, 11, 15, 25, 55); cutting for 16 mm chipboard: drawer base LW − 35 × NL − 10, chipboard back LW − 38 (pp. 11, 15); LT min = NL + 3; profile 750 lengths 270, 350–600, side set N only in NL 450/500, F only in NL 450–600 (pp. 8, 12, 52–55); profile screw axis min 38 above the cabinet bottom (+1 if fitted before assembly); system screw positions from the 37 mm hole: NL 270: 0, 32, 160; NL 350: 0, 32, 224; NL 400–500: 0, 32, 224, 256; NL 550–600: 0, 32, 224, 256, 320 (p. 69; the extra front screw 18 mm from the front edge and the chipboard-only screw 18 mm ahead of the 224 hole are screwed without a system hole and are not drilled here); EXPANDO front holes Ø10, 14 from the cabinet side's inner face, lowest hole 45.5 (N) / 51 (M, C, F) above the cabinet bottom at the lowest profile position, i.e. 7.5 / 13 above the profile screw axis, further holes 16 (N), 32 (M), 32 + 96 (C), 32 + 96 + 32 + 32 (F) above (pp. 10, 14, 24, 54). PLACEHOLDERS, not verified: axisToBox 24.5 (drawer side underside below the screw axis, derived from the space requirements min 42 / 68 / 155 / 219 above the axis minus the side heights; the drawer base is placed at the side underside) and the EXPANDO hole depth 11 (not stated in the source; min front thickness 12). Heights C and F are high fronted pull-outs: their design element / gallery parts are not in this item's bill of materials.",
+  "params": {
+    "bottom_w": "LWK - 35",
+    "bottom_l": "NL - 10",
+    "back_w": "LWK - 38"
+  },
+  "slide": {
+    "lengths": [270, 350, 400, 450, 500, 550, 600],
+    "depthExtra": 3,
+    "firstFixing": 37,
+    "fixings": [
+      { "upTo": 270, "at": [0, 32, 160] },
+      { "upTo": 350, "at": [0, 32, 224] },
+      { "upTo": 500, "at": [0, 32, 224, 256] },
+      { "upTo": 600, "at": [0, 32, 224, 256, 320] }
+    ],
+    "axisMin": 38,
+    "axisToBox": 24.5,
+    "box": "metal",
+    "heights": [
+      { "h": 66.5, "back": 39, "name": "N", "lengths": [450, 500], "front": { "fromBox": 32, "rows": [0, 16] } },
+      { "h": 90.5, "back": 63, "name": "M" },
+      { "h": 177, "back": 148, "name": "C", "front": { "rows": [0, 32, 128] } },
+      { "h": 241, "back": 212, "name": "F", "lengths": [450, 500, 550, 600], "front": { "rows": [0, 32, 128, 160, 192] } }
+    ],
+    "frontFixing": {
+      "d": 10,
+      "depth": 11,
+      "fromSide": 14,
+      "fromBox": 37.5,
+      "rows": [0, 32]
+    }
+  },
+  "limits": [],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "set"
+  }
+}

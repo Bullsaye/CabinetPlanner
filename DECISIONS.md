@@ -1515,3 +1515,61 @@ Both lines changed the same rules independently. Where they overlapped:
 - In the app the cutlist shows each edge by name with its edgeband code
   and remark; a click opens an editor for the band (as constructed, none,
   or a library edgeband) and the remark, written to every part of the row.
+
+### D76 · 2026-11-13 · Factory content in packs; Vionaro and LEGRABOX
+
+- Everything the engine builds with besides its rules is data in packs:
+  materials, edgebands, surfaces, presets, templates and hardware items.
+  A pack is a folder `packs/<id>/` with `pack.json` (id, name and
+  description in en/de, version, licence, author, kind, tags, `requires`,
+  `meta`) and its content: one JSON array per library kind
+  (`materials.json`, `presets.json`, …) and/or one file per item
+  (`hardware/<id>.json`, file name = id). The single-file form
+  `{ ...pack.json, content }` is `PackSchema`; `content` is the library
+  fragment community packs carry (D63). Drawing styles and DXF profiles
+  stay in code for now.
+- `pnpm packs` (tools/packs/gen.ts) writes `packs/index.ts`, static JSON
+  imports of every pack folder (workspace package `@cabinet-planner/packs`);
+  a test checks it is current. The engine reads only that module
+  (`BUNDLED_PACKS`), so the app bundle, the desktop shell, the CLI, the
+  server bundle and the tests all load the packs through the same path
+  without file access. `FACTORY_HARDWARE/MATERIALS/EDGEBANDS/SURFACES/
+  PRESETS/TEMPLATES` and `factoryLibrary` are gone; `BUNDLED` is all packs
+  as one fragment.
+- Library layers: packs (in pack order: `core` first, then by id; a later
+  pack replaces an item with the same id) → shop library → project
+  library. Presets the same way.
+- Bundled packs: `core` (generic boards, edgebands, fittings, the items the
+  factory option defaults name, unit kinds base/wall/tall), the template
+  packs (kitchen, storage-bath, wardrobe with the wardrobe preset),
+  `surfaces-basic`, one hardware pack per brand. `checkPacks` checks that
+  every id an option default, a preset or a template names is in the pack
+  or the packs it requires; option defaults must be in `core`.
+- Switching packs off: shop file `disabledPacks` (app: Library → Packs).
+  `buildProject(project, shop)` applies it by itself (`shopPacks`): a
+  switched-off pack leaves the library, the lists and the template menu,
+  but items that the shop file or the project name (any string value equal
+  to an item id, and what those items name in turn) stay, so existing
+  projects build the same. `core` and packs a switched-on pack requires
+  cannot be switched off; unknown ids are ignored. Without `disabledPacks`
+  nothing changes: no golden file changed with the move.
+- Community packs (D63): a bundled pack maps one to one onto a publish body
+  (`packPublishBody`; name and description in one language; `requires`,
+  `kind`, `author`, `meta` stay in the pack file). `cabinet-planner packs`
+  lists the packs and their state for a shop file; `--publish <id>` writes
+  the body for `POST /api/packs`. Installing a community pack still copies
+  it into the shop library, above the bundled packs.
+- Metal drawer systems: a side height may exist in some nominal lengths
+  only (`heights[].lengths`) and may have its own front fixing (`heights[]
+  .front`: `fromBox`, `rows`); `sideBelow` says how far the sides reach
+  below the drawer bottom's underside (the box underside the rail axis is
+  measured to), so the height check counts from the bottom. The chosen
+  height is kept per drawer (`layout.drawers[].sideH`).
+- New items: `grass-vionaro-v8-40` (hardware-grass: Vionaro V8 H72/H89/H121
+  on Dynapro 40 kg, 16 mm back on the 16 mm bottom; values read from the
+  Grass catalogue 2026.27, pp. 226–231, 239) and `blum-legrabox-40`
+  (hardware-blum: LEGRABOX profile 750 with heights N/M/C/F; values from
+  Blum's LEGRABOX ordering and planning information, CA edition 2023).
+  LEGRABOX's side underside below the profile screw axis (24.5, derived
+  from the space requirements) and its EXPANDO hole depth (11) are
+  placeholders; the item's `source` says so. Both `untested`.

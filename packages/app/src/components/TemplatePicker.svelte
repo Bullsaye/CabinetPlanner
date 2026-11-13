@@ -1,18 +1,21 @@
 <script lang="ts">
-  import { FACTORY_TEMPLATES, buildProject, loadProject, localName, type Part } from "@cabinet-planner/engine";
+  import { BUNDLED, buildProject, loadProject, localName, type Part } from "@cabinet-planner/engine";
   import { addFromTemplate, store } from "../lib/store.svelte.ts";
 
   /** Template chooser: every template as a small front view built by the engine, grouped. */
   let { onclose }: { onclose: () => void } = $props();
   const t = $derived(store.tr.t);
-  const groups = ["kitchen", "storage", "wardrobe", "bath"] as const;
   const allShop = $derived(store.built.shop?.library.templates ?? []);
-  const factoryIds = new Set(FACTORY_TEMPLATES.map((x) => x.id));
+  // Templates of every bundled pack (switched-off packs are not offered, D76); a shop copy wins.
+  const factoryIds = new Set(BUNDLED.templates.map((x) => x.id));
+  const factory = $derived(store.built.factory.templates);
+  const KNOWN = ["kitchen", "storage", "wardrobe", "bath"];
+  const groups = $derived([...KNOWN, ...new Set(factory.map((x) => x.group ?? "other").filter((g) => !KNOWN.includes(g)))]);
   const sections = $derived([
     { title: t("ui.my_templates"), items: allShop.filter((x) => !factoryIds.has(x.id)) },
     ...groups.map((g) => ({
-      title: t(`ui.template_group.${g}`),
-      items: FACTORY_TEMPLATES.filter((x) => x.group === g).map((f) => allShop.find((x) => x.id === f.id) ?? f),
+      title: store.tr.has(`ui.template_group.${g}`) ? t(`ui.template_group.${g}`) : g,
+      items: factory.filter((x) => (x.group ?? "other") === g).map((f) => allShop.find((x) => x.id === f.id) ?? f),
     })),
   ].filter((s) => s.items.length));
 

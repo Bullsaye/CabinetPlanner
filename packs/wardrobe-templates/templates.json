@@ -1,0 +1,98 @@
+[
+  {
+    "id": "wardrobe-hanging",
+    "group": "wardrobe",
+    "name": {
+      "en": "Wardrobe, hanging",
+      "de": "Kleiderschrank, Stange"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit",
+        "wardrobe"
+      ],
+      "vars": {
+        "W": 1000
+      }
+    }
+  },
+  {
+    "id": "wardrobe-split",
+    "group": "wardrobe",
+    "name": {
+      "en": "Wardrobe, hanging and shelves",
+      "de": "Kleiderschrank, Stange und Böden"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit",
+        "wardrobe"
+      ],
+      "vars": {
+        "W": 1000,
+        "partition_count": 1,
+        "shelf_count": 4
+      },
+      "options": {
+        "interior": "hanging_first"
+      }
+    }
+  },
+  {
+    "id": "wardrobe-drawers",
+    "group": "wardrobe",
+    "name": {
+      "en": "Wardrobe, hanging over drawers",
+      "de": "Kleiderschrank, Stange über Schubkästen"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit",
+        "wardrobe"
+      ],
+      "vars": {
+        "W": 1000
+      },
+      "fronts": [
+        {
+          "type": "door",
+          "doors": 2
+        },
+        {
+          "type": "drawer",
+          "h": 200
+        },
+        {
+          "type": "drawer",
+          "h": 200
+        }
+      ]
+    }
+  },
+  {
+    "id": "wardrobe-shelves",
+    "group": "wardrobe",
+    "name": {
+      "en": "Wardrobe, shelves",
+      "de": "Kleiderschrank, Fachböden"
+    },
+    "cabinet": {
+      "kind": "tall",
+      "presets": [
+        "tall-unit",
+        "wardrobe"
+      ],
+      "vars": {
+        "W": 600,
+        "door_count": 1,
+        "shelf_count": 5
+      },
+      "options": {
+        "interior": "shelves"
+      }
+    }
+  }
+]

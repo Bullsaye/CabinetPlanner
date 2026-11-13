@@ -1,0 +1,23 @@
+{
+  "id": "hardware-lamello",
+  "name": {
+    "en": "Lamello hardware",
+    "de": "Beschläge Lamello"
+  },
+  "description": {
+    "en": "Clamex P-14 connector, with P-10 Medius for middle panels. From the manufacturer catalogue, untested.",
+    "de": "Verbinder Clamex P-14, mit P-10 Medius für Mittelwände. Aus dem Herstellerkatalog, ungeprüft."
+  },
+  "version": "1.0.0",
+  "licence": "CC-BY-4.0",
+  "author": "Cabinet Planner",
+  "kind": "hardware",
+  "tags": [
+    "lamello",
+    "hardware"
+  ],
+  "requires": [
+    "core"
+  ],
+  "meta": {}
+}

@@ -520,3 +520,20 @@ describe("database file", () => {
     }
   });
 });
+
+describe("bundled packs as community packs (D76)", () => {
+  it("the server accepts every bundled pack as a publish body and serves its content back", async () => {
+    const { BUNDLED_PACKS, packPublishBody } = await import("@cabinet-planner/engine");
+    const t = await start();
+    const a = await register(t.call, "Packer");
+    for (const p of BUNDLED_PACKS) {
+      const r = await t.call("POST", "/api/packs", packPublishBody(p, "de"), a.token);
+      expect(r.status, `${p.id}: ${JSON.stringify(r.body)}`).toBe(201);
+      const got = await t.call("GET", `/api/packs/${r.body.pack.id}/versions/1.0.0`);
+      expect(got.status).toBe(200);
+      const ids = (k: string, c: Record<string, { id: string }[] | undefined>): string[] => (c[k] ?? []).map((x) => x.id);
+      for (const k of ["materials", "hardware", "presets", "templates", "surfaces"]) expect(ids(k, got.body.content ?? got.body.version?.content ?? {}), `${p.id} ${k}`).toEqual(ids(k, p.content as never));
+    }
+    await t.app.close();
+  });
+});

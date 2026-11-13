@@ -4,6 +4,11 @@ import {
   bomText,
   buildBom,
   buildProject,
+  BUNDLED_PACKS,
+  CORE_PACK_ID,
+  LIBRARY_KINDS,
+  packPublishBody,
+  shopPacks,
   projectSheets,
   sheetIndex,
   sheetsPdf,
@@ -55,6 +60,7 @@ export interface Io {
 }
 
 const USAGE = `Usage: cabinet-planner <command> <project.json> [options]
+       cabinet-planner packs [--shop <file>] [--publish <pack id>]
 
 Commands:
   cutlist   Write the cutlist (CSV or a text table)
@@ -71,6 +77,9 @@ Commands:
   sheets    Write every drawing sheet: room plan and elevations, assembly drawings, part
             sheets. --pdf <file>: one PDF, a sheet per page (--paper sheet|a4|a3);
             --out <dir> or --zip <file>: SVG files; --cabinet or --only to limit; --style
+  packs     List the bundled packs (D76) and whether the shop file switches them off;
+            --publish <id> writes that pack as the body of a community pack publish
+            request (server POST /api/packs, D63)
 
 Options:
   --shop <file>          Shop file with library, presets and shop defaults
@@ -117,6 +126,7 @@ export function run(argv: readonly string[], io: Io): number {
         wall: { type: "string" },
         profile: { type: "string" },
         timestamp: { type: "string" },
+        publish: { type: "string" },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -130,6 +140,7 @@ export function run(argv: readonly string[], io: Io): number {
     (opts.help ? io.stdout : io.stderr)(USAGE);
     return opts.help ? 0 : 2;
   }
+  if (command === "packs") return packsCommand(opts, io);
   if (!["cutlist", "bom", "resolve", "check", "ops", "drawing", "assembly", "dxf", "sheets", "room"].includes(command) || !file) {
     io.stderr(USAGE);
     return 2;
@@ -544,6 +555,47 @@ export function alignTable(rows: readonly (readonly string[])[]): string {
       )
       .join("\n") + "\n"
   );
+}
+
+/** `packs`: the bundled packs, on or off for a shop file; `--publish <id>`: one pack as a publish body. */
+function packsCommand(opts: { shop?: string; lang?: string; out?: string; publish?: string }, io: Io): number {
+  const tr = createTranslator(opts.lang ?? io.env["LANG"] ?? "en");
+  let shop: Shop | undefined;
+  try {
+    shop = opts.shop ? loadShop(readJson(io, opts.shop)) : undefined;
+  } catch (e) {
+    if (e instanceof FileFormatError || e instanceof SyntaxError || isFsError(e)) {
+      io.stderr(`${(e as Error).message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+  const write = (text: string): void => {
+    if (opts.out) {
+      io.writeFile(opts.out, text);
+      io.stderr(tr.t("cli.written", { file: opts.out }) + "\n");
+    } else io.stdout(text);
+  };
+  if (opts.publish !== undefined) {
+    const pack = BUNDLED_PACKS.find((p) => p.id === opts.publish);
+    if (!pack) {
+      io.stderr(tr.t("cli.pack_not_found", { pack: opts.publish }) + "\n");
+      return 1;
+    }
+    write(JSON.stringify(packPublishBody(pack, tr.locale), null, 2) + "\n");
+    return 0;
+  }
+  const sel = shopPacks(shop);
+  const rows: string[][] = [[tr.t("cli.col.pack"), tr.t("cli.col.name"), tr.t("cli.col.version"), tr.t("cli.col.items"), tr.t("cli.col.state")]];
+  for (const p of BUNDLED_PACKS) {
+    const items = LIBRARY_KINDS.reduce((n, k) => n + p.content[k].length, 0);
+    const state =
+      p.id === CORE_PACK_ID ? tr.t("cli.pack.core") : sel.off.includes(p.id) ? tr.t("cli.pack.off") : sel.needed[p.id] ? tr.t("cli.pack.needed", { by: sel.needed[p.id]!.join(", ") }) : tr.t("cli.pack.on");
+    rows.push([p.id, localName(p.name, tr.locale), p.version, String(items), state]);
+  }
+  const kept = sel.kept.map((k) => `${k.pack}: ${k.kind}/${k.id}`);
+  write(alignTable(rows) + (kept.length ? `\n${tr.t("cli.pack.kept")}\n${kept.map((k) => `  ${k}`).join("\n")}\n` : ""));
+  return 0;
 }
 
 function readJson(io: Io, path: string): unknown {

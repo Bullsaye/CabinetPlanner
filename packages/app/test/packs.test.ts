@@ -15,7 +15,7 @@ import {
   untestedPackHardware,
 } from "../src/lib/packs.ts";
 import { normalizeServerUrl } from "../src/lib/cloud.ts";
-import factoryHinge from "../../engine/library/hardware/generic-hinge-110.json" with { type: "json" };
+import factoryHinge from "../../../packs/core/hardware/generic-hinge-110.json" with { type: "json" };
 
 type Doc = Record<string, any>;
 const shopDoc = (library: Doc = {}): Doc => ({ schemaVersion: 1, kind: "shop", name: "Test", library });

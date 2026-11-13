@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "grass-vionaro-v8-40",
+  "name": {
+    "en": "Grass Vionaro V8, slim drawer on Dynapro 40 kg",
+    "de": "Grass Vionaro V8, schlanke Zarge auf Dynapro 40 kg"
+  },
+  "category": "slide",
+  "manufacturer": "Grass",
+  "series": "Vionaro V8, Dynapro 40 kg slides, 16 mm bottom and back (back on the bottom), heights H72/H89/H121",
+  "articles": [
+    { "code": "F138140194", "note": "drawer sides H89 Zircon, NL 500 (catalogue p. 228; H72 p. 226, H121 p. 230)" },
+    { "code": "F138142175", "note": "plastic front locking device, Zircon (Zamak F138142209 needs RWB ≥ 180)" }
+  ],
+  "trust": "untested",
+  "source": "Grass Movement Systems catalogue 2026.27 (mediacenter.grass.eu/Katalog/EN/226–231 and /239, read 2026-11-13). Verified there: bottom panel BB = LWK − 22, back panel RWB = LWK − 32 (min. 148 with the plastic front locking device), bottom length BL = NL − 11 with the 16 mm back standing on the 16 mm bottom; back heights RWH 42 (H72), 59 (H89), 91 (H121); MET = NL + 3; screw axis min. 38 above the carcase bottom, drawer bottom underside 8.5 below the axis, drawer side 16.3 above the carcase bottom at the lowest position (so the side reaches 29.5 − 16.3 = 13.2 below the bottom underside); front holder bores Ø5 × 13, 12 from the carcase side's inner face, lowest 51 above the carcase bottom at the lowest position (= 13 above the axis, 21.5 above the bottom underside) and 32 above it (pp. 227, 229, 231); Dynapro 40 kg fixing positions from 37 mm: NL 270–300: 0, 32, 128, 160; 350–450: 0, 32, 192, 224; 500: 0, 32, 256, 288; 550: 0, 32, 224, 288, 352; 600: 0, 32, 224, 352, 384 (p. 239); H72 sides only in NL 300, 400–600 (p. 226), H89/H121 in 270–650 (pp. 228, 230; NL 650 needs the 70 kg slide and is left out). Not modelled: the back panel screws (Ø3.5 × 15 through the bottom, 47 from each end, more for KB ≥ 600 / ≥ 1000) and the higher sides H200/H250 (pull-outs with rails or glass).",
+  "params": {
+    "bottom_w": "LWK - 22",
+    "bottom_l": "NL - 11",
+    "back_w": "LWK - 32"
+  },
+  "slide": {
+    "lengths": [270, 300, 350, 400, 450, 500, 550, 600],
+    "depthExtra": 3,
+    "firstFixing": 37,
+    "fixings": [
+      { "upTo": 300, "at": [0, 32, 128, 160] },
+      { "upTo": 450, "at": [0, 32, 192, 224] },
+      { "upTo": 500, "at": [0, 32, 256, 288] },
+      { "upTo": 550, "at": [0, 32, 224, 288, 352] },
+      { "upTo": 600, "at": [0, 32, 224, 352, 384] }
+    ],
+    "axisMin": 38,
+    "axisToBox": 8.5,
+    "sideBelow": 13.2,
+    "box": "metal",
+    "heights": [
+      { "h": 72, "back": 42, "name": "H72", "lengths": [300, 400, 450, 500, 550, 600] },
+      { "h": 89, "back": 59, "name": "H89" },
+      { "h": 121, "back": 91, "name": "H121" }
+    ],
+    "frontFixing": {
+      "d": 5,
+      "depth": 13,
+      "fromSide": 12,
+      "fromBox": 21.5,
+      "rows": [0, 32]
+    }
+  },
+  "limits": [
+    { "name": "back_w", "value": "LWK - 32", "min": 148 },
+    { "name": "drawer_side_t", "value": "drawer_side_t", "min": 16, "max": 16 }
+  ],
+  "bom": {
+    "perPlacement": 1,
+    "unit": "set"
+  }
+}

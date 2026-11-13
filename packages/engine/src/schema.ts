@@ -379,5 +379,7 @@ export const ShopSchema = z.object({
   defaults: Layer.default({ presets: [], vars: {}, options: {} }),
   /** Community packs installed into this library (the app shows updates for them). */
   installedPacks: z.array(InstalledPackSchema).optional(),
+  /** Bundled packs this shop has switched off (D76): their items leave the lists; items in use stay resolvable. */
+  disabledPacks: z.array(z.string()).optional(),
 });
 export type Shop = z.infer<typeof ShopSchema>;

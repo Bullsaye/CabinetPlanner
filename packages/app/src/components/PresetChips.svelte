@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { FACTORY_PRESETS } from "@cabinet-planner/engine";
   import { store, type Layer } from "../lib/store.svelte.ts";
 
   /** Presets applied in a layer (cabinet, project or shop defaults), in order; later ones win. */
   let { layer = "cabinet" }: { layer?: Layer } = $props();
   const t = $derived(store.tr.t);
   const doc = $derived(store.layerDoc(layer));
-  const all = $derived([...FACTORY_PRESETS, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
+  const all = $derived([...store.built.factory.presets, ...(store.built.shop?.library.presets ?? []), ...(store.result?.project.library.presets ?? [])]);
   const applied = $derived((doc?.presets ?? []) as string[]);
   const free = $derived(all.filter((p, i) => !applied.includes(p.id) && all.findIndex((x) => x.id === p.id) === i));
   function add(e: Event): void {

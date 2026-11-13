@@ -298,8 +298,8 @@ describe("upright rails and the interior", () => {
 
 describe("hinges and fixed panels (D65)", () => {
   it("moves a hinge whose plate would sit on the end of a fixed panel towards the door's middle", async () => {
-    const { FACTORY_TEMPLATES, buildProject, loadProject } = await import("../src/index.ts");
-    const tpl = FACTORY_TEMPLATES.find((t) => t.id === "tall-fridge")!;
+    const { BUNDLED, buildProject, loadProject } = await import("../src/index.ts");
+    const tpl = BUNDLED.templates.find((t) => t.id === "tall-fridge")!;
     const r = buildProject(loadProject({ schemaVersion: 1, name: "T", cabinets: [{ id: "X1", type: "box", ...tpl.cabinet }] }));
     expect(r.diagnostics).toEqual([]);
     const side = r.parts.find((p) => p.code === "SL")!;

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "base-unit",
+    "name": {
+      "en": "Base unit",
+      "de": "Unterschrank"
+    },
+    "group": "kind",
+    "vars": {
+      "H": "base_h",
+      "D": "worktop_d - 40",
+      "shelf_count": 1,
+      "door_count": 1
+    },
+    "options": {},
+    "params": []
+  },
+  {
+    "id": "wall-unit",
+    "name": {
+      "en": "Wall unit",
+      "de": "Hängeschrank"
+    },
+    "group": "kind",
+    "vars": {
+      "H": "wall_h",
+      "D": "wall_d",
+      "shelf_count": 2,
+      "door_count": 1,
+      "front_gap_bottom": 0
+    },
+    "options": {},
+    "params": []
+  },
+  {
+    "id": "tall-unit",
+    "name": {
+      "en": "Tall unit",
+      "de": "Hochschrank"
+    },
+    "group": "kind",
+    "vars": {
+      "H": "tall_h",
+      "D": "worktop_d - 40",
+      "shelf_count": 4,
+      "door_count": 1
+    },
+    "options": {
+      "system_holes": "shelves",
+      "open_shelf": "reveal"
+    },
+    "params": []
+  }
+]

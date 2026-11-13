@@ -1,13 +1,16 @@
 import {
+  BUNDLED,
   buildProject,
-  FACTORY_PRESETS,
-  FACTORY_TEMPLATES,
   FileFormatError,
+  mergePacks,
+  shopPacks,
   localName,
   loadProject,
   loadShop,
   type CabinetResult,
   type CabinetTemplate,
+  type LibraryFragment,
+  type PackSelection,
   type Part,
   type ProjectResult,
   type Shop,
@@ -88,15 +91,22 @@ export interface BuildState {
   result?: ProjectResult;
   shop?: Shop;
   error?: string;
+  /** The bundled packs as the shop switches them (D76). */
+  packs: PackSelection;
+  /** Their content as one fragment: the factory templates, presets and items the lists offer. */
+  factory: LibraryFragment;
 }
 
 function build(project: Doc, shop: Doc): BuildState {
   try {
     const s = loadShop(shop);
-    return { result: buildProject(loadProject(project), s), shop: s };
+    const p = loadProject(project);
+    const packs = shopPacks(s, [p]);
+    return { result: buildProject(p, s, { packs: packs.packs }), shop: s, packs, factory: mergePacks(packs.packs) };
   } catch (e) {
-    if (e instanceof FileFormatError) return { error: e.message };
-    return { error: String((e as Error)?.message ?? e) };
+    const packs = shopPacks(undefined);
+    if (e instanceof FileFormatError) return { error: e.message, packs, factory: BUNDLED };
+    return { error: String((e as Error)?.message ?? e), packs, factory: BUNDLED };
   }
 }
 
@@ -173,7 +183,7 @@ class Store {
     const p =
       this.result?.project.library.presets.find((x) => x.id === id) ??
       this.built.shop?.library.presets.find((x) => x.id === id) ??
-      FACTORY_PRESETS.find((x) => x.id === id);
+      this.built.factory.presets.find((x) => x.id === id);
     return p ? localName(p.name, this.ui.lang) : id;
   }
 
@@ -548,7 +558,7 @@ export function saveCabinetTemplate(opts: { id?: string; name: string }): string
   let id = opts.id;
   if (!id) {
     const base = opts.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "template";
-    const used = new Set([...list.map((x) => x.id), ...FACTORY_TEMPLATES.map((x) => x.id)]);
+    const used = new Set([...list.map((x) => x.id), ...BUNDLED.templates.map((x) => x.id)]);
     id = base;
     for (let k = 2; used.has(id); k++) id = `${base}-${k}`;
   }
@@ -564,7 +574,7 @@ export function saveCabinetTemplate(opts: { id?: string; name: string }): string
 /** Name of the template a cabinet refers to (shop version first). */
 export function templateName(id: string | undefined): string | undefined {
   if (!id) return undefined;
-  const tpl = (store.shop.library?.templates as Doc[] | undefined)?.find((x) => x.id === id) ?? FACTORY_TEMPLATES.find((x) => x.id === id);
+  const tpl = (store.shop.library?.templates as Doc[] | undefined)?.find((x) => x.id === id) ?? BUNDLED.templates.find((x) => x.id === id);
   return tpl ? localName(tpl.name, store.ui.lang) : undefined;
 }
 
@@ -669,5 +679,6 @@ export function bulkContext(): BulkContext {
     shop: store.shop,
     resolved: (id) => store.result?.cabinets.find((c) => c.resolved.cabinet.id === id)?.resolved,
     record: () => store.record(),
+    factoryPresets: store.built.factory.presets as readonly Record<string, any>[],
   };
 }

@@ -57,8 +57,25 @@ export const SlideData = z.object({
   axisMin: z.number().default(38),
   axisToBox: z.number().default(10),
   box: z.enum(["wood", "metal"]),
-  /** Metal systems: side heights and matching back panel heights. */
-  heights: z.array(z.object({ h: z.number(), back: z.number(), name: z.string().optional() })).default([]),
+  /**
+   * Metal systems: side heights and matching back panel heights. A height
+   * may come in some nominal lengths only (`lengths`) and may have its own
+   * front fixing holes (`front`: lowest hole above the box underside, rows),
+   * e.g. a low side with a shorter bracket (D76).
+   */
+  heights: z
+    .array(
+      z.object({
+        h: z.number(),
+        back: z.number(),
+        name: z.string().optional(),
+        lengths: z.array(z.number().positive()).optional(),
+        front: z.object({ fromBox: z.number().optional(), rows: z.array(z.number()).min(1).optional() }).optional(),
+      }),
+    )
+    .default([]),
+  /** Metal systems whose sides reach below the drawer bottom's underside (the box underside): by how much (D76). */
+  sideBelow: z.number().nonnegative().optional(),
   /**
    * Holes in the back of the drawer front for the system's front fixing
    * (hooks, holders). Per side: `fromSide` from the carcase side's inner

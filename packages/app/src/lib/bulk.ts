@@ -1,4 +1,4 @@
-import { FACTORY_PRESETS, type ResolvedCabinet } from "@cabinet-planner/engine";
+import { BUNDLED, type ResolvedCabinet } from "@cabinet-planner/engine";
 
 /**
  * One value for several cabinets (D73): "for all …" on a value row, and the
@@ -21,6 +21,8 @@ export interface BulkContext {
   resolved(id: string): ResolvedCabinet | undefined;
   /** Closes the undo step of a change typed just before (optional). */
   record?(): void;
+  /** Presets of the packs in use (D76); without it, those of all bundled packs. */
+  factoryPresets?: readonly Doc[];
 }
 
 export const KIND_PRESET: Readonly<Record<Kind, string>> = { base: "base-unit", wall: "wall-unit", tall: "tall-unit" };
@@ -54,7 +56,7 @@ function projectKindPreset(ctx: BulkContext, kind: Kind): Doc {
   const list = ctx.project.library.presets as Doc[];
   let p = list.find((x) => x.id === id);
   if (!p) {
-    const base = ((ctx.shop.library?.presets ?? []) as Doc[]).find((x) => x.id === id) ?? FACTORY_PRESETS.find((x) => x.id === id);
+    const base = ((ctx.shop.library?.presets ?? []) as Doc[]).find((x) => x.id === id) ?? (ctx.factoryPresets ?? (BUNDLED.presets as readonly Doc[])).find((x) => x.id === id);
     const copy = JSON.parse(JSON.stringify(base ?? { id, name: id }));
     list.push({ group: "kind", vars: {}, options: {}, params: [], ...copy, id });
     p = list[list.length - 1]!;

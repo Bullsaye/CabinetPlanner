@@ -9,7 +9,8 @@ export * from "./catalog.ts";
 export * from "./library.ts";
 export * from "./schema.ts";
 export * from "./resolve.ts";
-export * from "./presets.ts";
+export * from "./packs.ts";
+export * from "./bundled.ts";
 export * from "./templates.ts";
 export * from "./part.ts";
 export * from "./project.ts";
@@ -18,7 +19,6 @@ export { machineBox, dowelPositions, type Fitting, type HandlePlacement, type Ha
 export * from "./ops.ts";
 export * from "./text.ts";
 export { HardwareItem, DrillOp } from "./hardware/schema.ts";
-export { FACTORY_HARDWARE } from "./hardware/factory.ts";
 export * from "./output/format.ts";
 export * from "./output/cutlist.ts";
 export * from "./output/bom.ts";

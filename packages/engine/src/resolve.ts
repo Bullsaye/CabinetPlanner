@@ -9,7 +9,8 @@ import {
 import type { Diagnostic } from "./diagnostics.ts";
 import { evaluateGraph, type VarInput } from "./graph.ts";
 import type { Library } from "./library.ts";
-import { FACTORY_PRESETS } from "./presets.ts";
+import { BUNDLED_PACKS } from "./bundled.ts";
+import type { Pack } from "./packs.ts";
 import type { CabinetInput, Layer, ParamInput, Preset, Project, Shop } from "./schema.ts";
 
 /** Layers in resolution order; the last one that sets a value wins. */
@@ -64,10 +65,10 @@ export interface ResolveContext {
 /** Constants the room provides; expressions may use them, layers may not set them. */
 export const ROOM_CONSTANTS = ["ceiling_h"] as const;
 
-/** Builds the preset registry: shop presets, then project presets (later ids win). */
-export function presetRegistry(shop: Shop | undefined, project: Project): Map<string, Preset> {
+/** Builds the preset registry: presets of the packs (default: the bundled ones), then shop presets, then project presets (later ids win). */
+export function presetRegistry(shop: Shop | undefined, project: Project, packs: readonly Pack[] = BUNDLED_PACKS): Map<string, Preset> {
   const reg = new Map<string, Preset>();
-  FACTORY_PRESETS.forEach((p) => reg.set(p.id, p));
+  packs.forEach((pack) => pack.content.presets.forEach((p) => reg.set(p.id, p)));
   shop?.library.presets.forEach((p) => reg.set(p.id, p));
   project.library.presets.forEach((p) => reg.set(p.id, p));
   return reg;
