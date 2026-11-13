@@ -168,6 +168,18 @@ export interface Part {
   /** Bevel (mitre) cuts at the ends or edges, in degrees from square; the long point is on the outer face (D47). */
   bevels?: Partial<Record<"l1" | "l2" | "w1" | "w2", number>>;
   note?: string;
+  /** Remarks per edge for production (D75), e.g. "45°"; only edges that have one. */
+  edgeNotes?: Partial<Record<keyof PartEdges, string>>;
+}
+
+/** The edge remarks of a part override without empty ones; undefined when none is left. */
+export function cleanEdgeNotes(notes: Partial<Record<keyof PartEdges, string | undefined>> | undefined): Part["edgeNotes"] {
+  const out: NonNullable<Part["edgeNotes"]> = {};
+  for (const k of ["l1", "l2", "w1", "w2"] as const) {
+    const v = notes?.[k]?.trim();
+    if (v) out[k] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** Rounds to 0.01 mm to remove floating-point noise from derived sizes. */

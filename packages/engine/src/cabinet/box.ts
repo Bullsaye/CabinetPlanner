@@ -3,6 +3,7 @@ import type { Library } from "../library.ts";
 import {
   ROLE_CODES,
   boxSize,
+  cleanEdgeNotes,
   roundMm,
   thicknessAxis,
   type Axis,
@@ -322,6 +323,7 @@ export function buildBox(
       operations: [],
       ...(custom?.label !== undefined ? { label: custom.label } : {}),
       ...(override?.note ?? custom?.note ? { note: override?.note ?? custom?.note } : {}),
+      ...(cleanEdgeNotes(override?.edgeNotes) ? { edgeNotes: cleanEdgeNotes(override?.edgeNotes) } : {}),
     };
     // Every part must come out of one board (turned when the material has no grain).
     const sheet = mat?.sheet;
