@@ -93,15 +93,12 @@ export const FrontZone = z.object({
   /** Door zones with one door: the hinge side (default: option door_hinge_side). */
   hinge: z.enum(["left", "right"]).optional(),
   front: z.boolean().optional(),
-  /** Handle (hardware id) on the fronts of this zone; null: none. Default: option hardware.handle (D48). */
-  handle: z.string().nullable().optional(),
-  /**
-   * Door, open and flap zones: adjustable shelves in this compartment (number or formula). Without it:
-   * shelf_count for the tallest zone, a share for the others (D46, D71).
-   */
+  /** Door, open and flap zones: adjustable shelves in this compartment (number or formula); without it shelf_count applies to the tallest zone and a share to the others (D71, D46). */
   shelves: VarInputSchema.optional(),
   /** Drawer zones with a wooden box: side height of the box (number or formula, 0 = as high as fits); without it drawer_box_h applies (D71). */
   boxH: VarInputSchema.optional(),
+  /** Handle (hardware id) on the fronts of this zone; null: none. Default: option hardware.handle (D48). */
+  handle: z.string().nullable().optional(),
 });
 export type FrontZone = z.infer<typeof FrontZone>;
 
@@ -258,12 +255,12 @@ export const CabinetSchema = z.object({
   fronts: z.array(FrontZone).max(12).optional(),
   /** Construction elements (extra panels, back zones). */
   construction: ConstructionSchema.optional(),
+  /** Parameters shown in the simple editor (D59). */
+  params: z.array(ParamSchema).max(60).default([]),
   /** Sections side by side, each with its own fronts and interior (D46); replaces `fronts` and partition_count. */
   sections: z.array(SectionSchema).min(1).max(20).optional(),
   /** System hole rows for every section without its own (D57). */
   holes: HolesSchema.optional(),
-  /** Parameters shown in the simple editor (D59). */
-  params: z.array(ParamSchema).max(60).default([]),
   /** Part layer: per-part overrides keyed by part code (e.g. "SL", "SH1"). */
   parts: z.record(z.string(), PartOverride).default({}),
   /** Template this cabinet was made from (the app saves construction changes back to it). */
@@ -286,9 +283,9 @@ export const CabinetTemplateSchema = z.object({
     options: z.record(z.string(), OptionValueSchema).default({}),
     fronts: z.array(FrontZone).max(12).optional(),
     construction: ConstructionSchema.optional(),
+    params: z.array(ParamSchema).max(60).default([]),
     sections: z.array(SectionSchema).min(1).max(20).optional(),
     holes: HolesSchema.optional(),
-    params: z.array(ParamSchema).max(60).default([]),
     parts: z.record(z.string(), PartOverride).default({}),
   }),
 });

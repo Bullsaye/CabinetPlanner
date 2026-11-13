@@ -159,13 +159,12 @@ describe("dowel sequence pattern (D35)", () => {
 
   it("moves a blocked front position to the rear, never in front of dowel_offset_front", () => {
     // Positions from the front: 37, 69, 197, 325, 453 — all taken (e.g. by the shelf on the other face of a middle panel).
+    // 37 and 69 cannot move forward (D64): half a pitch back (D45); the others one pitch forward.
     const taken = new Set([37, 69, 197, 325, 453].map((p) => 562 - p));
     const zs = dowelPositions(0, 562, o, (z) => !taken.has(z));
-    // Blocked positions move by half a pitch first (D45), never in front of dowel_offset_front (D64).
     const fromFront = zs.map((z) => 562 - z);
     expect(fromFront).toEqual([53, 85, 165, 293, 421]);
-    for (const p of fromFront) expect(p).toBeGreaterThanOrEqual(37);
-    for (const p of fromFront) expect(taken.has(562 - p)).toBe(false);
+    expect(Math.min(...fromFront)).toBeGreaterThanOrEqual(o.offsetFront);
   });
 
   it("drops the only position of a joint too short for the rear offset instead of moving it out", () => {
@@ -338,5 +337,19 @@ describe("door handles by grip height (D66)", () => {
     const w = buildOne({ kind: "wall", presets: ["wall-unit"], options: handle });
     const dw = w.parts.find((p) => p.code === "DO1")!;
     expect(ys(w, dw.id)[0]).toBe(dw.box.y + 60);
+  });
+  it("handle.door_y end keeps the handle at the door end by cabinet kind (D51, D72)", () => {
+    const r = buildOne({ kind: "tall", presets: ["tall-unit"], options: { ...handle, "handle.door_y": "end" } });
+    const d = r.parts.find((p) => p.code === "DO1")!;
+    expect(ys(r, d.id)).toEqual([d.box.y + d.box.dy - 220, d.box.y + d.box.dy - 60]);
+  });
+});
+
+describe("upright rails and middle panels through (D46, D64)", () => {
+  it("rails split per section end at the panel: no notch in it, joints found", () => {
+    const r = buildOne({ kind: "base", vars: { W: 1000, partition_count: 1 }, options: { partition_joint: "through", top: "rails", "rail.front": "upright", "rail.rear": "upright", carcase_joint: "sides_over" } });
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const mp = partsByCode(r).MP1!;
+    expect(mp.operations.filter((o) => o.kind === "pocket" && o.sources.some((s) => /^R[FR]\d/.test(s.ref)))).toEqual([]);
   });
 });

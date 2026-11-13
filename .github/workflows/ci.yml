@@ -7,6 +7,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # Shared runners take about twice as long as a desktop core (~120 ms for
+      # the 50-cabinet build); the budget only catches gross regressions.
+      PERF_BUDGET_MS: 400
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -4,6 +4,8 @@
   import { parseInput, store } from "../lib/store.svelte.ts";
 
   type Zone = { type: string; h?: number | string; doors?: number; hinge?: "left" | "right"; front?: boolean; shelves?: number | string; boxH?: number | string; handle?: string | null };
+  /** The zone's own value besides its height (D71): shelves of a compartment, or the box height of a drawer. */
+  const extraOf = (z: Zone): "shelves" | "boxH" | undefined => (z.type === "drawer" ? "boxH" : z.type === "door" || z.type === "open" || z.type === "flap" ? "shelves" : undefined);
   type Holes = false | { from?: number | string; to?: number | string };
   type Section = { w?: number | string; fronts?: Zone[]; interior?: "shelves" | "hanging"; shelves?: number | string; construction?: unknown; holes?: Holes };
   const TYPES = ["door", "drawer", "flap", "open", "appliance", "panel"] as const;
@@ -208,10 +210,13 @@
   /** Hinges and handles as the engine drilled them (D68), so the opening direction is plain to see. */
   const fv = $derived(store.cabinet?.parts.length ? frontViewOf(store.cabinet) : undefined);
   const doorOf = (id: string) => fv?.parts.find((p) => p.id === id);
-  /** A zone picked in a drawing (only in the stack being edited): bring its row into view. */
-  const pick = (k: number, i: number): void => {
-    if (!sections || k === cur) store.ui.zone = i;
-  };
+  /** Picks a zone in the drawing: its section (D46) and its row. */
+  function pick(col: (typeof columns)[number], i: number): void {
+    if (sections) sel = col.k;
+    store.ui.zone = i;
+  }
+
+  // A zone picked in a drawing: bring its row into view.
   let rowsEl = $state<HTMLDivElement>();
   $effect(() => {
     const z = store.ui.zone;
@@ -284,7 +289,7 @@
                   <rect class="hole" class:dim={sections && col.k !== cur} x={r.x * s} {y} width={r.w * s} height={h} />
                 {:else}
                   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-                  <rect class="front {col.zones[i]?.type}" class:dim={sections && col.k !== cur} class:on={(!sections || col.k === cur) && store.ui.zone === i} x={r.x * s} {y} width={r.w * s} height={h} onclick={() => pick(col.k, i)} />
+                  <rect class="front {col.zones[i]?.type}" class:dim={sections && col.k !== cur} class:on={col.k === cur && store.ui.zone === i} x={r.x * s} {y} width={r.w * s} height={h} onclick={() => pick(col, i)} />
                   {#if r.hinge}
                     <!-- Opening symbol: tip at the hinge edge or at the handle edge (preference). -->
                     <polyline class="swing" points={swingPoints({ x: r.x * s, y, w: r.w * s, h }, r.hinge, store.ui.hingeSymbol)} />
@@ -295,7 +300,7 @@
                 {/if}
               {/each}
               {#if !sections || col.k === cur}
-                <text class="h" x={col.fx1 * s - 3} y={(H - (p.y0 + p.y1) / 2) * s + 3} text-anchor="end">{formatNumber(p.y1 - p.y0)}</text>
+                <text class="h" x={col.fx0 * s + 6} y={(H - (p.y0 + p.y1) / 2) * s + 3}>{formatNumber(p.y1 - p.y0)}</text>
               {/if}
             {/each}
           {/each}
@@ -346,16 +351,6 @@
               </div>
             {:else if z.type === "appliance"}
               <label class="chk"><input type="checkbox" checked={z.front ?? false} onchange={(e) => edit((l) => (l[i]!.front = (e.target as HTMLInputElement).checked))} /> {t("ui.appliance_front")}</label>
-            {:else if z.type === "drawer"}
-              <input class="mono shelves" type="text" inputmode="decimal" value={z.boxH ?? ""} placeholder={t("ui.zone_box_h_short")} title={t("ui.zone_box_h")} aria-label={t("ui.zone_box_h")} onchange={(e) => {
-                const val = parseInput((e.target as HTMLInputElement).value);
-                edit((l) => (val === undefined ? delete l[i]!.boxH : (l[i]!.boxH = val)));
-              }} />
-            {:else if z.type === "open" || z.type === "flap"}
-              <input class="mono shelves" type="text" inputmode="numeric" value={z.shelves ?? ""} placeholder={t("ui.zone_shelves")} title={t("ui.zone_shelves")} aria-label={t("ui.zone_shelves")} onchange={(e) => {
-                const val = parseInput((e.target as HTMLInputElement).value);
-                edit((l) => (val === undefined ? delete l[i]!.shelves : (l[i]!.shelves = typeof val === "number" ? Math.max(0, Math.round(val)) : val)));
-              }} />
             {:else}<span></span>{/if}
             {#if z.type === "door" || z.type === "drawer" || z.type === "flap" || (z.type === "appliance" && z.front)}
               <select class="handle" aria-label={t("ui.zone_handle")} title={t("ui.zone_handle")} value={handleValue(z)} onchange={(e) => setHandle(i, (e.target as HTMLSelectElement).value)}>
@@ -369,6 +364,25 @@
               <button class="quiet" aria-label={t("ui.move_down")} disabled={i === zones.length - 1} onclick={() => edit((l) => l.splice(i + 1, 0, ...l.splice(i, 1)))}>↓</button>
               <button class="quiet" aria-label={t("ui.delete")} onclick={() => edit((l) => l.splice(i, 1))}>×</button>
             </span>
+            {#if extraOf(z)}
+              {@const key = extraOf(z)!}
+              <label class="extra" title={t(key === "shelves" ? "ui.zone_shelves" : "ui.zone_box_h")}>
+                <span>{t(key === "shelves" ? "ui.zone_shelves_short" : "ui.zone_box_h_short")}</span>
+                <input
+                  id={`fz-${key}-${i}`}
+                  class="mono"
+                  type="text"
+                  inputmode="decimal"
+                  value={z[key] ?? ""}
+                  placeholder={t("ui.auto")}
+                  aria-label={t(key === "shelves" ? "ui.zone_shelves" : "ui.zone_box_h")}
+                  onchange={(e) => {
+                    const val = parseInput((e.target as HTMLInputElement).value);
+                    edit((l) => (val === undefined ? delete l[i]![key] : (l[i]![key] = val)));
+                  }}
+                />
+              </label>
+            {/if}
           </div>
         {/each}
         {#if !zones.length}<p class="muted small">{t("ui.no_fronts")}</p>{/if}
@@ -393,8 +407,9 @@
   .secprops input, .secprops select { width: 100%; }
   .layouts { display: flex; flex-wrap: wrap; gap: 4px; }
   .lay { font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); }
-  .body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
-  .preview { display: block; }
+  /* The rows go below the drawing when the pane is too narrow for both. */
+  .body { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .preview { display: block; flex: none; }
   .carcase { fill: var(--surface-2); stroke: var(--part-edge); stroke-width: 1; }
   .front { fill: color-mix(in srgb, var(--surface) 75%, var(--accent)); stroke: var(--fg); stroke-width: .8; }
   .front.drawer { fill: color-mix(in srgb, var(--surface) 82%, var(--accent)); }
@@ -402,20 +417,21 @@
   .dim { opacity: .45; }
   .hole { fill: var(--view); stroke: var(--part-edge); stroke-width: .6; stroke-dasharray: 3 2; }
   .swing { fill: none; stroke: var(--muted); stroke-width: .8; stroke-dasharray: 4 2; }
-  .h { font: 9px var(--font-mono); fill: var(--fg); pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5; stroke-linejoin: round; }
   .front { cursor: pointer; }
   .front.on { stroke: var(--accent); stroke-width: 2; }
   .mark { fill: var(--fg); pointer-events: none; }
   .grip { stroke: var(--fg); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+  .h { font: 9px var(--font-mono); fill: var(--fg); pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5; stroke-linejoin: round; }
   .row.on { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-  .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 250px; }
   .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
   .row > select:first-child { flex: 1 1 84px; min-width: 0; }
-  .row > input.mono:not(.shelves) { flex: 0 0 58px; }
+  .row > input.mono { flex: 0 0 58px; }
   .row select.handle { flex: 1 1 90px; min-width: 0; font-size: 12px; }
   .row > span:empty { display: none; }
   .row input { width: 58px; }
-  .row input.shelves { width: 4.5em; }
+  /* The zone's own value sits on a line of its own under the row. */
+  .extra { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; padding-left: 8px; font-size: 12px; color: var(--muted); }
   .seg { display: flex; }
   .seg button { padding: 2px 7px; border-radius: 0; font-size: 12px; white-space: nowrap; }
   .seg button:first-child { border-radius: 6px 0 0 6px; }

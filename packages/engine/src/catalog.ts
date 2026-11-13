@@ -154,7 +154,7 @@ export const VARIABLES: readonly VarDef[] = [
   v({ name: "hinge_count", group: "hardware", unit: "count", factory: 0, min: 0, max: 8, integer: true, step: 1 }),
   v({ name: "handle_edge_offset", group: "hardware", unit: "mm", factory: 40, min: 10, max: 400, step: 5 }),
   v({ name: "handle_end_offset", group: "hardware", unit: "mm", factory: 60, min: 10, max: 800, step: 5 }),
-  v({ name: "handle_height", group: "hardware", unit: "mm", factory: 1050, min: 300, max: 2200, step: 10 }),
+  v({ name: "handle_height", group: "hardware", unit: "mm", factory: 1050, min: 0, max: 2500, step: 10 }),
   v({ name: "flap_handle_weight", group: "hardware", unit: "kg", factory: 0.2, min: 0, max: 5, step: 0.05 }),
   v({ name: "handle_drawer_top", group: "hardware", unit: "mm", factory: 40, min: 10, max: 300, step: 5 }),
   v({ name: "leg_inset_side", group: "hardware", unit: "mm", factory: 50, min: 0, max: 300, step: 5 }),
@@ -300,8 +300,8 @@ export const OPTIONS: readonly OptionDef[] = [
   },
   { key: "hardware.handle", group: "hardware", kind: { type: "hardware", category: "handle", nullable: true }, factory: null },
   { key: "handle.door", group: "hardware", kind: { type: "enum", values: ["vertical", "horizontal"] }, factory: "vertical" },
-  /** Door handles at the door end (low in wall units, high in the others), or as near to handle_height above the floor as the door allows (D51, D72). */
-  { key: "handle.door_y", group: "hardware", kind: { type: "enum", values: ["end", "height"] }, factory: "height" },
+  /** Door handles as near to handle_height above the floor as the door allows (D66), or handle_end_offset from the door end by cabinet kind (end, D51); D72. */
+  { key: "handle.door_y", group: "hardware", kind: { type: "enum", values: ["height", "end"] }, factory: "height" },
   { key: "handle.drawer", group: "hardware", kind: { type: "enum", values: ["center", "top"] }, factory: "center" },
   /** Wooden drawers without a system front fixing: screws through the inner front, or nothing drilled. */
   { key: "drawer_front.fixing", group: "drawers", kind: { type: "enum", values: ["screws", "none"] }, factory: "screws" },

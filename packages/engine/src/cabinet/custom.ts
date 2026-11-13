@@ -95,7 +95,7 @@ export function buildCustomParts(a: {
       const made = customBox(def, scope, rc, library, code, invalid, diagnostics);
       if (!made) continue;
       taken.add(code);
-      add("custom", undefined, made.box, made.lengthAxis, made.widthAxis, "material.carcase", made.edges, undefined, {
+      add("custom", undefined, made.box, made.lengthAxis, made.widthAxis, "material.carcase", made.edges, {
         code,
         material: made.material,
         ...(def.name !== undefined ? { label: def.name } : {}),
