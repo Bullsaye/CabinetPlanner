@@ -3,6 +3,7 @@ import type { Library } from "../library.ts";
 import { localName } from "../text.ts";
 import { cutlistRows, type CutlistRow } from "../output/cutlist.ts";
 import { formatNumber } from "../output/format.ts";
+import { largerFormat, PAPER_MM, type PaperFormat } from "../output/paper.ts";
 import { thicknessAxis, type Part, type PartRole } from "../part.ts";
 import type { DrawingText } from "./render.ts";
 import { spread } from "./render.ts";
@@ -11,7 +12,8 @@ import { cross, dot, type Vec } from "./view.ts";
 /**
  * Assembly drawing (DECISIONS.md D21): exploded axonometric view of one
  * cabinet with numbered balloons, the part list (positions match the
- * balloons) and the hardware list, on one A3 sheet, to scale.
+ * balloons) and the hardware list, on one A3 sheet (or a larger one, D77),
+ * to scale.
  */
 export interface AssemblyInput {
   cabinet: { id: string; name?: string; W: number; H: number; D: number };
@@ -24,6 +26,8 @@ export interface AssemblyInput {
   /** 0 = assembled, 1 = default spacing. */
   explode?: number;
   css?: boolean;
+  /** Draw on this paper when it is larger than A3 (D77): more room, a larger standard scale. */
+  paper?: PaperFormat;
 }
 
 export interface AssemblyDrawing {
@@ -43,7 +47,6 @@ function norm(v: Vec): Vec {
   return [v[0] / l, v[1] / l, v[2] / l];
 }
 
-const PAGE = { W: 420, H: 297 };
 const M = 10;
 const SCALES = [2, 5, 10, 20, 25, 50];
 
@@ -246,6 +249,8 @@ export function drawAssembly(input: AssemblyInput): AssemblyDrawing {
   const maxX = Math.max(...all.map((q) => q[0]));
   const minY = Math.min(...all.map((q) => q[1]));
   const maxY = Math.max(...all.map((q) => q[1]));
+  const [pageW, pageH] = PAPER_MM[largerFormat(input.paper ?? "a3", "a3")];
+  const PAGE = { W: pageW, H: pageH };
   const tableW = 168;
   const areaW = PAGE.W - 2 * M - tableW - 10 - 2 * 16; // balloon columns
   const headerH = 22;

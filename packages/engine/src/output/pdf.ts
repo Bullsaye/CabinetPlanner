@@ -1,6 +1,6 @@
 import { deflate } from "./deflate.ts";
 import { readFont, type FontFile } from "./font.ts";
-import { fitToPaper, type PaperFit, type PdfPaper } from "./paper.ts";
+import { fitToPaper, paperNote, type PaperFit, type PdfPaper } from "./paper.ts";
 import { crc32 } from "./zip.ts";
 
 /**
@@ -40,6 +40,12 @@ export interface PdfSheet {
 export interface PdfOptions {
   fonts: PdfFonts;
   paper?: PdfPaper;
+  /**
+   * The note on a sheet that had to be reduced to fit its paper (D77), from
+   * the host's translator: e.g. (71) => "Reduced to 71 % – the stated scales
+   * do not apply". Without it a reduced page carries no note.
+   */
+  reducedNote?: (percent: number) => string;
   title?: string;
   /** ISO timestamp (e.g. "2026-03-01T09:30:00") for the creation date; omitted: no date in the file. */
   timestamp?: string;
@@ -550,7 +556,11 @@ export function sheetsPdf(sheets: readonly PdfSheet[], opts: PdfOptions): Uint8A
   const pageIds: number[] = [];
   for (const sheet of sheets) {
     const fit = fitToPaper(sheet.page, opts.paper);
-    const content = flate("<< >>", latin1(pageContent(sheet, fit, book, gs)));
+    const note = opts.reducedNote ? paperNote(fit, opts.reducedNote) : "";
+    // The note sits on the paper, outside the sheet: its own small SVG at the paper's size.
+    const paperSvg = note && `<svg viewBox="0 0 ${fit.w} ${fit.h}" width="${fit.w}mm" height="${fit.h}mm">${note}</svg>`;
+    const onPaper = paperSvg ? pageContent({ name: "", svg: paperSvg, page: { w: fit.w, h: fit.h } }, { w: fit.w, h: fit.h, scale: 1, x: 0, y: 0 }, book, gs) : "";
+    const content = flate("<< >>", latin1(pageContent(sheet, fit, book, gs) + onPaper));
     pageIds.push(
       add(`<< /Type /Page /Parent ${pages} 0 R /MediaBox [0 0 ${f(fit.w * pt)} ${f(fit.h * pt)}] /Resources ${resources} 0 R /Contents ${content} 0 R >>`),
     );

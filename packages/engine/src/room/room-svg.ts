@@ -1,10 +1,12 @@
 import type { CabinetResult } from "../project.ts";
 import { formatNumber } from "../output/format.ts";
+import { largerFormat, PAPER_MM, type PaperFormat } from "../output/paper.ts";
 import type { DrawingText } from "../drawing/render.ts";
 import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type WallLayout, type WorktopLayout, carcaseTopAt, carcaseTopKinks } from "./room.ts";
 
 /**
- * Room drawings (DECISIONS.md D28) on A3 landscape sheets, to scale, mm:
+ * Room drawings (DECISIONS.md D28) on A3 landscape sheets (larger paper on
+ * request, D77), to scale, mm:
  * - floor plan: walls with their thickness, windows and doors (with swing),
  *   floor units solid, wall units dashed, ids; per wall the inner length and
  *   a chain of cabinet positions; opening positions;
@@ -12,9 +14,14 @@ import { ceilingAlong, toPlan, type CabinetPlacement, type RoomLayout, type Wall
  *   cabinets with their fronts and handles; chain of widths below (floor
  *   units) and above (wall units), heights on the left.
  */
-const PAGE = { W: 420, H: 297 };
+/** Room sheets are A3 unless a larger paper is asked for (D77). */
+const pageOf = (paper: PaperFormat = "a3"): { W: number; H: number } => {
+  const [W, H] = PAPER_MM[largerFormat(paper, "a3")];
+  return { W, H };
+};
 const M = 12;
-const SCALES = [10, 20, 25, 50, 100];
+// 1:5 only fits on large paper (A0, D77): the bounds carry 1.1–1.4 m of dimensions.
+const SCALES = [5, 10, 20, 25, 50, 100];
 const TH = 2.5;
 
 export const ROOM_CSS = `
@@ -42,8 +49,8 @@ interface Sheet {
   P(x: number, y: number): [number, number];
 }
 
-/** Scale and paper origin for model bounds on the A3 sheet. */
-function fit(bounds: [number, number, number, number], margins: { l: number; r: number; t: number; b: number }): { den: number; ox: number; oy: number } {
+/** Scale and paper origin for model bounds on the sheet (A3 or larger). */
+function fit(bounds: [number, number, number, number], margins: { l: number; r: number; t: number; b: number }, PAGE: { W: number; H: number }): { den: number; ox: number; oy: number } {
   const [x0, y0, x1, y1] = bounds;
   const areaW = PAGE.W - 2 * M - margins.l - margins.r;
   const areaH = PAGE.H - 2 * M - 20 - margins.t - margins.b;
@@ -54,9 +61,16 @@ function fit(bounds: [number, number, number, number], margins: { l: number; r: 
   return { den, ox, oy };
 }
 
-function sheet(title: string, sub: string, bounds: [number, number, number, number], margins: { l: number; r: number; t: number; b: number }, css: boolean): Sheet {
+function sheet(
+  title: string,
+  sub: string,
+  bounds: [number, number, number, number],
+  margins: { l: number; r: number; t: number; b: number },
+  css: boolean,
+  PAGE: { W: number; H: number },
+): Sheet {
   const [x0, , , y1] = bounds;
-  const { den, ox, oy } = fit(bounds, margins);
+  const { den, ox, oy } = fit(bounds, margins, PAGE);
   const s = 1 / den;
   const out: string[] = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PAGE.W} ${PAGE.H}" width="${PAGE.W}mm" height="${PAGE.H}mm" class="rm">`);
@@ -96,14 +110,23 @@ function chain(sh: Sheet, a: [number, number], u: [number, number], n: [number, 
     out.push(line(sh, "rm-dim", at(p, 0), at(p, off + Math.sign(off) * sh.den * 1.5)));
     out.push(line(sh, "rm-tick", [at(p, off)[0] - (u[0] + n[0]) * tick * 0.7, at(p, off)[1] - (u[1] + n[1]) * tick * 0.7], [at(p, off)[0] + (u[0] + n[0]) * tick * 0.7, at(p, off)[1] + (u[1] + n[1]) * tick * 0.7]));
   }
+  // Values are read from the bottom or from the right (ISO 129-1): the turn
+  // stays within [-90°, 90°), so a vertical value reads upwards.
   const angle = -(Math.atan2(u[1], u[0]) * 180) / Math.PI;
-  const upright = angle > 90 || angle <= -90 ? angle + 180 : angle;
+  const upright = angle >= 90 - 1e-9 ? angle - 180 : angle < -90 - 1e-9 ? angle + 180 : angle;
+  const rad = (upright * Math.PI) / 180;
+  // "Up" of the turned text on paper: the value sits just above its line and never crosses it.
+  const up: [number, number] = [Math.sin(rad), -Math.cos(rad)];
+  const gap = 0.7;
   for (let i = 1; i < pts.length; i++) {
     const mid = (pts[i - 1]! + pts[i]!) / 2;
     const len = pts[i]! - pts[i - 1]!;
     if (len < 1) continue;
-    const textOff = off + Math.sign(off || 1) * sh.den * 1.2;
-    out.push(text(sh, "rm-num", at(mid, textOff), num(len), TH * 0.9, "middle", upright, TH * 0.3));
+    const [px, py] = sh.P(...at(mid, off));
+    const x = r3(px + up[0] * gap);
+    const y = r3(py + up[1] * gap);
+    const turn = Math.abs(upright) > 1e-9 ? ` transform="rotate(${r3(upright)} ${x} ${y})"` : "";
+    out.push(`<text class="rm-num" x="${x}" y="${y}" font-size="${TH * 0.9}" text-anchor="middle"${turn}>${esc(num(len))}</text>`);
   }
   return out;
 }
@@ -135,7 +158,8 @@ export interface FloorPlanFrame {
 }
 export function floorPlanFrame(room: RoomLayout): FloorPlanFrame {
   const b = planBounds(room);
-  const { den, ox, oy } = fit(b, { l: 0, r: 0, t: 0, b: 0 });
+  const PAGE = pageOf();
+  const { den, ox, oy } = fit(b, { l: 0, r: 0, t: 0, b: 0 }, PAGE);
   return {
     width: PAGE.W,
     height: PAGE.H,
@@ -146,10 +170,10 @@ export function floorPlanFrame(room: RoomLayout): FloorPlanFrame {
   };
 }
 
-export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText, css = true): string {
+export function floorPlanSvg(room: RoomLayout, title: string, text_: DrawingText, css = true, paper?: PaperFormat): string {
   const num = (x: number): string => (text_.number ? text_.number(x, 1) : formatNumber(x, 1));
   const t = text_.t;
-  const sh = sheet(title, "", planBounds(room), { l: 0, r: 0, t: 0, b: 0 }, css);
+  const sh = sheet(title, "", planBounds(room), { l: 0, r: 0, t: 0, b: 0 }, css, pageOf(paper));
   sh.out[sh.out.length - 2] = `<text class="rm-sub" x="${M}" y="${M + 11}" font-size="${TH}">${esc(`${t("room.plan")} · ${t("drawing.scale", { n: sh.den })} · mm`)}</text>`;
   const o = sh.out;
 
@@ -268,13 +292,21 @@ const mid = (a: [number, number], b: [number, number]): [number, number] => [(a[
 // ---------------------------------------------------------------------------
 
 /** Elevation of one wall, seen from inside the room. Model X along the wall, Y up. */
-export function elevationSvg(room: RoomLayout, wallId: string, cabinets: readonly CabinetResult[], title: string, text_: DrawingText, css = true): string {
+export function elevationSvg(
+  room: RoomLayout,
+  wallId: string,
+  cabinets: readonly CabinetResult[],
+  title: string,
+  text_: DrawingText,
+  css = true,
+  paper?: PaperFormat,
+): string {
   const num = (x: number): string => (text_.number ? text_.number(x, 1) : formatNumber(x, 1));
   const t = text_.t;
   const w = room.walls.find((x) => x.id === wallId);
   if (!w) return "";
   const bounds: [number, number, number, number] = [-700, -700, w.length + 300, w.height + 700];
-  const sh = sheet(title, "", bounds, { l: 0, r: 0, t: 0, b: 0 }, css);
+  const sh = sheet(title, "", bounds, { l: 0, r: 0, t: 0, b: 0 }, css, pageOf(paper));
   sh.out[sh.out.length - 2] = `<text class="rm-sub" x="${M}" y="${M + 11}" font-size="${TH}">${esc(`${t("room.elevation")} ${t("room.wall")} ${w.id} · ${t("drawing.scale", { n: sh.den })} · mm`)}</text>`;
   const o = sh.out;
   // Wall face up to the ceiling line (sloped where a roof slope meets this wall, D44).

@@ -396,6 +396,9 @@ export const de: Record<MessageKey, string> = {
   "col.edge_note_w2": "Bemerkung B2",
   "ui.paper": "Papier",
   "ui.paper.sheet": "Blattgröße 1:1",
+  "ui.paper.plotter": "Plotter",
+  "ui.paper.hint": "Papier für PDF, Druck und SVG-Dateien. Ein größeres Format als das eigene des Blatts zeichnet das Blatt darauf in einem größeren Normmaßstab, der angegebene Maßstab bleibt wahr; ein kleineres verkleinert das Blatt und vermerkt das auf der Seite.",
+  "drawing.reduced": "Auf {n} % verkleinert, damit es aufs Papier passt – die angegebenen Maßstäbe gelten nicht",
   "ui.sheets_failed": "Die Blätter konnten nicht erstellt werden: {error}",
 
   "layer.factory": "Werk",

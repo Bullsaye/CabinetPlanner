@@ -410,6 +410,9 @@ export const en = {
   "col.edge_note_w2": "Remark W2",
   "ui.paper": "Paper",
   "ui.paper.sheet": "Sheet size 1:1",
+  "ui.paper.plotter": "Plotter",
+  "ui.paper.hint": "Paper for PDF, print and SVG files. A format larger than a sheet’s own draws the sheet on it at a larger standard scale, so the stated scale stays true; a smaller one reduces the sheet and says so on the page.",
+  "drawing.reduced": "Reduced to {n} % to fit the paper – the stated scales do not apply",
   "ui.sheets_failed": "The sheets could not be made: {error}",
 
   // Value sources
