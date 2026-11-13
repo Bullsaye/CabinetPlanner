@@ -202,7 +202,7 @@
       </select>
     {/if}
     {#if kind === "part"}
-      <select id="draw-part" aria-label={t("ui.part")} value={partId} onchange={(e) => (store.ui.part = (e.target as HTMLSelectElement).value)}>
+      <select id="draw-part" aria-label={t("ui.part")} value={partId} onchange={(e) => store.selectPart((e.target as HTMLSelectElement).value)}>
         {#each parts as p}<option value={p.id}>{p.id} · {t(`role.${p.role}`)}</option>{/each}
       </select>
     {/if}

@@ -23,6 +23,7 @@ export * from "./output/format.ts";
 export * from "./output/cutlist.ts";
 export * from "./output/bom.ts";
 export * from "./output/scene.ts";
+export * from "./output/fittings.ts";
 export * from "./output/frontview.ts";
 export * from "./output/dxf.ts";
 export * from "./output/zip.ts";
