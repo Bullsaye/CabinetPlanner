@@ -1393,3 +1393,66 @@ Both lines changed the same rules independently. Where they overlapped:
   version so the new default reaches existing installations once.
 - **First start**: no project is created; the projects screen offers a new
   project with or without a room, the example kitchen, or a file.
+
+### D74 · 2026-11-13 · Fittings in 3D, section view, hiding, moving cabinets in 3D
+
+- Fittings for views come from the engine (`output/fittings.ts`,
+  `viewFittingsOf`, also in `sceneOf(...).fittings`) as typed, simplified
+  solids in cabinet coordinates: cup hinge (cup in the front, mounting plate
+  on the carcase part), shelf support pin, drawer slide, lift-up fitting,
+  leg, wardrobe rail, connector housing. Each one is read from what was
+  built: the bores' hardware and system sources, the drawer layout and the
+  legs and rails the machining placed (D31). No rule places a fitting of its
+  own, so a fitting always sits where its holes are; a view never shows
+  hardware that is not drilled or counted.
+  - Hinges: the cabinet's hinge and the middle-panel hinge (D57), also on
+    flaps (D42). The largest bore of the item in a front is the cup; the
+    item's bores in carcase parts are plate holes, each given to the nearest
+    cup of the same item; one plate per hinge, on the part with the nearest
+    hole. Holes through a part (D23) open on both faces.
+  - Shelf pins: the system holes `shelf_pin_rest` under a loose shelf, on
+    the faces `shelf_gap` beside its ends (sides or middle panels).
+  - Slides: on the panels at the drawer's clear width (x0, x1), side or
+    middle panel (D46), at the screw axis, nominal length from the panel's
+    front edge; the space to the drawer box is given (`gap`).
+  - Lift-up fittings: per flap and side the box around the item's holes.
+  - Legs: the bottom piece above each leg (one per section, D46).
+  - Parts at an angle (slopes, D47) keep their own frame; they give none.
+- How a fitting looks (arm thickness, plate size) is the view's business
+  (app `lib/fitting-solids.ts`): display sizes, not production data, so
+  they are not variables. A solid follows its part in the exploded view
+  and disappears with the parts it needs (a hinge arm needs door and side).
+  Rails have no part: they stay out of the exploded view.
+- 3D view (app), for the session only, not saved in the project:
+  - Section: one clipping plane for cabinets, fittings, worktops and plinth
+    panels (walls and floor stay whole). With a cabinet selected the plane
+    lies in that cabinet's frame (from the front / side / above, whatever
+    wall it is on) and the slider spans that cabinet; without one, the
+    room's axes and all cabinets. The kept half is the one towards the
+    wall, the floor or the left; "other half" flips it. Picking ignores
+    what is cut away. Moving the cut does not rebuild the scene.
+  - Hiding: the picked part is hidden (button or H); a chip counts hidden
+    parts and shows them all again. Worktops and plinth panels have their
+    own switches (preferences, D33); the worktop switch also applies to the
+    floor plan, where the floor units then show their own outline.
+  - A click on a part selects it and its cabinet; a click beside the
+    cabinets clears the selection (cabinet and part). The cabinet view
+    keeps its cabinet and only lets the part go.
+- Moving cabinets in 3D (room view): Ctrl (or Cmd) + drag with the mouse;
+  on touch, press and hold (0.4 s, a ring closes) and then drag; moving the
+  finger earlier orbits as usual, and so does a second finger. The pointer is
+  projected onto the horizontal plane through the grabbed point; the drag
+  is the floor plan's (D69, `lib/arrange-drag.svelte.ts` shared by both):
+  runs reorder, cabinets with `place.x` snap, one undo step, Esc cancels.
+  Because the cabinet is held at its front or top, the nearest wall is
+  measured from where its back would be (`nearestWall(..., out)`), so a
+  cabinet in a corner does not jump to the other wall.
+- Floor plan: the selected cabinet is drawn filled with a strong outline
+  and its id; while dragging, everything else steps back.
+- No golden file changed.
+- A second click (tap) on the selected part clears the part selection, in
+  the 3D view and in the cabinet view; the cabinet stays selected. A click
+  into empty space clears cabinet and part (outside the single-cabinet view).
+  In the 3D view a finger held on a cabinet arms a move (D74); released in
+  place without moving, it is a long press and opens the part's parameters
+  (D73).

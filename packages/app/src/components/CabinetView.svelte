@@ -42,10 +42,11 @@
     return p ? { y: p.y - q.baseY, h: p.h } : undefined;
   });
 
-  /** A click picks the part: the right pane shows its settings (D73). */
+  /** A click picks the part: the right pane shows its settings (D73); a second click on it clears the pick (D74). */
   function pick(p: FrontViewPart): void {
-    store.selectPart(p.id);
-    store.ui.zone = p.zone ?? null;
+    const again = store.ui.part === p.id;
+    store.selectPart(again ? null : p.id);
+    store.ui.zone = again ? null : (p.zone ?? null);
   }
   /** Double-click (touch: long press): the parameters behind the part, in the construction editor. */
   function params(p: FrontViewPart): void {
