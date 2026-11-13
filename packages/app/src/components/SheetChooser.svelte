@@ -83,6 +83,7 @@
       tr: store.tr,
       style,
       styleName,
+      openingSymbol: store.ui.hingeSymbol,
       only: new Set(chosen.map((s) => s.name)),
       meta: { project: r.project.name, revision: r.project.revision, timestamp },
     });
