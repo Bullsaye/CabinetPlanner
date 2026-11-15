@@ -1573,3 +1573,28 @@ Both lines changed the same rules independently. Where they overlapped:
   LEGRABOX's side underside below the profile screw axis (24.5, derived
   from the space requirements) and its EXPANDO hole depth (11) are
   placeholders; the item's `source` says so. Both `untested`.
+
+### D78 · 2026-11-13 · Opening symbols in wall elevations; what "DIN" means here
+
+- Research note: `docs/drawing-conventions.md`. German and European
+  practice found (window elevations, the European setting of a kitchen
+  planning program) puts the tip of the opening triangle at the handle,
+  the base on the hinge side; US practice puts it at the hinge side. The
+  text of DIN 919-1 could not be checked. D68 called `tip_at_hinge` the
+  DIN form: that attribution is withdrawn, the option texts name no
+  standard. The default stays `tip_at_handle` (D73).
+- One geometry for the symbol: `openingSymbolPoints(rect, hinge, symbol)`
+  (engine, `drawing/opening.ts`, paper coordinates, Y down). Doors and
+  appliance fronts turn on their left or right edge, lift-up flaps on the
+  top edge (`hingeEdges(CabinetResult)`, `output/frontview.ts`); with the
+  tip at the handle a flap's triangle points down. Drawers, blind panels,
+  fillers and open zones get no symbol (no standard symbol found; a
+  diagonal cross means "flat surface" in DIN 919 drawings).
+- Wall elevations (`elevationSvg`, sheets) now draw the symbol on every
+  hinged front, dashed (class `rm-opening`). `elevationSvg(…, css, {
+  openingSymbol })` and `SheetOptions.openingSymbol` take `tip_at_handle`
+  (default), `tip_at_hinge` or `none`; the app passes its `hingeSymbol`
+  preference to the elevation preview and to exported sheets, so app views
+  and sheets agree. The CLI uses the default. No golden file changed.
+- The app's preference menu lists the default first and explains both
+  forms in one line (en, de).

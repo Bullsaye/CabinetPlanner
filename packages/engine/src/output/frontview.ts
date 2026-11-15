@@ -70,14 +70,20 @@ const FRONT_ROLES: readonly PartRole[] = ["door", "drawer_front", "blind_panel",
 /** Whether a role is a front (hidden by "show fronts" in the views). */
 export const isFrontRole = (role: PartRole): boolean => FRONT_ROLES.includes(role);
 
-export function frontViewOf(c: CabinetResult): FrontView {
-  const v = (n: string): number => c.resolved.values.get(n) ?? 0;
-  const kind = c.resolved.cabinet.kind;
-  const zones = c.layout?.zones ?? [];
+/** Edge each hinged front turns on, by part code: doors and appliance fronts left or right, lift-up flaps at the top. */
+export function hingeEdges(c: CabinetResult): Map<string, "left" | "right" | "top"> {
   const hingeOf = new Map<string, "left" | "right" | "top">();
   for (const d of c.layout?.doors ?? []) hingeOf.set(d.code, d.hinge);
   for (const d of c.layout?.applianceFronts ?? []) hingeOf.set(d.code, d.hinge);
   for (const f of c.layout?.flaps ?? []) hingeOf.set(f.code, "top");
+  return hingeOf;
+}
+
+export function frontViewOf(c: CabinetResult): FrontView {
+  const v = (n: string): number => c.resolved.values.get(n) ?? 0;
+  const kind = c.resolved.cabinet.kind;
+  const zones = c.layout?.zones ?? [];
+  const hingeOf = hingeEdges(c);
   const hingeItem = c.resolved.options.get("hardware.hinge")?.value;
 
   const parts: (FrontViewPart & { z: number })[] = [];

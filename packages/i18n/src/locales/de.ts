@@ -1196,6 +1196,7 @@ export const de: Record<MessageKey, string> = {
   "ui.hinge_symbol": "Öffnungssymbol an Türen",
   "ui.hinge_symbol.tip_at_hinge": "Spitze am Band",
   "ui.hinge_symbol.tip_at_handle": "Spitze am Griff",
+  "ui.hinge_symbol.hint": "Spitze am Griff: wie in Fensteransichten und Küchenplänen in Europa üblich. Spitze am Band: wie in US-Zeichnungen. Bänder und Griffe werden immer mitgezeichnet; die Wandansichten verwenden dasselbe Symbol.",
   "ui.fit_cabinet": "Schrank einpassen",
   "ui.fix_errors_first": "Dieser Schrank hat Fehler. Erst beheben, dann gibt es Zeichnungen.",
   "ui.fronts": "Fronten",

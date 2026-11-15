@@ -10,6 +10,7 @@ import {
   type CabinetResult,
   type CabinetTemplate,
   type LibraryFragment,
+  type OpeningSymbol,
   type PackSelection,
   type Part,
   type ProjectResult,
@@ -76,7 +77,8 @@ export function blankProject(name: string, withRoom = true): Doc {
 const NARROW = "(max-width: 1100px)";
 export type ViewMode = "cabinet" | "room";
 export type WallsShown = "all" | "used" | "none";
-export type HingeSymbol = "tip_at_hinge" | "tip_at_handle";
+/** Opening symbol on hinged fronts (D68, D73, D78); the engine's type. */
+export type HingeSymbol = OpeningSymbol;
 /** Preferences kept between sessions (D33). */
 const PREFS = ["lang", "style", "ops", "fronts", "viewMode", "cabinet3d", "walls", "hingeSymbol", "fittings", "worktops", "plinths"] as const;
 
