@@ -37,7 +37,10 @@ async function loadFonts(): Promise<PdfFonts> {
 }
 
 /** The sheets as one PDF, a sheet per page. Rejects when the fonts cannot be loaded. */
-export async function sheetsToPdf(sheets: readonly PdfSheet[], opts: { paper: PdfPaper; title?: string; timestamp?: string }): Promise<Uint8Array> {
+export async function sheetsToPdf(
+  sheets: readonly PdfSheet[],
+  opts: { paper: PdfPaper; reducedNote?: (percent: number) => string; title?: string; timestamp?: string },
+): Promise<Uint8Array> {
   fonts ??= loadFonts().catch((e) => {
     fonts = undefined; // try again next time (offline now, online later)
     throw e;

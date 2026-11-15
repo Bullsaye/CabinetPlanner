@@ -12,6 +12,8 @@ import {
   projectSheets,
   sheetIndex,
   sheetsPdf,
+  PAPER_FORMATS,
+  type PdfPaper,
   cutlistCsv,
   cutlistRows,
   cutlistTable,
@@ -75,7 +77,7 @@ Commands:
   dxf       Write CNC DXF files, one per machined part side (--out <dir> or --zip <file>;
             --cabinet / --part to limit; --profile <id> for the layer names)
   sheets    Write every drawing sheet: room plan and elevations, assembly drawings, part
-            sheets. --pdf <file>: one PDF, a sheet per page (--paper sheet|a4|a3);
+            sheets. --pdf <file>: one PDF, a sheet per page (--paper sheet|a4|a3|a2|a1|a0);
             --out <dir> or --zip <file>: SVG files; --cabinet or --only to limit; --style
   packs     List the bundled packs (D76) and whether the shop file switches them off;
             --publish <id> writes that pack as the body of a community pack publish
@@ -97,7 +99,10 @@ Options:
                          (default: all sheets, stacked)
   --only <names>         sheets: only these sheets, comma-separated names as in the ZIP
                          (e.g. B01/B01-SL,room/floor-plan; ".svg" optional, folder/ for all in it)
-  --paper <sheet|a4|a3>  sheets --pdf: every page at the sheet's size (default), or on A4 / A3
+  --paper <format>       sheets: sheet (default: every page at the sheet's size), a4, a3, or
+                         a2 / a1 / a0 for plotters. Sheets are drawn on a format larger than
+                         their own at a larger standard scale (PDF and SVG); on a smaller one
+                         the PDF reduces them and says so on the page
   -h, --help             Show this help
 `;
 
@@ -426,8 +431,8 @@ export function run(argv: readonly string[], io: Io): number {
         return 2;
       }
       const paper = opts.paper ?? "sheet";
-      if (paper !== "sheet" && paper !== "a4" && paper !== "a3") {
-        io.stderr("--paper must be sheet, a4 or a3\n");
+      if (paper !== "sheet" && !(PAPER_FORMATS as string[]).includes(paper)) {
+        io.stderr(`--paper must be sheet, ${PAPER_FORMATS.join(", ")}\n`);
         return 2;
       }
       if (opts.pdf && !io.fonts) {
@@ -467,12 +472,17 @@ export function run(argv: readonly string[], io: Io): number {
         styleName: localName(styleInput.name, tr.locale),
         ...(opts.cabinet ? { cabinet: opts.cabinet } : {}),
         ...(only ? { only } : {}),
+        paper: paper as PdfPaper,
         // Every sheet names its project, revision and (with --timestamp) when it was made.
         meta: { project: result.project.name, revision: result.project.revision, ...(opts.timestamp ? { timestamp: opts.timestamp } : {}) },
       });
       const count = tr.t("cli.sheets", { n: sheets.length });
       if (opts.pdf) {
-        const pdf = sheetsPdf(sheets, { fonts: io.fonts!(), paper, title: result.project.name, ...(opts.timestamp ? { timestamp: opts.timestamp } : {}) });
+        const pdf = sheetsPdf(sheets, {
+          fonts: io.fonts!(),
+          paper: paper as PdfPaper,
+          reducedNote: (n) => tr.t("drawing.reduced", { n }),
+          title: result.project.name, ...(opts.timestamp ? { timestamp: opts.timestamp } : {}) });
         io.writeFile(opts.pdf, pdf);
         io.stderr(tr.t("cli.written", { file: `${opts.pdf} (${count})` }) + "\n");
       }

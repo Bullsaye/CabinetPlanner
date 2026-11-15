@@ -124,7 +124,7 @@ export const DrawingStyleSchema = z.object({
     .optional(),
   paper: z
     .object({
-      size: z.enum(["A4", "A3"]).optional(),
+      size: z.enum(["A4", "A3", "A2", "A1", "A0"]).optional(),
       /** auto: portrait for parts taller than wide. */
       orientation: z.enum(["auto", "landscape", "portrait"]).optional(),
       /** Scale denominator, or "auto" for the largest standard scale that fits. */
@@ -134,6 +134,9 @@ export const DrawingStyleSchema = z.object({
   rules: z.array(Rule).default([]),
 });
 export type DrawingStyleInput = z.infer<typeof DrawingStyleSchema>;
+
+/** Paper of a part sheet (ISO 216). */
+export type SheetSize = "A4" | "A3" | "A2" | "A1" | "A0";
 
 /** A style with every setting filled, after inheritance. */
 export interface ResolvedStyle {
@@ -149,7 +152,7 @@ export interface ResolvedStyle {
     terminator: "tick" | "arrow" | "dot";
   };
   show: { tags: boolean; legend: boolean; table: boolean; edgeNames: boolean; centreMarks: boolean; bothSides: boolean };
-  paper: { size: "A4" | "A3"; orientation: "auto" | "landscape" | "portrait"; scale: "auto" | number };
+  paper: { size: SheetSize; orientation: "auto" | "landscape" | "portrait"; scale: "auto" | number };
   rules: Rule[];
 }
 

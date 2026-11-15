@@ -2,6 +2,7 @@ import type { OpSource } from "../ops.ts";
 import type { Part, PartEdges } from "../part.ts";
 import { localName } from "../text.ts";
 import { formatNumber } from "../output/format.ts";
+import { PAPER_MM } from "../output/paper.ts";
 import { extractFeatures, groupFeatures, tagName, type DFeature, type FeatureGroup } from "./features.ts";
 import type { ResolvedStyle } from "./style.ts";
 import { faceDir, innerFace, machinedFaces, otherFace, partView, type Dir, type PartView, type Side } from "./view.ts";
@@ -146,7 +147,7 @@ export function spreadVar(centres: readonly number[], widths: readonly number[],
 }
 
 const STANDARD_SCALES = [1, 2, 5, 10, 20, 50];
-const PAPER = { A4: [297, 210], A3: [420, 297] } as const;
+const PAPER = { A4: PAPER_MM.a4, A3: PAPER_MM.a3, A2: PAPER_MM.a2, A1: PAPER_MM.a1, A0: PAPER_MM.a0 } as const;
 const MARGIN = 10;
 
 // ---------------------------------------------------------------------------

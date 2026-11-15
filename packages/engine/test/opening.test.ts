@@ -37,8 +37,8 @@ describe("opening symbol (D78)", () => {
     expect(el.length).toBe(1);
     // Hinged left, tip at the handle: the tip lies right of the base.
     expect(el[0]![1]![0]!).toBeGreaterThan(el[0]![0]![0]!);
-    const hinge = symbols(elevationSvg(res.room!, "A", res.cabinets, "R", text, true, { openingSymbol: "tip_at_hinge" }));
+    const hinge = symbols(elevationSvg(res.room!, "A", res.cabinets, "R", text, true, undefined, { openingSymbol: "tip_at_hinge" }));
     expect(hinge[0]![1]![0]!).toBeLessThan(hinge[0]![0]![0]!);
-    expect(elevationSvg(res.room!, "A", res.cabinets, "R", text, true, { openingSymbol: "none" })).not.toContain('class="rm-opening"');
+    expect(elevationSvg(res.room!, "A", res.cabinets, "R", text, true, undefined, { openingSymbol: "none" })).not.toContain('class="rm-opening"');
   });
 });
